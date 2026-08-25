@@ -31,24 +31,28 @@ export async function startCheckout(workspaceId: string, planCode: "MIHWAR" | "M
   if (!subscription) throw AppError.notFound("لا يوجد اشتراك لهذه المساحة");
 
   const invoiceNumber = `INV-${Date.now()}-${randomToken(3)}`;
-  const amount = plan.priceMonthly;
-  const vat = Math.round(amount * 0.15 * 100) / 100;
+  // أسعار الأفراد شاملة الضريبة (القسم ج من البرومت التنفيذي) — priceMonthly هو
+  // الإجمالي المعروض للمشترك، ونستخرج منه القيمة الأساسية والضريبة لأغراض الفاتورة
+  // لا نضيف 15٪ فوقه (ذلك يُضاعف الضريبة فعليًا).
+  const totalAmount = plan.priceMonthly;
+  const baseAmount = Math.round((totalAmount / 1.15) * 100) / 100;
+  const vat = Math.round((totalAmount - baseAmount) * 100) / 100;
 
   const invoice = await prisma.invoice.create({
-    data: { subscriptionId: subscription.id, workspaceId, number: invoiceNumber, amountRiyals: amount, vatRiyals: vat, status: "DRAFT" },
+    data: { subscriptionId: subscription.id, workspaceId, number: invoiceNumber, amountRiyals: baseAmount, vatRiyals: vat, status: "DRAFT" },
   });
 
   const idempotencyKey = randomToken(16);
   const provider = getPaymentProvider();
   const intent = await provider.createPaymentIntent({
-    amountRiyals: amount + vat,
+    amountRiyals: totalAmount,
     invoiceId: invoice.id,
     idempotencyKey,
     returnUrl: `${env.APP_URL}/billing/return`,
   });
 
   await prisma.payment.create({
-    data: { invoiceId: invoice.id, provider: provider.mode, providerReference: intent.providerReference, idempotencyKey, status: "PENDING", amountRiyals: amount + vat },
+    data: { invoiceId: invoice.id, provider: provider.mode, providerReference: intent.providerReference, idempotencyKey, status: "PENDING", amountRiyals: totalAmount },
   });
 
   await recordAudit({ userId: actorId, workspaceId, action: "CHECKOUT_STARTED", entityType: "Invoice", entityId: invoice.id });
