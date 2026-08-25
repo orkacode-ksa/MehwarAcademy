@@ -20,7 +20,10 @@ import { router } from "./routes.js";
 export function createApp() {
   const app = express();
 
-  app.set("trust proxy", 1);
+  // قفزتان موثوقتان: حافة Railway ثم Caddy داخل حاوية العميل (يوكّل /api للحفاظ على أصل
+  // واحد للكوكيز — انظر client/Caddyfile). عند إضافة Cloudflare مستقبلًا يصبح CF-Connecting-IP
+  // هو المصدر المعتمد فعليًا (بعد التحقق من سر الأصل §17) بصرف النظر عن هذا العدد.
+  app.set("trust proxy", 2);
   app.disable("x-powered-by");
 
   app.use(requestId);

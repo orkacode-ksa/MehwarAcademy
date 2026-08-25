@@ -10,14 +10,13 @@ RUN npm ci
 FROM deps AS build
 WORKDIR /repo
 COPY . .
-ARG VITE_API_ORIGIN
-ENV VITE_API_ORIGIN=${VITE_API_ORIGIN}
+# مسار API نسبي دائمًا الآن — Caddy يوكّل /api إلى الخادم فيبقى الأصل واحدًا من منظور المتصفح
+ENV VITE_API_ORIGIN=""
 RUN npm run build:shared && npm run build --workspace=client
 
-FROM node:20-alpine AS runtime
-WORKDIR /app
-RUN npm install -g serve@14
-COPY --from=build /repo/client/dist ./dist
-COPY client/serve.json ./dist/serve.json
+FROM caddy:2-alpine AS runtime
+COPY --from=build /repo/client/dist /srv
+COPY client/Caddyfile /etc/caddy/Caddyfile
+ENV PORT=4173
 EXPOSE 4173
-CMD ["serve", "-s", "dist", "-l", "4173"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
