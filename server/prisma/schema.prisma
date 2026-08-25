@@ -1,0 +1,591 @@
+// مِحوَر — مخطط قاعدة البيانات
+// كل كيان مرتبط بمساحة عمل (tenant) يحمل workspaceId مفهرسًا، ويُستخدم في كل where صراحة (عزل صفوف).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── الهوية والوصول ─────────────────────────
+
+enum UserRole {
+  OWNER
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  phone           String?   @unique
+  passwordHash    String
+  fullName        String
+  role            UserRole
+  tokenVersion    Int       @default(0)
+  emailVerifiedAt DateTime?
+
+  totpEnabled  Boolean @default(false)
+  totpSecret   String? // AES-256-GCM مشفّر، صيغة v1:iv:authTag:ciphertext
+  totpRecovery String[] @default([]) // hashes لرموز الاسترداد
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+
+  foundingMember Boolean @default(false)
+
+  createdAt DateTime  @updatedAt @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  refreshTokens       RefreshToken[]
+  workspaceMemberships WorkspaceMember[]
+  ownedWorkspaces      Workspace[]        @relation("WorkspaceOwner")
+  auditLogs            AuditLog[]
+  enrollments          Enrollment[]
+  passwordResetTokens  PasswordResetToken[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id             String    @id @default(cuid())
+  userId         String
+  tokenHash      String    @unique // SHA-256
+  device         String?
+  ip             String?
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  replacedByHash String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// append-only: تُفرض بـ trigger في هجرة SQL يمنع UPDATE/DELETE على الجدول
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  workspaceId String?
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ───────────────────────── مساحات العمل (Tenancy) ─────────────────────────
+
+enum WorkspaceRole {
+  OWNER
+  TEACHER
+  DEPARTMENT_HEAD
+}
+
+enum PlanCode {
+  MIHWAR
+  MIHWAR_PRO
+  DEPARTMENT
+  STUDENT_PLUS
+}
+
+model Workspace {
+  id        String    @id @default(cuid())
+  name      String
+  planCode  PlanCode  @default(MIHWAR)
+  ownerId   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members WorkspaceMember[]
+
+  academicYears AcademicYear[]
+  courses       Course[]
+  subscription  Subscription?
+  qualityItems  QualityFileItem[]
+  generationJobs GenerationJob[]
+
+  @@index([ownerId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(TEACHER)
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+// ───────────────────────── الفوترة والاشتراكات ─────────────────────────
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  GRACE
+  READ_ONLY
+  FROZEN
+  CANCELED
+  SCHEDULED_DELETION
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  workspaceId        String             @unique
+  planCode           PlanCode
+  status             SubscriptionStatus @default(TRIALING)
+  billingCycle       BillingCycle       @default(MONTHLY)
+  trialEndsAt        DateTime?
+  currentPeriodEnd   DateTime?
+  graceEndsAt        DateTime?
+  readOnlyEndsAt     DateTime?
+  frozenEndsAt       DateTime?
+  productionMinutesBalance Int          @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invoices  Invoice[]
+
+  @@map("subscriptions")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+  REFUNDED
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  workspaceId    String
+  number         String        @unique
+  amountRiyals   Decimal       @db.Decimal(10, 2)
+  vatRiyals      Decimal       @db.Decimal(10, 2)
+  status         InvoiceStatus @default(DRAFT)
+  pdfAssetId     String?
+  issuedAt       DateTime?
+  createdAt      DateTime      @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payments     Payment[]
+
+  @@index([workspaceId])
+  @@map("invoices")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  invoiceId          String
+  provider           String
+  providerReference  String?
+  idempotencyKey     String        @unique
+  status             PaymentStatus @default(PENDING)
+  amountRiyals       Decimal       @db.Decimal(10, 2)
+  createdAt          DateTime      @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// حدث webhook خام قبل المعالجة — لمنع المعالجة المزدوجة وللتدقيق
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  provider   String
+  eventId    String
+  rawPayload Json
+  processedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@map("webhook_events")
+}
+
+// ───────────────────────── الهيكل الأكاديمي ─────────────────────────
+
+model AcademicYear {
+  id          String    @id @default(cuid())
+  workspaceId String
+  label       String
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  semesters Semester[]
+
+  @@index([workspaceId])
+  @@map("academic_years")
+}
+
+model Semester {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  academicYearId String
+  label          String
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  courses      Course[]
+
+  @@index([workspaceId])
+  @@index([academicYearId])
+  @@map("semesters")
+}
+
+model Course {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  semesterId    String
+  code          String
+  nameAr        String
+  creditHours   Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  semester     Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  sections     Section[]
+  topics       Topic[]
+  assessments  Assessment[]
+  qualityItems QualityFileItem[]
+  generationJobs GenerationJob[]
+
+  @@unique([workspaceId, semesterId, code])
+  @@index([workspaceId])
+  @@index([semesterId])
+  @@map("courses")
+}
+
+model Section {
+  id          String    @id @default(cuid())
+  workspaceId String
+  courseId    String
+  label       String
+  capacity    Int
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  attendance  Attendance[]
+
+  @@unique([courseId, label])
+  @@index([workspaceId])
+  @@index([courseId])
+  @@map("sections")
+}
+
+model Enrollment {
+  id                  String    @id @default(cuid())
+  workspaceId         String
+  sectionId           String
+  studentId           String
+  universityIdNumber  String
+  createdAt           DateTime  @default(now())
+  deletedAt           DateTime?
+
+  section    Section      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  student    User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attendance Attendance[]
+  grades     Grade[]
+
+  @@unique([sectionId, studentId])
+  @@index([workspaceId])
+  @@index([studentId])
+  @@map("enrollments")
+}
+
+model Topic {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  courseId         String
+  title            String
+  orderIndex       Int
+  learningOutcomes String[]  @default([])
+  createdAt        DateTime  @default(now())
+  deletedAt        DateTime?
+
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lectures Lecture[]
+
+  @@index([workspaceId])
+  @@index([courseId, orderIndex])
+  @@map("topics")
+}
+
+enum ContentStatus {
+  DRAFT
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+model Lecture {
+  id             String        @id @default(cuid())
+  workspaceId    String
+  topicId        String
+  title          String
+  scriptText     String?
+  slidesAssetId  String?
+  videoAssetId   String?
+  audioAssetId   String?
+  podcastAssetId String?
+  status         ContentStatus @default(DRAFT)
+  aiGenerated    Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([topicId])
+  @@map("lectures")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+  LATE
+}
+
+model Attendance {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  sectionId    String
+  enrollmentId String
+  date         DateTime         @db.Date
+  status       AttendanceStatus
+  createdAt    DateTime         @default(now())
+
+  section    Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, date])
+  @@index([workspaceId])
+  @@index([sectionId, date])
+  @@map("attendance_records")
+}
+
+enum AssessmentType {
+  QUIZ
+  ASSIGNMENT
+  MIDTERM
+  FINAL
+  PARTICIPATION
+  OTHER
+}
+
+model Assessment {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  courseId      String
+  title         String
+  type          AssessmentType
+  maxScore      Decimal        @db.Decimal(6, 2)
+  weightPercent Decimal        @db.Decimal(5, 2)
+  createdAt     DateTime       @default(now())
+  deletedAt     DateTime?
+
+  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  grades Grade[]
+
+  @@index([workspaceId])
+  @@index([courseId])
+  @@map("assessments")
+}
+
+model Grade {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  assessmentId String
+  enrollmentId String
+  score        Decimal  @db.Decimal(6, 2)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, enrollmentId])
+  @@index([workspaceId])
+  @@map("grades")
+}
+
+// ───────────────────────── ملف الجودة ─────────────────────────
+
+enum QualityItemKey {
+  COURSE_SPECIFICATION
+  LEARNING_OUTCOMES_MAP
+  LECTURE_ARCHIVE
+  ASSESSMENT_PLAN
+  EXAM_SAMPLES
+  GRADE_DISTRIBUTION
+  STUDENT_FEEDBACK
+  ATTENDANCE_RECORD
+  QUESTION_BANK
+  COURSE_REPORT
+  IMPROVEMENT_PLAN
+}
+
+model QualityFileItem {
+  id          String         @id @default(cuid())
+  workspaceId String
+  courseId    String
+  itemKey     QualityItemKey
+  completed   Boolean        @default(false)
+  note        String?
+  updatedAt   DateTime       @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, itemKey])
+  @@index([workspaceId])
+  @@map("quality_file_items")
+}
+
+// ───────────────────────── خط إنتاج الذكاء الاصطناعي ─────────────────────────
+
+enum GenerationJobType {
+  FULL_LECTURE
+  LECTURE_SCRIPT
+  SLIDES
+  NARRATION_AUDIO
+  VIDEO_RENDER
+  PODCAST
+  QUESTION_BANK
+  COURSE_REPORT_DRAFT
+}
+
+enum JobStatus {
+  PENDING
+  AWAITING_APPROVAL
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+model GenerationJob {
+  id                String            @id @default(cuid())
+  workspaceId       String
+  courseId          String
+  createdById       String
+  type              GenerationJobType
+  status            JobStatus         @default(PENDING)
+  estimatedMinutes  Int               @default(0)
+  estimatedCostRiyals Decimal         @db.Decimal(8, 2) @default(0)
+  actualCostRiyals  Decimal           @db.Decimal(8, 2) @default(0)
+  batchMode         Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  steps     JobStep[]
+
+  @@index([workspaceId])
+  @@index([courseId])
+  @@map("generation_jobs")
+}
+
+model JobStep {
+  id           String    @id @default(cuid())
+  jobId        String
+  stepKey      String
+  status       JobStatus @default(PENDING)
+  costRiyals   Decimal   @db.Decimal(8, 2) @default(0)
+  outputAssetId String?
+  outputText   String?
+  errorMessage String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  job GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("job_steps")
+}
+
+// ───────────────────────── الملفات (ميتاداتا فقط — المحتوى في التخزين الكائني) ─────────────────────────
+
+model FileAsset {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  objectKey     String    @unique
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  uploadedById  String
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  @@index([workspaceId])
+  @@map("file_assets")
+}
