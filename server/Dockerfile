@@ -1,5 +1,7 @@
 # يُبنى بسياق جذر المستودع (monorepo) — Railway: Root Directory = "." والمسار هنا server/Dockerfile
-FROM mcr.microsoft.com/playwright:v1.47.2-jammy AS base
+# ⚠️ إصدار هذه الصورة يجب أن يطابق حرفيًا "playwright-core" في server/package.json —
+# اختلافهما يعني أن Chromium المثبَّت في الصورة لا يطابق ما يبحث عنه playwright-core فيفشل PDF بصمت وقت التشغيل لا وقت البناء.
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy AS base
 WORKDIR /repo
 
 FROM base AS deps
