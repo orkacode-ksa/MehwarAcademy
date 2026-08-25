@@ -6,6 +6,7 @@ build/
 !.env.example
 *.log
 *.sql
+!server/prisma/migrations/**/*.sql
 *.dump
 *.sqlite
 .DS_Store
