@@ -11,6 +11,8 @@ RUN npm ci
 
 FROM deps AS build
 COPY . .
+# Prisma Client يُولَّد قبل tsc — بدونه كل استدعاء Prisma في الكود يُكتَّب كـ any ضمنيًا فيفشل tsc strict
+RUN npx prisma generate --schema=./server/prisma/schema.prisma
 RUN npm run build:shared && npm run build:server
 
 FROM base AS runtime
