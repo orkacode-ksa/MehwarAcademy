@@ -73,8 +73,12 @@ function SectionsBlock({
     e.preventDefault();
     if (!enrollTarget) return;
     try {
-      await enroll.mutateAsync({ sectionId: enrollTarget, studentEmail, studentFullName: studentName, universityIdNumber: studentUid });
-      setMessage("تم تسجيل الطالب بنجاح");
+      const result = await enroll.mutateAsync({ sectionId: enrollTarget, studentEmail, studentFullName: studentName, universityIdNumber: studentUid });
+      setMessage(
+        result.tempPassword
+          ? `تم تسجيل الطالب. لا مزوّد بريد مربوط بعد — شارك كلمة المرور المؤقتة يدويًا: ${result.tempPassword}`
+          : "تم تسجيل الطالب بنجاح (الحساب موجود مسبقًا)",
+      );
       setStudentName("");
       setStudentEmail("");
       setStudentUid("");

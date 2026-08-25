@@ -101,7 +101,7 @@ export function useCreateTopic(workspaceId: string | undefined, courseId: string
 export function useEnrollStudent(workspaceId: string | undefined) {
   return useMutation({
     mutationFn: (input: { sectionId: string; studentEmail: string; studentFullName: string; universityIdNumber: string }) =>
-      api.post(`/workspaces/${workspaceId}/academic/enrollments`, input),
+      api.post<{ id: string; tempPassword: string | null }>(`/workspaces/${workspaceId}/academic/enrollments`, input),
   });
 }
 

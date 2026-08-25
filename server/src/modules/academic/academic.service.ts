@@ -109,8 +109,12 @@ export async function enrollStudent(workspaceId: string, actorId: string, input:
   if (!section) throw AppError.notFound("الشعبة غير موجودة");
 
   let student = await prisma.user.findUnique({ where: { email: input.studentEmail } });
+  let tempPassword: string | null = null;
   if (!student) {
-    const tempPassword = randomToken(16);
+    // ⚠️ لا مزوّد بريد حقيقي بعد (EmailProvider في الوضع الوهمي) — كلمة المرور المؤقتة
+    // تُرجَع في استجابة API ليشاركها الأستاذ يدويًا. عند ربط بريد حقيقي تُستبدل هذه
+    // بدعوة عبر رابط تعيين كلمة مرور، ولا تُرجَع كلمة المرور في الاستجابة إطلاقًا.
+    tempPassword = randomToken(8);
     student = await prisma.user.create({
       data: {
         email: input.studentEmail,
@@ -143,5 +147,5 @@ export async function enrollStudent(workspaceId: string, actorId: string, input:
     entityId: enrollment.id,
   });
 
-  return enrollment;
+  return { ...enrollment, tempPassword };
 }
