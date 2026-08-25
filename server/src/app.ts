@@ -68,9 +68,8 @@ export function createApp() {
   // مسارات webhooks تلتقط الجسم الخام قبل json parsing — تُسجَّل في routes.ts نفسها قبل هذا السطر إن لزم
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
-  app.use(cfOrigin);
-  app.use("/api", generalRateLimit);
-
+  // فحوصات الصحة قبل بوابة سر Cloudflare عمدًا: مُراقب Railway الداخلي يضرب الحاوية
+  // مباشرة بلا مرور بـ Cloudflare، ولا تكشف هذه المسارات أي تفاصيل بنية (الدستور §21).
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });
@@ -85,6 +84,8 @@ export function createApp() {
     }
   });
 
+  app.use(cfOrigin);
+  app.use("/api", generalRateLimit);
   app.use("/api", router);
 
   app.use(notFoundHandler);
