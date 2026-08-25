@@ -18,5 +18,6 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 RUN npm install -g serve@14
 COPY --from=build /repo/client/dist ./dist
+COPY client/serve.json ./dist/serve.json
 EXPOSE 4173
 CMD ["serve", "-s", "dist", "-l", "4173"]
