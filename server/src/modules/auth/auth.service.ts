@@ -6,7 +6,7 @@ import { randomToken, sha256Hex } from "../../lib/crypto.js";
 import { cacheDel } from "../../lib/redis.js";
 import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
-import { REFRESH_TOKEN_TTL_DAYS, TRIAL_DAYS } from "../../config/constants.js";
+import { REFRESH_TOKEN_TTL_DAYS, TRIAL_DAYS, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES } from "../../config/constants.js";
 import { logger } from "../../lib/logger.js";
 
 const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة";
@@ -104,10 +104,18 @@ export async function loginUser(
 
   if (!user || !passwordOk) {
     if (user) {
-      await prisma.user.update({
+      const updated = await prisma.user.update({
         where: { id: user.id },
         data: { failedLoginCount: { increment: 1 } },
+        select: { failedLoginCount: true },
       });
+      // قفل تدريجي: عند بلوغ الحد الأقصى تُقفل ١٥ دقيقة (الدستور الأمني §3.3)
+      if (updated.failedLoginCount >= LOGIN_MAX_ATTEMPTS) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lockedUntil: new Date(Date.now() + LOGIN_LOCK_MINUTES * 60 * 1000) },
+        });
+      }
     }
     throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
   }
