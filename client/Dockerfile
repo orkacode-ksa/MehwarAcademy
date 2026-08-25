@@ -17,6 +17,5 @@ RUN npm run build:shared && npm run build --workspace=client
 FROM caddy:2-alpine AS runtime
 COPY --from=build /repo/client/dist /srv
 COPY client/Caddyfile /etc/caddy/Caddyfile
-ENV PORT=4173
 EXPOSE 4173
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
