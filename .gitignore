@@ -16,3 +16,4 @@ client/dist/
 server/dist/
 packages/shared/dist/
 *.local
+*.tsbuildinfo
