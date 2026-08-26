@@ -1,27 +1,36 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
+type Variant = "primary" | "secondary" | "text" | "teal" | "gold" | "ghostLight";
+type Size = "sm" | "md" | "lg";
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  loading?: boolean;
+  variant?: Variant;
+  size?: Size;
   children: ReactNode;
 }
 
-const VARIANT_CLASSES: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary: "bg-brand text-white hover:bg-brand/90",
-  secondary: "bg-white text-ink border border-slate-200 hover:bg-slate-50",
-  ghost: "bg-transparent text-brand hover:bg-brand/5",
-  danger: "bg-danger text-white hover:bg-danger/90",
+/** يطابق .btn + .bp/.bg2/.bt/.bteal/.bgold/.bghost و.bs/.blg من البروتوتايب */
+const VARIANT: Record<Variant, string> = {
+  primary: "bg-deep text-white shadow-s1 hover:bg-deep2 hover:-translate-y-px hover:shadow-s2",
+  secondary: "bg-white/75 border border-line text-ink hover:bg-white hover:border-[#C6D3CB]",
+  text: "text-deep px-[11px] hover:bg-deep/[.06]",
+  teal: "bg-teal text-white hover:bg-[#26a094]",
+  gold: "bg-gold2 text-[#22190C] font-semibold hover:bg-gold3 hover:-translate-y-0.5",
+  ghostLight: "bg-transparent border border-white/[.34] text-white hover:bg-white/10 hover:border-white/50",
 };
 
-export function Button({ variant = "primary", loading, children, className = "", disabled, ...rest }: ButtonProps) {
+const SIZE: Record<Size, string> = {
+  sm: "px-3 py-1.5 text-xs rounded-[9px]",
+  md: "px-[17px] py-[9px] text-[13px] rounded-[11px]",
+  lg: "px-[26px] py-[13px] text-[14.5px] rounded-[13px]",
+};
+
+export function Button({ variant = "primary", size = "md", className = "", children, ...rest }: ButtonProps) {
   return (
     <button
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-medium transition-colors focus-ring disabled:opacity-50 disabled:pointer-events-none ${VARIANT_CLASSES[variant]} ${className}`}
-      disabled={disabled || loading}
-      aria-busy={loading}
+      className={`inline-flex items-center justify-center gap-[7px] font-medium whitespace-nowrap border border-transparent transition-[.16s] [&_svg]:w-[15px] [&_svg]:h-[15px] ${VARIANT[variant]} ${SIZE[size]} ${className}`}
       {...rest}
     >
-      {loading && <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />}
       {children}
     </button>
   );

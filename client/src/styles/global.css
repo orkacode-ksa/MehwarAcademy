@@ -1,59 +1,124 @@
+@import "./tokens.css";
 @import "./fonts.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
+* {
+  box-sizing: border-box;
 }
 
-html {
-  font-size: 16px;
+html,
+body {
+  overflow-x: hidden; /* قاعدة استجابة ملزمة ١ — القسم ٦ من برومت إعادة البناء */
 }
 
 body {
-  @apply bg-bg text-ink font-body;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  font-size: 14px;
   line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
-  -webkit-tap-highlight-color: transparent;
 }
 
-* {
-  scrollbar-color: #c7d0db transparent;
+/* الخط الكتابي للعناوين الكبيرة فقط — ممنوع تحت 18px */
+h1,
+h2,
+.dsp {
+  font-family: "Amiri", serif;
+  line-height: 1.4;
+  font-weight: 700;
 }
-
-/* سطح الطمأنينة: زجاجي ناعم — لا يُستخدم خلف نص متن أبدًا (تباين العربية) */
-.surface-calm {
-  @apply bg-white/70 backdrop-blur-md border border-white/60 shadow-soft rounded-lg;
+h3,
+h4,
+h5 {
+  font-family: "IBM Plex Sans Arabic", sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  line-height: 1.5;
 }
-@media (prefers-reduced-motion: reduce) {
-  .surface-calm {
-    backdrop-filter: none;
-    @apply bg-white border-slate-200;
-  }
-}
-
-/* سطح العمل: مسطّح تمامًا، بلا زجاج ولا تدرّج */
-.surface-work {
-  @apply bg-white border border-slate-200 rounded-sm;
-}
-
-.tabular {
-  @apply font-mono;
+.num {
+  font-family: "IBM Plex Mono", monospace;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
-.focus-ring {
-  @apply outline-none ring-2 ring-offset-2 ring-brand/60 ring-offset-bg;
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: inherit;
+}
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ink);
+}
+input:focus,
+select:focus {
+  outline: 2px solid rgba(62, 142, 110, 0.4);
+  outline-offset: 0;
+  border-color: var(--teal);
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-::selection {
-  background: #dff3ee;
+svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: inline-block;
+  vertical-align: -3px;
 }
 
-@media print {
-  .no-print {
-    display: none !important;
+/* رابط "تخطَّ إلى المحتوى" — القسم ١٠ إتاحة */
+.skip {
+  position: absolute;
+  right: 12px;
+  top: -100px;
+  z-index: 100;
+  background: var(--deep);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: top 0.15s;
+}
+.skip:focus {
+  top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

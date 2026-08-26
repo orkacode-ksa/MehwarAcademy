@@ -1,40 +1,47 @@
-/** @type {import('tailwindcss').Config} */
+/** @type {import('tailwindcss').Config}
+ * الألوان والمقاسات كلها مربوطة بمتغيرات CSS في styles/tokens.css — مصدر حقيقة واحد،
+ * منسوخ حرفيًا من mihwar-prototype-v2.html. لا قيمة هنا مقرَّبة أو مستبدلة بأقرب لون Tailwind.
+ */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
-  darkMode: ["class"],
   theme: {
     extend: {
       colors: {
-        bg: "#F6F8FB",
-        surface: "#FFFFFF",
-        ink: { DEFAULT: "#1A2331", muted: "#5A6B7D" },
-        brand: "#123B4F",
-        progress: "#2DB3A3",
-        warn: "#E8A33D",
-        danger: "#D2544B",
-        tint: {
-          mint: "#DFF3EE",
-          lavender: "#E8E6FB",
-          peach: "#FDEDE4",
-          sky: "#E3F0FA",
-        },
+        canvas: "var(--canvas)",
+        surface: "var(--surface)",
+        deep: "var(--deep)",
+        deep2: "var(--deep2)",
+        deep3: "var(--deep3)",
+        teal: "var(--teal)",
+        gold: "var(--gold)",
+        gold2: "var(--gold2)",
+        gold3: "var(--gold3)",
+        amber: "var(--amber)",
+        crim: "var(--crim)",
+        ink: { DEFAULT: "var(--ink)", 2: "var(--ink2)", 3: "var(--ink3)" },
+        line: { DEFAULT: "var(--line)", 2: "var(--line2)" },
+        mint: "var(--mint)",
+        lav: "var(--lav)",
+        peach: "var(--peach)",
+        sky: "var(--sky)",
       },
       fontFamily: {
-        display: ["Readex Pro", "system-ui", "sans-serif"],
+        amiri: ["Amiri", "serif"],
         body: ["IBM Plex Sans Arabic", "system-ui", "sans-serif"],
         mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
       },
       borderRadius: {
-        lg: "24px",
-        md: "16px",
-        sm: "8px",
+        rlg: "var(--rlg)",
+        rmd: "var(--rmd)",
+        rsm: "var(--rsm)",
       },
       boxShadow: {
-        soft: "0 2px 8px rgba(18,59,79,.06)",
-        lifted: "0 8px 24px rgba(18,59,79,.08)",
+        s1: "var(--s1)",
+        s2: "var(--s2)",
+        s3: "var(--s3)",
       },
       spacing: {
-        4.5: "18px",
+        rail: "var(--rail)",
       },
     },
   },

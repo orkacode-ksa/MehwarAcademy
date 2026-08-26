@@ -1,0 +1,32 @@
+/* منسوخة حرفيًا من :root في mihwar-prototype-v2.html — لا تُقرَّب أي قيمة */
+:root {
+  --canvas: #f3f5f3;
+  --surface: #ffffff;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-br: rgba(255, 255, 255, 0.6);
+  --deep: #0f4739;
+  --deep2: #145a48;
+  --deep3: #1a6b57;
+  --teal: #3e8e6e;
+  --gold: #b0895a;
+  --gold2: #c79a4b;
+  --gold3: #e4c892;
+  --amber: #c79a4b;
+  --crim: #c0544a;
+  --ink: #12241e;
+  --ink2: #4a5a53;
+  --ink3: #7e8c85;
+  --line: #dfe4df;
+  --line2: #eaeeea;
+  --mint: #dceae3;
+  --lav: #efe7da;
+  --peach: #f5e9d8;
+  --sky: #e4ede8;
+  --rlg: 24px;
+  --rmd: 16px;
+  --rsm: 8px;
+  --s1: 0 2px 8px rgba(15, 71, 57, 0.06);
+  --s2: 0 8px 24px rgba(15, 71, 57, 0.09);
+  --s3: 0 18px 50px rgba(15, 71, 57, 0.13);
+  --rail: 84px;
+}

@@ -1,0 +1,25 @@
+:4173
+
+# يخدم الواجهة الثابتة ويوكّل /api إلى الخادم عبر الشبكة الخاصة — يبقيهما على نفس
+# الأصل من منظور المتصفح. حاسم لعمل كوكيز __Host-/SameSite=Strict: mihwar-server
+# و mihwar-client على *.up.railway.app نطاقان مختلفان تمامًا في قائمة PSL العامة
+# (Railway مُدرَجة فيها عمدًا)، فبلا هذا التوكيل تُعامَل الكوكيز كطرف ثالث وتُرفض.
+handle /api/* {
+	reverse_proxy {$API_INTERNAL_ORIGIN}
+}
+
+handle {
+	root * /srv
+	encode gzip
+	try_files {path} /index.html
+	file_server
+}
+
+header {
+	X-Content-Type-Options nosniff
+	X-Frame-Options DENY
+	Referrer-Policy strict-origin-when-cross-origin
+	Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+	Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+}
