@@ -9,6 +9,7 @@ export default {
       colors: {
         canvas: "var(--canvas)",
         surface: "var(--surface)",
+        glass: { DEFAULT: "var(--glass)", br: "var(--glass-br)" },
         deep: "var(--deep)",
         deep2: "var(--deep2)",
         deep3: "var(--deep3)",
