@@ -7,7 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
-      injectRegister: "auto",
+      // التسجيل يدوي عبر virtual:pwa-register في UpdatePrompt.tsx — لازم لعرض
+      // إشعار "نسخة جديدة متاحة" بدل ترك نسخة قديمة تُخدَّم صامتة إلى الأبد
+      // (نمط "prompt" بلا هذا الربط اليدوي لا يُفعِّل أي تحديث مطلقًا).
+      injectRegister: false,
       workbox: {
         // لا يُكاش أي شيء تحت /api — البيانات دائمًا حيّة (الدستور الأمني §7)
         navigateFallbackDenylist: [/^\/api\//],

@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { installArabicZodErrorMap } from "@mihwar/shared";
 import { App } from "./App.js";
+import { UpdatePrompt } from "./components/shell/UpdatePrompt.js";
 import { ToastProvider } from "./state/ToastContext.js";
 import "./styles/global.css";
 
@@ -14,6 +15,7 @@ createRoot(rootEl).render(
   <StrictMode>
     <ToastProvider>
       <App />
+      <UpdatePrompt />
     </ToastProvider>
   </StrictMode>,
 );
