@@ -28,7 +28,7 @@ const SIZE: Record<Size, string> = {
 export function Button({ variant = "primary", size = "md", className = "", children, ...rest }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-[7px] font-medium whitespace-nowrap border border-transparent transition-[.16s] [&_svg]:w-[15px] [&_svg]:h-[15px] ${VARIANT[variant]} ${SIZE[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-[7px] font-medium whitespace-nowrap border border-transparent transition-[.16s] [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-45 disabled:pointer-events-none ${VARIANT[variant]} ${SIZE[size]} ${className}`}
       {...rest}
     >
       {children}

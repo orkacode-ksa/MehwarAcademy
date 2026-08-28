@@ -8,6 +8,9 @@ import { StudentCoursesIndexPage } from "./pages/StudentCoursesIndexPage.js";
 import { NAV, ROLE_LABEL, type Role } from "./nav/nav.js";
 import type { IconName } from "./icons/Icon.js";
 import { ShowcasePage } from "./pages/ShowcasePage.js";
+import { LandingPage } from "./pages/LandingPage.js";
+import { SignupPage } from "./pages/SignupPage.js";
+import { LoginPage } from "./pages/LoginPage.js";
 
 /** المرحلة التي يُبنى فيها محتوى كل مجموعة شاشات، وفق «ترتيب التنفيذ» في برومت إعادة البناء */
 const ROLE_STAGE: Record<Role, number> = { faculty: 4, student: 5, dept: 6, admin: 6 };
@@ -21,9 +24,9 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<PlaceholderPage kicker="عام" title="صفحة الهبوط" icon="logo" stage={3} />} />
-        <Route path="/signup" element={<PlaceholderPage kicker="عام" title="التسجيل" icon="edit" stage={3} />} />
-        <Route path="/login" element={<PlaceholderPage kicker="عام" title="الدخول" icon="lock" stage={3} />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
         {/* صفحة مرجعية غير ملاحية: عرض مكوّنات المرحلة ١ (لا تظهر في أي تنقّل) */}
         <Route path="/showcase" element={<ShowcasePage />} />
 

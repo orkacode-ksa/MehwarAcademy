@@ -1,9 +1,12 @@
+import { installArabicZodErrorMap } from "@mihwar/shared";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { prisma } from "./lib/prisma.js";
 import { redis } from "./lib/redis.js";
 import { closePdfEngine } from "./lib/pdf.js";
+
+installArabicZodErrorMap();
 
 const app = createApp();
 
