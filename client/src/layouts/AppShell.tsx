@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Rail } from "../components/shell/Rail.js";
+import { BottomNav } from "../components/shell/BottomNav.js";
 import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
 import { SearchPalette } from "../components/shell/SearchPalette.js";
@@ -72,7 +73,8 @@ export function AppShell() {
       <a href="#main" className="skip">
         تخطَّ إلى المحتوى
       </a>
-      <Rail role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
+      <Rail role={role} />
+      <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
       <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
       <NotificationPanel

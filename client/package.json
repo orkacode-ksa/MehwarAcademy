@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@mihwar/shared": "*",
     "@tanstack/react-query": "^5.59.0",
+    "lucide-react": "^1.41.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.86.0",

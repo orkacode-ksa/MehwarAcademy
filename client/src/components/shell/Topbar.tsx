@@ -1,7 +1,7 @@
-import { useNavigate } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
-import { Chip } from "../ui/Chip.js";
-import { ROLE_HOME, ROLE_LABEL, type Role } from "../../nav/nav.js";
+import { SystemStrip } from "./SystemStrip.js";
+import { greetingFor, SESSION_USER } from "../../mock/session.js";
+import type { Role } from "../../nav/nav.js";
 
 interface TopbarProps {
   role: Role;
@@ -10,65 +10,44 @@ interface TopbarProps {
   onNotifOpen: () => void;
 }
 
-const ROLES: Role[] = ["faculty", "student", "dept", "admin"];
+const iconBtn =
+  "w-10 h-10 rounded-full grid place-items-center flex-none text-ink-2 bg-white/55 border border-white/70 backdrop-blur-sm hover:bg-white hover:text-deep hover:border-line transition-colors";
 
 /**
- * الشريط العلوي: شريحة الفصل الدراسي، زر البحث الموحّد، جرس الإشعارات، مبدّل معاينة الأدوار.
- * منقول من `function topbar()` في البروتوتايب. ملاحظة: `.bell` بلا قواعد CSS في البروتوتايب
- * (فجوة فيه) — شكله هنا مصمَّم حديثًا بلغة الرموز نفسها.
+ * رأس المنصة:
+ * ١) شريط النظام وحده في سطر مستقل، بلا أي عنصر بجانبه.
+ * ٢) سطر ترحيب باسم المستخدم، وفي مقابله أدوات الحساب (بحث · إشعارات · الحساب).
+ * حُذف مبدّل الأدوار من داخل الحساب عمدًا — مكانه شاشة الدخول وحدها.
  */
 export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarProps) {
-  const navigate = useNavigate();
+  const user = SESSION_USER[role];
 
   return (
-    <div className="flex items-center gap-3 mb-5 flex-wrap">
-      <div className="flex items-center gap-2.5 py-2 px-3.5 sm:py-[7px] rounded-xl bg-glass border border-glass-br text-xs sm:text-[12px] flex-1 min-w-0 w-full sm:w-auto">
-        <Icon name="cal" className="w-4 h-4 flex-none" />
-        {/* النص يأخذ المساحة المتاحة كاملة قبل أن يُبتر: كان `ms-auto` على الشريحة يترك
-            فراغًا ظاهرًا بينما النص مبتور في منتصف كلمة على الجوال */}
-        <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">الفصل الأول ١٤٤٧ · الأسبوع ٩ من ١٥</span>
-        <Chip tone="teal" className="flex-none">
-          جارٍ
-        </Chip>
-      </div>
+    <div className="mb-5">
+      <SystemStrip />
 
-      <button
-        type="button"
-        onClick={onSearchOpen}
-        title="بحث موحّد (اضغط /)"
-        aria-label="بحث موحّد"
-        className="w-10 h-10 rounded-full grid place-items-center flex-none text-ink-2 bg-deep/5 hover:bg-deep/10 hover:text-deep transition-colors"
-      >
-        <Icon name="file" className="w-[18px] h-[18px]" />
-      </button>
+      <div className="flex items-center gap-3 mt-3.5">
+        <div className="min-w-0 flex-1">
+          <div className="text-[11.5px] text-ink-3">{greetingFor()}</div>
+          <div className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">{user.displayName}</div>
+        </div>
 
-      <button
-        type="button"
-        onClick={onNotifOpen}
-        aria-label="الإشعارات"
-        className="relative w-10 h-10 rounded-full grid place-items-center flex-none text-ink-2 bg-deep/5 hover:bg-deep/10 hover:text-deep transition-colors"
-      >
-        <Icon name="alert" className="w-[18px] h-[18px]" />
-        {unreadCount > 0 && (
-          <b className="absolute -top-0.5 -end-0.5 min-w-[16px] h-4 px-[3px] rounded-full bg-crim text-white text-[9.5px] font-mono font-semibold grid place-items-center leading-none">
-            {unreadCount}
-          </b>
-        )}
-      </button>
-
-      <div title="معاينة الأدوار" className="flex gap-0.5 p-[3px] rounded-[11px] bg-deep/[.06] w-full sm:w-auto">
-        {ROLES.map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={() => navigate(`/${ROLE_HOME[r]}`)}
-            className={`flex-1 sm:flex-none py-1.5 px-2 sm:px-3 rounded-lg [@media(pointer:coarse)]:min-h-[38px] text-[11px] sm:text-[11.5px] font-medium transition-colors ${
-              role === r ? "bg-white text-deep font-semibold shadow-s1" : "text-ink-2"
-            }`}
-          >
-            {ROLE_LABEL[r]}
+        <div className="flex items-center gap-2 flex-none">
+          <button type="button" onClick={onSearchOpen} title="بحث موحّد (اضغط /)" aria-label="بحث موحّد" className={iconBtn}>
+            <Icon name="search" className="w-[18px] h-[18px]" />
           </button>
-        ))}
+
+          <button type="button" onClick={onNotifOpen} aria-label={`الإشعارات${unreadCount ? ` — ${unreadCount} غير مقروء` : ""}`} className={`relative ${iconBtn}`}>
+            <Icon name="bell" className="w-[18px] h-[18px]" />
+            {unreadCount > 0 && (
+              <b className="absolute top-1 end-1.5 w-[7px] h-[7px] rounded-full bg-crim ring-2 ring-canvas" />
+            )}
+          </button>
+
+          <button type="button" aria-label="الحساب" title={user.fullName} className="w-10 h-10 rounded-full flex-none grid place-items-center text-white font-semibold text-[13px] bg-gradient-to-br from-deep to-deep3 shadow-s1">
+            {user.displayName.replace(/^د\.\s*/, "").charAt(0)}
+          </button>
+        </div>
       </div>
     </div>
   );

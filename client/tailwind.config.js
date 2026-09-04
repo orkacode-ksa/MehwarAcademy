@@ -1,32 +1,38 @@
 /** @type {import('tailwindcss').Config}
  * الألوان والمقاسات كلها مربوطة بمتغيرات CSS في styles/tokens.css — مصدر حقيقة واحد،
  * منسوخ حرفيًا من mihwar-prototype-v2.html. لا قيمة هنا مقرَّبة أو مستبدلة بأقرب لون Tailwind.
+ *
+ * تُكتب الألوان بصيغة rgb(var(--x-rgb) / <alpha-value>) لا var(--x) مباشرة، لأن الصيغة
+ * الثانية تُبطل معدِّل الشفافية (bg-deep/5) فيخرج لون غير صالح ⇒ خلفية شفافة تمامًا.
  */
+const c = (name) => `rgb(var(--${name}-rgb) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        canvas: "var(--canvas)",
-        surface: "var(--surface)",
+        canvas: c("canvas"),
+        surface: c("surface"),
+        // الزجاج شفافية أصلًا فيبقى كما هو حرفيًا
         glass: { DEFAULT: "var(--glass)", br: "var(--glass-br)" },
-        deep: "var(--deep)",
-        deep2: "var(--deep2)",
-        deep3: "var(--deep3)",
-        teal: "var(--teal)",
-        gold: "var(--gold)",
-        gold2: "var(--gold2)",
-        gold3: "var(--gold3)",
-        amber: "var(--amber)",
-        crim: "var(--crim)",
+        deep: c("deep"),
+        deep2: c("deep2"),
+        deep3: c("deep3"),
+        teal: c("teal"),
+        gold: c("gold"),
+        gold2: c("gold2"),
+        gold3: c("gold3"),
+        amber: c("amber"),
+        crim: c("crim"),
         // ink-3 نصّي يجتاز AA؛ ink-3d القيمة الأصلية للاستخدام الزخرفي فقط
-        ink: { DEFAULT: "var(--ink)", 2: "var(--ink2)", 3: "var(--ink3-text)", "3d": "var(--ink3)" },
-        goldText: "var(--gold-text)",
-        line: { DEFAULT: "var(--line)", 2: "var(--line2)" },
-        mint: "var(--mint)",
-        lav: "var(--lav)",
-        peach: "var(--peach)",
-        sky: "var(--sky)",
+        ink: { DEFAULT: c("ink"), 2: c("ink2"), 3: c("ink3-text"), "3d": c("ink3") },
+        goldText: c("gold-text"),
+        line: { DEFAULT: c("line"), 2: c("line2") },
+        mint: c("mint"),
+        lav: c("lav"),
+        peach: c("peach"),
+        sky: c("sky"),
       },
       fontFamily: {
         amiri: ["Amiri", "serif"],

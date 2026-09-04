@@ -116,6 +116,18 @@ svg {
   vertical-align: -3px;
 }
 
+/* دخول نص شريط النظام عند التبديل — يُعطَّل تلقائيًا مع prefers-reduced-motion */
+@keyframes stripIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* رابط "تخطَّ إلى المحتوى" — القسم ١٠ إتاحة */
 .skip {
   position: absolute;
