@@ -26,7 +26,7 @@ export function JStep({ status, number, title, description, percent, onClick }: 
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      className={`flex gap-[15px] items-center p-4 rounded-rmd border bg-white transition-[.17s] cursor-pointer hover:border-[#C6D3CB] hover:shadow-s2 hover:-translate-x-1 ${s.box}`}
+      className={`flex gap-[15px] items-center p-4 rounded-rmd border bg-white transition-[border-color,box-shadow,transform] duration-150 cursor-pointer hover:border-[#C6D3CB] hover:shadow-s2 hover:-translate-x-1 ${s.box}`}
     >
       <div className={`grid place-items-center flex-none w-10 h-10 rounded-[13px] font-mono font-semibold text-[13.5px] ${s.num}`}>
         {status === "done" ? <Icon name="chk" className="w-4 h-4" /> : number}

@@ -24,8 +24,10 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
     <div className="flex items-center gap-3 mb-5 flex-wrap">
       <div className="flex items-center gap-2.5 py-2 px-3.5 sm:py-[7px] rounded-xl bg-glass border border-glass-br text-xs sm:text-[12px] flex-1 min-w-0 w-full sm:w-auto">
         <Icon name="cal" className="w-4 h-4 flex-none" />
-        <span className="whitespace-nowrap overflow-hidden text-ellipsis">الفصل الأول ١٤٤٧ · الأسبوع ٩ من ١٥</span>
-        <Chip tone="teal" className="ms-auto">
+        {/* النص يأخذ المساحة المتاحة كاملة قبل أن يُبتر: كان `ms-auto` على الشريحة يترك
+            فراغًا ظاهرًا بينما النص مبتور في منتصف كلمة على الجوال */}
+        <span className="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">الفصل الأول ١٤٤٧ · الأسبوع ٩ من ١٥</span>
+        <Chip tone="teal" className="flex-none">
           جارٍ
         </Chip>
       </div>
@@ -35,7 +37,7 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
         onClick={onSearchOpen}
         title="بحث موحّد (اضغط /)"
         aria-label="بحث موحّد"
-        className="w-[38px] h-[38px] rounded-full grid place-items-center flex-none text-ink-2 bg-deep/5 hover:bg-deep/10 hover:text-deep transition-colors"
+        className="w-10 h-10 rounded-full grid place-items-center flex-none text-ink-2 bg-deep/5 hover:bg-deep/10 hover:text-deep transition-colors"
       >
         <Icon name="file" className="w-[18px] h-[18px]" />
       </button>
@@ -44,7 +46,7 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
         type="button"
         onClick={onNotifOpen}
         aria-label="الإشعارات"
-        className="relative w-[38px] h-[38px] rounded-full grid place-items-center flex-none text-ink-2 bg-deep/5 hover:bg-deep/10 hover:text-deep transition-colors"
+        className="relative w-10 h-10 rounded-full grid place-items-center flex-none text-ink-2 bg-deep/5 hover:bg-deep/10 hover:text-deep transition-colors"
       >
         <Icon name="alert" className="w-[18px] h-[18px]" />
         {unreadCount > 0 && (
@@ -60,7 +62,7 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
             key={r}
             type="button"
             onClick={() => navigate(`/${ROLE_HOME[r]}`)}
-            className={`flex-1 sm:flex-none py-1.5 px-2 sm:px-3 rounded-lg text-[11px] sm:text-[11.5px] font-medium transition-colors ${
+            className={`flex-1 sm:flex-none py-1.5 px-2 sm:px-3 rounded-lg [@media(pointer:coarse)]:min-h-[38px] text-[11px] sm:text-[11.5px] font-medium transition-colors ${
               role === r ? "bg-white text-deep font-semibold shadow-s1" : "text-ink-2"
             }`}
           >

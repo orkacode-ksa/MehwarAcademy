@@ -25,7 +25,7 @@ export function MoreSheet({ role, open, onClose }: MoreSheetProps) {
         aria-label="كل الشاشات"
       >
         <div className="w-[38px] h-1 rounded-full bg-line mx-auto mb-3.5" />
-        <div className="font-amiri text-sm font-semibold mb-3.5">كل الشاشات</div>
+        <div className="text-sm font-semibold text-ink-2 mb-3.5">كل الشاشات</div>
         <div className="grid grid-cols-3 max-[400px]:grid-cols-2 gap-2 sm:gap-2.5">
           {items.map((item) => {
             const active = pathname === `/${item.key}`;

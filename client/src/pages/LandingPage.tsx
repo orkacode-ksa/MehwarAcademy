@@ -102,7 +102,7 @@ export function LandingPage() {
                 <i className="w-2.5 h-2.5 rounded-full bg-line" />
                 <span className="text-[11.5px] text-ink-3 ms-2.5">لوحة عضو هيئة التدريس</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-5 bg-white rounded-b-[1px]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-5 bg-white">
                 {COURSES.slice(0, 3).map((c) => (
                   <div key={c.id} className="flex gap-3.5 items-center p-3.5 rounded-rmd border border-line text-start text-ink">
                     <CourseRing syllabus={c.syl} quality={c.q} assessments={c.as} size={78} />
@@ -135,13 +135,13 @@ export function LandingPage() {
       <section className="py-[52px] sm:py-[78px]">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-gold uppercase block mb-3">المشكلة</span>
+            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">المشكلة</span>
             <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">تُؤدّى الأعمال مرّة، ثم يُعاد تجميعها مرّة ثانية</h2>
             <p className="text-ink-2 mt-3.5 text-[14.5px] leading-[1.95]">
               مع نهاية كل فصل تبدأ رحلة البحث في المجلدات والبريد عن اختبار أُعدّ قبل شهرين، ونموذج إجابة تعذّر تذكّر موضعه.
             </p>
           </Reveal>
-          <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-4.5">
+          <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px]">
             {PROBLEMS.map(([n, t, p], i) => (
               <Reveal key={n} delay={(i % 3) as 0 | 1 | 2}>
                 <article className="p-6 sm:p-[26px] rounded-rlg border border-line bg-canvas h-full">
@@ -158,7 +158,7 @@ export function LandingPage() {
       <section className="py-[52px] sm:py-[78px] bg-white border-y border-line" id="how">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-gold uppercase block mb-3">آلية العمل</span>
+            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">آلية العمل</span>
             <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">أربع خطوات، ثم يعمل النظام معك</h2>
             <p className="text-ink-2 mt-3.5 text-[14.5px] leading-[1.95]">
               تُنشأ السنة الدراسية وفصولها وإجازاتها وفترات اختباراتها تلقائياً من التقويم الأكاديمي، فتبدأ من مقررك مباشرة.
@@ -184,10 +184,10 @@ export function LandingPage() {
       <section className="py-[52px] sm:py-[78px]" id="feat">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-gold uppercase block mb-3">القدرات</span>
+            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">القدرات</span>
             <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">كل ما يدور حول المقرر في موضع واحد</h2>
           </Reveal>
-          <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-4.5">
+          <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px]">
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={(i % 3) as 0 | 1 | 2}>
                 <article className="p-6 sm:p-[26px] rounded-rlg border border-line bg-canvas h-full">
@@ -206,12 +206,12 @@ export function LandingPage() {
       <section className="py-[52px] sm:py-[78px] bg-white border-y border-line" id="price">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-gold uppercase block mb-3">الاشتراك</span>
+            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">الاشتراك</span>
             <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">باقتان، ووصول مجاني دائم للطلاب</h2>
             <p className="text-ink-2 mt-3.5 text-[14.5px] leading-[1.95]">الأسعار شاملة ضريبة القيمة المضافة · الاشتراك السنوي يوفّر شهرين · تجميد صيفي مجاني</p>
           </Reveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 max-w-[800px] mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px] max-w-[800px] mx-auto">
             <Reveal>
               <article className="p-[30px] rounded-rlg border border-line bg-canvas h-full flex flex-col">
                 <h3 className="font-amiri font-bold text-[22px]">مِحوَر</h3>
@@ -259,9 +259,9 @@ export function LandingPage() {
             </Reveal>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 max-w-[800px] mx-auto mt-4.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px] max-w-[800px] mx-auto mt-[18px]">
             <Reveal>
-              <article className="p-6 rounded-rlg border border-line bg-canvas h-full">
+              <article className="p-6 rounded-rlg border border-line bg-canvas h-full flex flex-col">
                 <h4 className="font-amiri font-bold text-lg">باقة القسم</h4>
                 <div className="flex items-baseline gap-1.5 mt-3">
                   <b className="font-mono text-[28px] font-semibold text-deep">69</b>
@@ -270,13 +270,13 @@ export function LandingPage() {
                 <p className="text-[12.5px] text-ink-2 leading-[1.9] my-4">
                   بحد أدنى عشرة أعضاء وعقد سنوي، وتشمل لوحة رئيس القسم، وبنكاً مشتركاً، وهوية الجامعة، وتصديراً مؤسسياً لملفات الجودة استعداداً للاعتماد الأكاديمي.
                 </p>
-                <Button variant="secondary" size="sm" onClick={() => navigate("/signup")}>
+                <Button variant="secondary" size="sm" className="mt-auto self-start" onClick={() => navigate("/signup")}>
                   تواصل معنا
                 </Button>
               </article>
             </Reveal>
             <Reveal delay={1}>
-              <article className="p-6 rounded-rlg border border-line bg-canvas h-full">
+              <article className="p-6 rounded-rlg border border-line bg-canvas h-full flex flex-col">
                 <h4 className="font-amiri font-bold text-lg">حساب الطالب</h4>
                 <div className="mt-3">
                   <b className="text-[28px] font-semibold">مجاناً</b>
@@ -284,7 +284,7 @@ export function LandingPage() {
                 <p className="text-[12.5px] text-ink-2 leading-[1.9] my-4">
                   وصول كامل إلى محتوى المقررات والدرجات والحضور، دائماً وبلا مقابل. وتتوفّر باقة اختيارية بتسعة عشر ريالاً شهرياً لأدوات المراجعة الشخصية.
                 </p>
-                <Button variant="secondary" size="sm" onClick={() => navigate("/signup")}>
+                <Button variant="secondary" size="sm" className="mt-auto self-start" onClick={() => navigate("/signup")}>
                   الانضمام بكود شعبة
                 </Button>
               </article>
@@ -296,14 +296,14 @@ export function LandingPage() {
       <section className="py-[52px] sm:py-[78px]" id="faq">
         <div className="max-w-[780px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-gold uppercase block mb-3">الأسئلة الشائعة</span>
+            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">الأسئلة الشائعة</span>
             <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">ما يستفسر عنه أعضاء هيئة التدريس</h2>
           </Reveal>
           <Reveal>
             <div>
               {FAQ.map(({ q, a }, i) => (
                 <details key={q} className="group border-b border-line" open={i === 0}>
-                  <summary className="flex justify-between items-center gap-4.5 py-5 px-0.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                  <summary className="flex justify-between items-center gap-[18px] py-5 px-0.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                     <h3 className="text-base font-semibold flex-1 group-hover:text-deep transition-colors">{q}</h3>
                     <span className="w-7 h-7 rounded-full border border-line grid place-items-center text-deep text-lg flex-none transition-transform duration-300 group-open:rotate-[135deg] group-open:bg-deep group-open:text-white group-open:border-deep">
                       +
@@ -340,7 +340,7 @@ export function LandingPage() {
             </div>
           </Reveal>
           <footer className="pt-[38px] pb-2.5 mt-11 border-t border-line flex justify-between items-center gap-5 flex-wrap">
-            <Link to="/" className="flex items-center gap-2 font-amiri font-bold text-[15px]">
+            <Link to="/" className="flex items-center gap-2 font-amiri font-bold text-[18px]">
               <span className="w-7 h-7 rounded-[9px] bg-gradient-to-br from-deep to-deep3 grid place-items-center text-white">
                 <Icon name="logo" className="w-4 h-4" />
               </span>

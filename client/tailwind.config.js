@@ -19,7 +19,9 @@ export default {
         gold3: "var(--gold3)",
         amber: "var(--amber)",
         crim: "var(--crim)",
-        ink: { DEFAULT: "var(--ink)", 2: "var(--ink2)", 3: "var(--ink3)" },
+        // ink-3 نصّي يجتاز AA؛ ink-3d القيمة الأصلية للاستخدام الزخرفي فقط
+        ink: { DEFAULT: "var(--ink)", 2: "var(--ink2)", 3: "var(--ink3-text)", "3d": "var(--ink3)" },
+        goldText: "var(--gold-text)",
         line: { DEFAULT: "var(--line)", 2: "var(--line2)" },
         mint: "var(--mint)",
         lav: "var(--lav)",

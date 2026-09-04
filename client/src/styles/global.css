@@ -32,6 +32,22 @@ h2,
   line-height: 1.4;
   font-weight: 700;
 }
+/* preflight في Tailwind يصفّر أحجام العناوين (font-size:inherit)، فيهبط أي <h1> مجرّد
+   إلى 14px بخط Amiri — مخالفة مباشرة لقاعدة "ممنوع Amiri تحت 18px" وانهيار للتدرّج
+   الطباعي. البروتوتايب يعتمد على أحجام المتصفح الافتراضية هنا، فتُعاد صراحةً: */
+h1 {
+  font-size: 28px;
+}
+h2 {
+  font-size: 21px;
+}
+h3 {
+  font-size: 16px;
+}
+h4,
+h5 {
+  font-size: 14px;
+}
 h3,
 h4,
 h5 {
@@ -50,7 +66,11 @@ button {
   font-family: inherit;
   font-size: inherit;
   cursor: pointer;
-  border: 0;
+  /* لا تستخدم الاختصار `border:0` هنا: فهو يضبط border-style:none، وأدوات Tailwind
+     (`border`) تضبط العرض فقط، فتُبطَل حدود كل زر في النظام صامتةً — خلل حقيقي أفقد
+     زر الشبح إطاره على الهبوط وأزرار .bg2 خطها الرفيع. */
+  border-width: 0;
+  border-style: solid;
   background: none;
   color: inherit;
   text-align: inherit;

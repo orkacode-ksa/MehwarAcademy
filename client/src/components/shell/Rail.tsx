@@ -9,7 +9,7 @@ interface RailProps {
 }
 
 const btnBase =
-  "flex-1 min-w-0 h-12 rounded-xl px-0.5 sm:flex-none sm:w-[54px] sm:h-[50px] sm:rounded-[14px] sm:px-0 grid place-items-center gap-[3px] text-ink-2 transition-[.18s] flex-none";
+  "flex-1 min-w-0 h-12 rounded-xl px-0.5 sm:flex-none sm:w-[54px] sm:h-[50px] sm:rounded-[14px] sm:px-0 grid place-items-center gap-[3px] text-ink-2 transition-colors duration-150 flex-none";
 const btnOn = "bg-deep text-white shadow-s2";
 const btnOff = "sm:hover:bg-deep/5 sm:hover:text-deep";
 
