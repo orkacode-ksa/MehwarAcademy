@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./layouts/AppShell.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { CoursePage } from "./pages/CoursePage.js";
-import { CoursesIndexPage } from "./pages/CoursesIndexPage.js";
 import { StudentCoursePage } from "./pages/StudentCoursePage.js";
 import { StudentCoursesIndexPage } from "./pages/StudentCoursesIndexPage.js";
 import { NAV, ROLE_LABEL, type Role } from "./nav/nav.js";
@@ -11,14 +10,38 @@ import { ShowcasePage } from "./pages/ShowcasePage.js";
 import { LandingPage } from "./pages/LandingPage.js";
 import { SignupPage } from "./pages/SignupPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
+import { FacultyHomePage } from "./pages/faculty/HomePage.js";
+import { CoursesPage } from "./pages/faculty/CoursesPage.js";
+import { StudioPage } from "./pages/faculty/StudioPage.js";
+import { AttendPage } from "./pages/faculty/AttendPage.js";
+import { OfficePage } from "./pages/faculty/OfficePage.js";
+import { BankPage } from "./pages/faculty/BankPage.js";
+import { RulesPage } from "./pages/faculty/RulesPage.js";
+import { EvalPage } from "./pages/faculty/EvalPage.js";
+import { ArchivePage } from "./pages/faculty/ArchivePage.js";
+import { SettingsPage } from "./pages/faculty/SettingsPage.js";
+import { ExamBuildPage } from "./pages/faculty/ExamBuildPage.js";
 
 /** المرحلة التي يُبنى فيها محتوى كل مجموعة شاشات، وفق «ترتيب التنفيذ» في برومت إعادة البناء */
 const ROLE_STAGE: Record<Role, number> = { faculty: 4, student: 5, dept: 6, admin: 6 };
 
+/** شاشات عضو هيئة التدريس العشر — بُنيت في المرحلة ٤، فلا تمر على الصفحة البديلة */
+const FACULTY_BUILT: Record<string, JSX.Element> = {
+  home: <FacultyHomePage />,
+  courses: <CoursesPage />,
+  studio: <StudioPage />,
+  attend: <AttendPage />,
+  office: <OfficePage />,
+  bank: <BankPage />,
+  rules: <RulesPage />,
+  evalp: <EvalPage />,
+  archive: <ArchivePage />,
+  settings: <SettingsPage />,
+};
+
 /**
- * توجيه المرحلة ٢: كل شاشة من الـ٢٩ لها مسار حقيقي يعمل الآن (بمحتوى بديل مؤقت لما لم
- * يُبنَ بعد)، ملفوفة بهيكل المنصة (AppShell). الهبوط والتسجيل والدخول تُبنى في المرحلة ٣
- * فتظهر الآن كصفحات بديلة خارج الهيكل (بلا شريط جانبي، تمامًا كما في البروتوتايب).
+ * التوجيه: كل شاشة من الـ٢٩ لها مسار حقيقي. المبنيّ فعلًا يُعرض، وما لم يحن دوره
+ * يظهر بصفحة بديلة تذكر مرحلته. الهبوط والتسجيل والدخول خارج هيكل المنصة.
  */
 export function App() {
   return (
@@ -32,21 +55,22 @@ export function App() {
 
         <Route element={<AppShell />}>
           {(Object.keys(NAV) as Role[]).flatMap((role) =>
-            NAV[role]
-              .filter((item) => item.key !== "courses")
-              .map((item) => (
-                <Route
-                  key={item.key}
-                  path={item.key}
-                  element={<PlaceholderPage kicker={ROLE_LABEL[role]} title={item.label} icon={item.icon as IconName} stage={ROLE_STAGE[role]} />}
-                />
-              )),
+            NAV[role].map((item) => (
+              <Route
+                key={item.key}
+                path={item.key}
+                element={
+                  FACULTY_BUILT[item.key] ?? (
+                    <PlaceholderPage kicker={ROLE_LABEL[role]} title={item.label} icon={item.icon as IconName} stage={ROLE_STAGE[role]} />
+                  )
+                }
+              />
+            )),
           )}
 
-          <Route path="courses" element={<CoursesIndexPage />} />
           <Route path="course/:id" element={<CoursePage />} />
           <Route path="course/:id/:tab" element={<CoursePage />} />
-          <Route path="exambuild" element={<PlaceholderPage kicker="أستاذ" title="إنشاء اختبار" icon="file" stage={4} />} />
+          <Route path="exambuild" element={<ExamBuildPage />} />
 
           <Route path="scourses" element={<StudentCoursesIndexPage />} />
           <Route path="scourse/:id" element={<StudentCoursePage />} />

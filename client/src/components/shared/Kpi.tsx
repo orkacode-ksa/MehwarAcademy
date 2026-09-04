@@ -11,7 +11,7 @@ export function Kpi({ label, value }: { label: string; value: string | number })
 /** يطابق .stat داخل .stats — إحصاء مصغّر بفاصل عمودي */
 export function Stat({ value, label, color }: { value: string | number; label: string; color?: string }) {
   return (
-    <div className="px-5 py-3 border-e border-line-2 min-w-[104px]">
+    <div className="px-5 py-3 border-e border-line-2 min-w-[104px] flex-none last:border-e-0">
       <b className="font-mono text-[19px] font-semibold block tracking-tight" style={color ? { color } : undefined}>
         {value}
       </b>
