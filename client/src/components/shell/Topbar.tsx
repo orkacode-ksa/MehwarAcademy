@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
 import { SystemStrip } from "./SystemStrip.js";
 import { greetingFor, SESSION_USER } from "../../mock/session.js";
@@ -27,6 +28,16 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
       <SystemStrip />
 
       <div className="flex items-center gap-3 mt-3.5">
+        {/* صورة الحساب تسبق الاسم في اتجاه القراءة — الهوية أولاً ثم التحية */}
+        <Link
+          to="/settings"
+          aria-label="حسابك"
+          title={user.fullName}
+          className="w-11 h-11 rounded-full flex-none grid place-items-center text-white font-semibold text-[15px] bg-gradient-to-br from-deep to-deep3 shadow-s1"
+        >
+          {user.displayName.replace(/^د\.\s*/, "").charAt(0)}
+        </Link>
+
         <div className="min-w-0 flex-1">
           <div className="text-[11.5px] text-ink-3">{greetingFor()}</div>
           <div className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">{user.displayName}</div>
@@ -42,10 +53,6 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
             {unreadCount > 0 && (
               <b className="absolute top-1 end-1.5 w-[7px] h-[7px] rounded-full bg-crim ring-2 ring-canvas" />
             )}
-          </button>
-
-          <button type="button" aria-label="الحساب" title={user.fullName} className="w-10 h-10 rounded-full flex-none grid place-items-center text-white font-semibold text-[13px] bg-gradient-to-br from-deep to-deep3 shadow-s1">
-            {user.displayName.replace(/^د\.\s*/, "").charAt(0)}
           </button>
         </div>
       </div>

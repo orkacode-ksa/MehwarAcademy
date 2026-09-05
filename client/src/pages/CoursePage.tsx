@@ -88,9 +88,6 @@ export function CoursePage() {
         description={`${course.st} طالباً · ٤ ساعات معتمدة${course.lab ? " · يتضمن شقاً عملياً" : ""}`}
         actions={
           <>
-            <Button variant="secondary" onClick={() => navigate("/courses")}>
-              <Icon name="arr" /> كل المقررات
-            </Button>
             <Button variant="secondary" onClick={() => showToast("صُدِّر ملف المقرر بصيغة PDF")}>
               <Icon name="down" /> ملف المقرر PDF
             </Button>
@@ -102,7 +99,7 @@ export function CoursePage() {
       />
 
       <div className="mb-5">
-        <Tabs tabs={tabs} active={activeTab} onChange={(k) => navigate(`/course/${course.id}/${k}`)} />
+        <Tabs numbered tabs={tabs} active={activeTab} onChange={(k) => navigate(`/course/${course.id}/${k}`)} />
       </div>
 
       {renderTab()}

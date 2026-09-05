@@ -25,7 +25,12 @@ export function WorkHeader({ title, meta, actions }: { title: ReactNode; meta?: 
   );
 }
 
-/** الشبكة الرئيسية 1.55fr/1fr على سطح المكتب وعمود واحد على الجوال — يطابق `.g2` */
+/**
+ * الشبكة الرئيسية 1.55fr/1fr على سطح المكتب وعمود واحد على الجوال — يطابق `.g2`.
+ * `[&>*]:min-w-0` ضرورية لا تجميلية: عنصر الشبكة يأخذ min-width:auto افتراضًا، فأي
+ * محتوى عريض بداخله (جدول أو شريط تمرير أفقي) يوسّع العمود كله فيتجاوز الإطار
+ * ويُقصّ بصمت بفعل overflow-x:hidden العام.
+ */
 export function Grid2({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`grid grid-cols-1 min-[900px]:grid-cols-[1.55fr_1fr] gap-4 ${className}`}>{children}</div>;
+  return <div className={`grid grid-cols-1 min-[900px]:grid-cols-[1.55fr_1fr] gap-4 [&>*]:min-w-0 ${className}`}>{children}</div>;
 }

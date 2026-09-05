@@ -21,6 +21,7 @@ import { EvalPage } from "./pages/faculty/EvalPage.js";
 import { ArchivePage } from "./pages/faculty/ArchivePage.js";
 import { SettingsPage } from "./pages/faculty/SettingsPage.js";
 import { ExamBuildPage } from "./pages/faculty/ExamBuildPage.js";
+import { AlertsPage } from "./pages/faculty/AlertsPage.js";
 
 /** المرحلة التي يُبنى فيها محتوى كل مجموعة شاشات، وفق «ترتيب التنفيذ» في برومت إعادة البناء */
 const ROLE_STAGE: Record<Role, number> = { faculty: 4, student: 5, dept: 6, admin: 6 };
@@ -71,6 +72,7 @@ export function App() {
           <Route path="course/:id" element={<CoursePage />} />
           <Route path="course/:id/:tab" element={<CoursePage />} />
           <Route path="exambuild" element={<ExamBuildPage />} />
+          <Route path="alerts" element={<AlertsPage />} />
 
           <Route path="scourses" element={<StudentCoursesIndexPage />} />
           <Route path="scourse/:id" element={<StudentCoursePage />} />

@@ -4,6 +4,7 @@ import { JStep } from "../../../components/shared/JStep.js";
 import { CourseRing } from "../../../components/shared/CourseRing.js";
 import { LRow } from "../../../components/shared/LRow.js";
 import { Surface } from "../../../components/ui/Surface.js";
+import { Button } from "../../../components/ui/Button.js";
 import { Alert } from "../../../components/ui/Alert.js";
 import { JOURNEY } from "../../../mock/faculty.js";
 import type { MockCourse } from "../../../mock/courses.js";
@@ -19,6 +20,8 @@ const ACTIVITY: [title: string, when: string, icon: "sparks" | "tbl" | "users" |
 export function OverviewTab({ course }: { course: MockCourse }) {
   const navigate = useNavigate();
   const steps = JOURNEY.filter((j) => !j.labOnly || course.lab);
+  // الخطوة المستحقة: أول خطوة غير مكتملة، وإلا الأخيرة
+  const nextStep = course.fresh ? (steps[0] as (typeof steps)[number]) : (steps.find((j) => j.p < 100) ?? steps[steps.length - 1])!;
 
   return (
     <Grid2>
@@ -64,10 +67,21 @@ export function OverviewTab({ course }: { course: MockCourse }) {
           </div>
         </Surface>
 
-        <Alert tone="amber" icon="alert" title="الخطوة التالية">
+        {/* التنبيه وحده لا يكفي: زر واحد يفتح الخطوة المستحقة فعلًا بدل أن يبحث
+            المستخدم عن التبويب الصحيح بين تسعة تبويبات */}
+        <Alert
+          tone="amber"
+          icon="alert"
+          title="الخطوة التالية"
+          action={
+            <Button variant="primary" size="sm" className="mt-2.5" onClick={() => navigate(`/course/${course.id}/${nextStep.tab}`)}>
+              افتح: {nextStep.t} ←
+            </Button>
+          }
+        >
           {course.fresh
             ? "هذا مقرر جديد لم يبدأ بعد. ابدأ بالخطوة الأولى: إنشاء الشعب واستيراد سجل الطلاب."
-            : `أنت في الخطوة ${course.step} من ٨. أقرب ما يستحق عملك الآن: إعداد الاختبار النهائي.`}
+            : `أنت في الخطوة ${course.step} من ٨ — وأقرب ما يستحق عملك الآن هو التالي.`}
         </Alert>
 
         <Surface variant="card" className="overflow-hidden mt-4">
