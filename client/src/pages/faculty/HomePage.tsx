@@ -1,36 +1,34 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SectionLabel } from "../../components/shared/Section.js";
 import { CourseCard } from "../../components/shared/CourseCard.js";
 import { AlertCarousel } from "../../components/shared/AlertCarousel.js";
 import { ToolsGrid } from "../../components/shared/ToolsGrid.js";
 import { Surface } from "../../components/ui/Surface.js";
-import { Chip } from "../../components/ui/Chip.js";
 import { Bar } from "../../components/ui/Bar.js";
 import { Icon } from "../../icons/Icon.js";
 import { COURSES } from "../../mock/courses.js";
 import { PREVENTIVE_ALERTS } from "../../mock/alerts.js";
+import { PRODUCTION } from "../../mock/quota.js";
+import { AUTO_RULES_COUNT, COMPLIANCE_SCORE, OPEN_RULES_COUNT } from "../../mock/compliance.js";
+import { agendaFor, todayName, WEEK_DAYS } from "../../mock/courseData.js";
 import { toArabicDigits } from "../../lib/numerals.js";
-
-const DUE: [day: string, tone: "crimson" | "amber" | "neutral", title: string, sub: string, to: string][] = [
-  ["اليوم", "crimson", "رصد غياب محاضرة الأحد", "MIC 231 · شعبة ٢ · متبقٍ ٤٨ ساعة", "/attend"],
-  ["الثلاثاء", "amber", "تسليم أوراق النصفي", "MIC 342 · ٩٦ ورقة", "/course/1/exams"],
-  ["الخميس", "neutral", "مراجعة إجابات النصفي", "MIC 231 · النافذة لم تُفتح", "/course/0/exams"],
-  ["الأحد", "neutral", "تقرير معملي ٤", "MIC 232 · ١٥٢ تسليماً", "/course/4/tasks"],
-  ["١٥ ربيع الآخر", "neutral", "اعتماد تقرير المقرر", "MIC 451 · مسوّدة جاهزة", "/course/2/quality"],
-];
 
 const RECENT_COUNT = 3;
 
 /**
  * لوحة عضو هيئة التدريس — رُتّبت على سؤال المستخدم الأول: «ماذا يجب أن أفعل الآن؟»
- * ١) التنبيهات الوقائية أولاً في بطاقة واحدة تُستعرض · ٢) أدواتي · ٣) المستحق هذا
- * الأسبوع · ٤) آخر ثلاثة مقررات عملت عليها مع مدخل لبقيتها · ٥) حالتك.
+ * ١) التنبيهات الوقائية في بطاقة واحدة تُستعرض · ٢) أدواتي · ٣) محاضرات اليوم
+ * · ٤) آخر ثلاثة مقررات عملت عليها · ٥) حالتك.
  * لا عنوان صفحة: الرأس يرحّب بالاسم، وإضافة عنوان فوقه تكرار بلا فائدة.
  */
 export function FacultyHomePage() {
   const active = COURSES.filter((c) => !c.fresh);
   const students = active.reduce((sum, c) => sum + c.st, 0);
   const recent = [...COURSES].sort((a, b) => a.updatedDaysAgo - b.updatedDaysAgo).slice(0, RECENT_COUNT);
+  const [day, setDay] = useState(todayName());
+  const agenda = agendaFor(day, active);
+  const isToday = day === todayName();
 
   return (
     <div className="flex flex-col gap-5 min-w-0">
@@ -42,20 +40,52 @@ export function FacultyHomePage() {
       </section>
 
       <section className="min-w-0">
-        <SectionLabel icon="clock">المستحق هذا الأسبوع</SectionLabel>
-        <div className="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:thin]">
-          {DUE.map(([day, tone, title, sub, to]) => (
-            <Link
-              key={title}
-              to={to}
-              className="min-w-[212px] flex-none bg-white border border-line rounded-rmd px-3.5 py-3 hover:border-[#C6D3CB] hover:shadow-s2 transition-[border-color,box-shadow] duration-150"
+        <SectionLabel icon="cal">
+          {isToday ? `محاضراتك اليوم — ${day}` : `محاضرات ${day}`}
+        </SectionLabel>
+        <div className="flex gap-1.5 mb-3 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+          {WEEK_DAYS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDay(d)}
+              className={`flex-none px-3 py-1.5 rounded-[10px] text-[12px] font-medium border transition-colors ${
+                d === day ? "bg-deep text-white border-deep" : "bg-white text-ink-2 border-line hover:border-[#C6D3CB]"
+              }`}
             >
-              <Chip tone={tone}>{day}</Chip>
-              <div className="text-[12.5px] font-semibold mt-1.5 mb-[3px]">{title}</div>
-              <div className="text-[11px] text-ink-2">{sub}</div>
-            </Link>
+              {d}
+              {d === todayName() && <span className="ms-1.5 text-[9.5px] opacity-70">اليوم</span>}
+            </button>
           ))}
         </div>
+        {agenda.length === 0 ? (
+          <Surface variant="card" pad className="text-center text-[12.5px] text-ink-2">
+            لا محاضرات لك في {day}.
+          </Surface>
+        ) : (
+          <div className="grid gap-2">
+            {agenda.map((e) => (
+              <Link
+                key={e.section.code}
+                to={`/attend?course=${e.course.id}&section=${e.sectionIndex}`}
+                className="flex items-center gap-3 p-3 sm:p-3.5 rounded-rmd bg-white border border-line hover:border-[#C6D3CB] hover:shadow-s2 transition-[border-color,box-shadow] duration-150"
+              >
+                <span className="num text-[13px] font-semibold text-deep flex-none w-[52px]">{e.clock}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold truncate">
+                    {e.course.name} — {e.section.name}
+                  </span>
+                  <span className="block text-[11px] text-ink-3">
+                    {e.course.code} · {e.section.room} · {toArabicDigits(e.section.students)} طالباً
+                  </span>
+                </span>
+                <span className="flex-none text-[11.5px] font-semibold text-deep flex items-center gap-1">
+                  ارصد الحضور <Icon name="arr" className="w-3.5 h-3.5" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="min-w-0">
@@ -92,20 +122,35 @@ export function FacultyHomePage() {
           </SectionLabel>
           <div className="flex justify-between text-[11.5px] text-ink-2 mb-1.5">
             <span>هذا الفصل</span>
-            <span className="num text-teal font-semibold">86 / 100</span>
+            <span className="num text-teal font-semibold">{COMPLIANCE_SCORE} / 100</span>
           </div>
-          <Bar value={86} />
-          <p className="text-[11px] text-ink-3 mt-2.5 leading-[1.6]">مؤشر داخلي لك وحدك. لا يُشارَك مع القسم ولا الكلية ولا أي جهة.</p>
+          <Bar value={COMPLIANCE_SCORE} />
+          <p className="text-[11px] text-ink-3 mt-2.5 leading-[1.6]">
+            {OPEN_RULES_COUNT > 0
+              ? `${toArabicDigits(OPEN_RULES_COUNT)} بنود مفتوحة من ${toArabicDigits(AUTO_RULES_COUNT)} يرصدها النظام. مؤشر داخلي لك وحدك لا يُشارَك مع أي جهة.`
+              : "كل البنود المرصودة آلياً مستوفاة. مؤشر داخلي لك وحدك لا يُشارَك مع أي جهة."}
+          </p>
         </Surface>
 
         <Surface variant="card" pad>
-          <SectionLabel>رصيد الإنتاج</SectionLabel>
+          <SectionLabel
+            action={
+              <Link to="/settings" className="text-[11px] font-semibold text-deep">
+                باقتك ←
+              </Link>
+            }
+          >
+            رصيد الإنتاج
+          </SectionLabel>
           <div className="flex items-baseline gap-1.5 mb-2.5">
-            <span className="num text-[27px] font-semibold text-deep">142</span>
-            <span className="text-xs text-ink-2">من ٢٠٠ دقيقة</span>
+            <span className="num text-[27px] font-semibold text-deep">{PRODUCTION.remainingMinutes}</span>
+            <span className="text-xs text-ink-2">دقيقة متبقية من {toArabicDigits(PRODUCTION.monthlyMinutes)}</span>
           </div>
-          <Bar value={71} />
-          <p className="text-[11px] text-ink-3 mt-2.5">يكفي ٧ فيديوهات محاضرات أو ١٤ بودكاست.</p>
+          <Bar value={(PRODUCTION.remainingMinutes / PRODUCTION.monthlyMinutes) * 100} />
+          <p className="text-[11px] text-ink-3 mt-2.5">
+            يكفي {toArabicDigits(Math.floor(PRODUCTION.remainingMinutes / PRODUCTION.videoMinutes))} فيديوهات محاضرات أو{" "}
+            {toArabicDigits(Math.floor(PRODUCTION.remainingMinutes / PRODUCTION.podcastMinutes))} بودكاست.
+          </p>
         </Surface>
 
         <Surface variant="card" pad>

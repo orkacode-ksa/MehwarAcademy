@@ -6,6 +6,7 @@ import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
 import { SearchPalette } from "../components/shell/SearchPalette.js";
 import { NotificationPanel } from "../components/shell/NotificationPanel.js";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog.js";
 import { roleOf } from "../nav/nav.js";
 import { jumpPath, type JumpTarget } from "../nav/jump.js";
 import { NOTIFICATIONS as INITIAL_NOTIFICATIONS } from "../mock/notifications.js";
@@ -25,6 +26,7 @@ export function AppShell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const screenKey = location.pathname.split("/")[1] || "home";
   const role = roleOf(screenKey);
@@ -42,6 +44,7 @@ export function AppShell() {
         setSearchOpen(false);
         setNotifOpen(false);
         setMoreOpen(false);
+        setLogoutOpen(false);
         return;
       }
       const isTyping = /INPUT|TEXTAREA/.test((e.target as HTMLElement).tagName);
@@ -73,10 +76,22 @@ export function AppShell() {
       <a href="#main" className="skip">
         تخطَّ إلى المحتوى
       </a>
-      <Rail role={role} />
+      <Rail role={role} onLogout={() => setLogoutOpen(true)} />
       <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
-      <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} onLogout={() => setLogoutOpen(true)} />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
+      <ConfirmDialog
+        open={logoutOpen}
+        title="تسجيل الخروج"
+        body="سيُغلق حسابك على هذا الجهاز. العمل المحفوظ يبقى كما هو، والجلسات غير المغلقة تبقى بانتظارك عند العودة."
+        confirmLabel="اخرج"
+        cancelLabel="ابقَ"
+        onConfirm={() => {
+          setLogoutOpen(false);
+          navigate("/");
+        }}
+        onCancel={() => setLogoutOpen(false)}
+      />
       <NotificationPanel
         open={notifOpen}
         onClose={() => setNotifOpen(false)}
@@ -86,7 +101,7 @@ export function AppShell() {
       />
       <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
         <div className="max-w-[1260px] mx-auto" id="main">
-          <Topbar role={role} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
+          <Topbar role={role} isHome={location.pathname === "/home"} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
           <Outlet />
         </div>
       </main>

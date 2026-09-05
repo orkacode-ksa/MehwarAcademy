@@ -13,13 +13,14 @@ export type FindGroup = [label: string, items: FindItem[]];
 /** منسوخ حرفيًا من ثابت `FIND` في mihwar-prototype-v2.html (مقيَّد بدور عضو هيئة التدريس حاليًا) */
 const SCREENS: FindItem[] = [
   { title: "اللوحة", desc: "نظرة عامة على مقرراتك", go: "home", icon: "grid" },
-  { title: "مقرراتي", desc: "ستة مقررات", go: "courses", icon: "book" },
+  { title: "مقرراتي", desc: `${COURSES.length} مقررات`, go: "courses", icon: "book" },
   { title: "استوديو التوليد", desc: "من الموضوع إلى المحاضرة", go: "studio", icon: "sparks" },
   { title: "جلسة الحضور", desc: "رصد بثلاث طرق", go: "attend", icon: "users" },
   { title: "الساعات المكتبية", desc: "تنسيق المواعيد", go: "office", icon: "clock" },
   { title: "بنك المقرر", desc: "حصيلة أربعة فصول", go: "bank", icon: "box" },
   { title: "مؤشر الالتزام", desc: "٣٢ بنداً", go: "rules", icon: "shield" },
   { title: "التقييم السنوي", desc: "مرآة تنبؤية", go: "evalp", icon: "chart" },
+  { title: "التنبيهات الوقائية", desc: "ما يستحق قبل موعده", go: "alerts", icon: "alert" },
   { title: "الأرشيف", desc: "السنوات السابقة", go: "archive", icon: "arch" },
   { title: "الإعدادات", desc: "الحساب والاشتراك", go: "settings", icon: "gear" },
 ];

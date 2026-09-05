@@ -1,23 +1,28 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Grid2, SectionLabel, WorkHeader } from "../../components/shared/Section.js";
+import { CoursePicker } from "../../components/shared/CoursePicker.js";
 import { Surface } from "../../components/ui/Surface.js";
 import { Button } from "../../components/ui/Button.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Alert } from "../../components/ui/Alert.js";
 import { Bar } from "../../components/ui/Bar.js";
 import { Icon } from "../../icons/Icon.js";
+import { courseById } from "../../mock/courses.js";
+import { examsFor } from "../../mock/courseData.js";
 import { useToast } from "../../state/ToastContext.js";
+import { toArabicDigits } from "../../lib/numerals.js";
 
-const QUESTIONS: [n: string, q: string, kind: string, clo: string, marks: number][] = [
-  ["١", "عرّف منحنى النمو البكتيري واذكر أطواره الأربعة", "مقالي", "CLO 2", 5],
-  ["٢", "أي التالي يمثّل آلية الاقتران البكتيري؟", "اختياري", "CLO 3", 3],
-  ["٣", "قارن بين صبغة جرام الموجبة والسالبة", "مقالي", "CLO 1", 6],
-  ["٤", "احسب زمن التضاعف من البيانات المعطاة", "رقمي", "CLO 2", 5],
-  ["٥", "علّل: مقاومة البلازميد تنتقل أسرع من الطفرة", "مقالي", "CLO 3", 6],
-  ["٦", "صل بين المصطلح وتعريفه", "مطابقة", "CLO 1", 4],
-  ["٧", "اذكر ثلاثة تطبيقات للزرع اللاهوائي", "قصير", "CLO 4", 3],
-  ["٨", "صح أو خطأ — ست عبارات", "صح/خطأ", "CLO 4", 3],
+const KINDS = ["مقالي", "اختياري", "مقالي", "رقمي", "مقالي", "مطابقة", "قصير", "صح/خطأ"];
+const STEMS = [
+  (t: string) => `عرّف ${t} واذكر عناصره الأساسية`,
+  (t: string) => `أي العبارات التالية يصف ${t} وصفاً صحيحاً؟`,
+  (t: string) => `قارن بين حالتين مختلفتين في ${t}`,
+  (t: string) => `احسب القيم المطلوبة من بيانات ${t}`,
+  (t: string) => `علّل: أهمية ${t} في التطبيق العملي`,
+  (t: string) => `صل بين المصطلح وتعريفه في ${t}`,
+  (t: string) => `اذكر ثلاثة تطبيقات على ${t}`,
+  (t: string) => `صح أو خطأ — ست عبارات حول ${t}`,
 ];
 
 const PRINT_SETTINGS: [string, string][] = [
@@ -36,56 +41,112 @@ const BALANCE: [string, number][] = [
   ["تنوّع أنواع الأسئلة", 79],
 ];
 
-const CLO_MARKS: [string, number][] = [
-  ["CLO 1", 10],
-  ["CLO 2", 10],
-  ["CLO 3", 9],
-  ["CLO 4", 6],
-];
-
-/** منشئ الاختبار — منقول من V.exambuild */
+/**
+ * منشئ الاختبار.
+ * كان مثبّتاً على MIC 231 ويعرض «الاختبار النهائي · التوزيع مكتمل» بينما تبويب
+ * اختبارات المقرر نفسه يقول «لم يُنشأ» — تناقض بين شاشتين عن الشيء ذاته. الآن الشاشة
+ * تعمل بسياق مقرر واختبار محدّدين، وتشتقّ أسئلتها من مواضيع ذلك المقرر ودرجته من
+ * توزيع درجاته المعتمد.
+ */
 export function ExamBuildPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [params, setParams] = useSearchParams();
+  const course = courseById(params.get("course") ?? undefined);
+
+  if (!course) {
+    return (
+      <div>
+        <PageHeader kicker="بناء اختبار" title="منشئ الاختبار" description="اختر المقرر الذي تبني له الاختبار" />
+        <CoursePicker
+          title="لأي مقرر تبني هذا الاختبار؟"
+          body="الأسئلة تُنتقى من بنك المقرر أو تُولَّد من مواضيعه ومخرجات تعلّمه، والدرجة تُؤخذ من توزيع درجاته المعتمد."
+          onPick={(c) => setParams({ course: String(c.id) })}
+          filter={(c) => c.topics.length > 0}
+        />
+      </div>
+    );
+  }
+
+  const exams = examsFor(course);
+  const examId = params.get("exam") ?? exams.find((e) => e.status === "لم يُنشأ")?.id ?? exams[exams.length - 1]?.id ?? "";
+  const exam = exams.find((e) => e.id === examId) ?? exams[exams.length - 1];
+  const topics = course.topics;
+  const count = Math.min(8, Math.max(4, topics.length + 2));
+  const perQuestion = exam ? Math.max(1, Math.round(exam.grade / count)) : 3;
+  const questions = Array.from({ length: count }, (_, i) => {
+    const topic = topics[i % Math.max(topics.length, 1)] ?? course.name;
+    return {
+      n: toArabicDigits(i + 1),
+      q: (STEMS[i % STEMS.length] ?? STEMS[0]!)(topic),
+      kind: KINDS[i % KINDS.length] ?? "مقالي",
+      clo: `CLO ${(i % Math.max(course.clos.length, 1)) + 1}`,
+      marks: perQuestion,
+    };
+  });
+  const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
+  const target = exam?.grade ?? totalMarks;
+  const balanced = totalMarks === target;
 
   return (
     <div>
       <PageHeader
-        kicker="MIC 231 · اختبار جديد"
+        kicker={`${course.code} · ${exam?.title ?? "اختبار جديد"}`}
         title="منشئ الاختبار"
         description="اسحب من بنك الأسئلة أو ولّد أسئلة جديدة — ثم اطبع بترويسة الجامعة"
         actions={
           <>
-            <Button variant="secondary" onClick={() => navigate("/course/0/exams")}>
-              <Icon name="arr" /> رجوع
+            <Button variant="secondary" onClick={() => navigate(`/course/${course.id}/exams`)}>
+              <Icon name="arr" /> رجوع لاختبارات المقرر
             </Button>
             <Button variant="secondary" onClick={() => showToast("فُتحت معاينة الطباعة")}>
               <Icon name="down" /> معاينة الطباعة
             </Button>
-            <Button variant="primary" onClick={() => showToast("حُفظ الاختبار")}>
-              <Icon name="chk" /> احفظ الاختبار
+            <Button variant="primary" onClick={() => showToast("حُفظ الاختبار كمسوّدة")}>
+              <Icon name="chk" /> احفظ المسوّدة
             </Button>
           </>
         }
       />
 
+      {exams.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1.5 mb-4 [scrollbar-width:none]">
+          {exams.map((e) => (
+            <button
+              key={e.id}
+              type="button"
+              onClick={() => setParams({ course: String(course.id), exam: e.id })}
+              className={`flex-none px-3 py-1.5 rounded-[10px] text-[12px] font-medium border transition-colors ${
+                e.id === examId ? "bg-deep text-white border-deep" : "bg-white text-ink-2 border-line hover:border-[#C6D3CB]"
+              }`}
+            >
+              {e.title}
+            </button>
+          ))}
+        </div>
+      )}
+
       <Grid2>
         <div>
           <Surface variant="card" className="overflow-hidden mb-4">
-            <WorkHeader title="الاختبار النهائي" meta="٨ أسئلة · ٣٥ درجة من ٣٥" actions={<Chip tone="teal">التوزيع مكتمل</Chip>} />
-            {QUESTIONS.map(([n, q, kind, clo, marks]) => (
-              <div key={n} className="flex items-center gap-3 px-4 py-3 border-b border-line-2 hover:bg-[#FAFCFA]">
+            <WorkHeader
+              title={exam?.title ?? "اختبار جديد"}
+              meta={`${toArabicDigits(questions.length)} أسئلة · ${totalMarks} من ${target} درجة`}
+              actions={<Chip tone={balanced ? "teal" : "amber"}>{balanced ? "التوزيع مكتمل" : "التوزيع ناقص"}</Chip>}
+            />
+            {questions.map((q) => (
+              <div key={q.n} className="flex items-center gap-3 px-4 py-3 border-b border-line-2 hover:bg-[#FAFCFA]">
                 <div className="grid place-items-center flex-none w-[30px] h-[30px] rounded-[9px] bg-deep/[.06] text-ink-3 font-mono text-[11.5px] font-semibold cursor-grab">
-                  {n}
+                  {q.n}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-[13px] font-medium">{q}</h4>
+                  <h4 className="text-[13px] font-medium">{q.q}</h4>
                   <div className="text-[11px] text-ink-3 mt-px">
-                    {kind} · {clo}
+                    {q.kind} · {q.clo}
                   </div>
                 </div>
-                <span className="num text-xs font-semibold text-deep flex-none">{marks}</span>
-                <Button variant="text" size="sm" aria-label={`تحرير السؤال ${n}`} onClick={() => showToast("فتح تحرير السؤال")}>
+                <span className="num text-xs font-semibold text-deep flex-none">{q.marks}</span>
+                <Button variant="text" size="sm" aria-label={`تحرير السؤال ${q.n}`} onClick={() => showToast("فتح تحرير السؤال")}>
                   <Icon name="edit" />
                 </Button>
               </div>
@@ -120,7 +181,9 @@ export function ExamBuildPage() {
           <Surface variant="card" pad className="mb-4">
             <SectionLabel>توازن الاختبار — فوري</SectionLabel>
             <div className="flex items-baseline gap-2 mb-3.5">
-              <span className="num text-[31px] font-semibold text-teal">86</span>
+              <span className="num text-[31px] font-semibold text-teal">
+                {Math.round(BALANCE.reduce((s, [, v]) => s + v, 0) / BALANCE.length)}
+              </span>
               <span className="text-xs text-ink-2">من 100</span>
             </div>
             {BALANCE.map(([t, v]) => (
@@ -133,21 +196,24 @@ export function ExamBuildPage() {
               </div>
             ))}
             <p className="text-[11px] text-ink-3 mt-3 leading-[1.65]">
-              يُحدَّث مع كل سؤال تضيفه. هذا التقرير هو العنصر السابع في ملف الجودة — يُربط تلقائياً.
+              يُحدَّث مع كل سؤال تضيفه. هذا التقرير هو العنصر السابع في ملف جودة {course.code} — يُربط تلقائياً.
             </p>
           </Surface>
 
           <Surface variant="card" pad className="mb-4">
             <SectionLabel>توزيع الدرجات على المخرجات</SectionLabel>
-            {CLO_MARKS.map(([clo, m]) => (
-              <div key={clo} className="mb-2.5">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-mono text-ink-3">{clo}</span>
-                  <b className="num">{m} درجات</b>
+            {course.clos.map((_, i) => {
+              const marks = questions.filter((q) => q.clo === `CLO ${i + 1}`).reduce((s, q) => s + q.marks, 0);
+              return (
+                <div key={i} className="mb-2.5">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-mono text-ink-3">CLO {i + 1}</span>
+                    <b className="num">{marks} درجات</b>
+                  </div>
+                  <Bar value={target ? (marks / target) * 100 : 0} height={4} />
                 </div>
-                <Bar value={(m / 10) * 100} height={4} />
-              </div>
-            ))}
+              );
+            })}
           </Surface>
 
           <Alert tone="teal" icon="box" title="الأسئلة تعود إلى البنك">

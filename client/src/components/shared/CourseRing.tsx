@@ -1,7 +1,9 @@
 /**
  * حلقة المقرر — منسوخة رياضيًا حرفيًا من دالة `ring()` في mihwar-prototype-v2.html.
  * القوس الخارجي (نصف قطر 46، لون --deep) = نسبة إنجاز المنهج.
- * القوس الداخلي (نصف قطر 35، لون --gold) = اكتمال ملف الجودة من 11.
+ * القوس الداخلي (نصف قطر 35، لون --gold) = اكتمال ملف الجودة.
+ * إجمالي عناصر الجودة يُمرَّر ولا يُفترض ١١: المقرر بلا معمل عناصره عشرة، وكان
+ * النص داخل الحلقة يقول «٣/١١» بينما تقول بطاقة الحالة بجانبه «٣/١٠».
  * النقاط المحيطة (نصف قطر 56) = عناصر التقييم المرصودة، ممتلئة ذهبي أو فارغة محدَّدة.
  */
 const R1 = 46;
@@ -11,14 +13,16 @@ const C2 = 2 * Math.PI * R2;
 
 interface CourseRingProps {
   syllabus: number; // 0..1
-  quality: number; // 0..11
+  quality: number;
+  /** إجمالي عناصر ملف الجودة في هذا المقرر */
+  qualityTotal?: number;
   assessments: boolean[];
   size?: number;
 }
 
-export function CourseRing({ syllabus, quality, assessments, size = 104 }: CourseRingProps) {
-  const qp = quality / 11;
-  const label = `تقدّم المنهج ${Math.round(syllabus * 100)}٪، ملف الجودة ${quality} من 11، ${
+export function CourseRing({ syllabus, quality, qualityTotal = 11, assessments, size = 104 }: CourseRingProps) {
+  const qp = qualityTotal ? quality / qualityTotal : 0;
+  const label = `تقدّم المنهج ${Math.round(syllabus * 100)}٪، ملف الجودة ${quality} من ${qualityTotal}، ${
     assessments.filter(Boolean).length
   } من ${assessments.length} تقييمات مرصودة`;
 
@@ -87,7 +91,7 @@ export function CourseRing({ syllabus, quality, assessments, size = 104 }: Cours
           {Math.round(syllabus * 100)}%
         </b>
         <span className="text-ink-3 font-medium" style={{ fontSize: Math.max(8, Math.round(size * 0.092)) }}>
-          {quality}/11
+          {quality}/{qualityTotal}
         </span>
       </div>
     </div>

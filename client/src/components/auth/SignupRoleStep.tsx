@@ -16,7 +16,7 @@ export function SignupRoleStep({ initial, onNext }: SignupRoleStepProps) {
 
   return (
     <>
-      <h2 className="text-2xl font-semibold">أنشئ حسابك</h2>
+      <h1 className="text-2xl font-semibold">أنشئ حسابك</h1>
       <p className="text-ink-2 text-[13px] my-2 mb-[22px]">اختر نوع حسابك أولاً — تجربة الاثنين مختلفة تماماً.</p>
       <div className="grid gap-[11px] mb-[22px]">
         <RoleOption

@@ -6,6 +6,8 @@ import type { Role } from "../../nav/nav.js";
 
 interface TopbarProps {
   role: Role;
+  /** اللوحة بلا عنوان صفحة، فيقوم الترحيب مقامه */
+  isHome: boolean;
   unreadCount: number;
   onSearchOpen: () => void;
   onNotifOpen: () => void;
@@ -20,7 +22,7 @@ const iconBtn =
  * ٢) سطر ترحيب باسم المستخدم، وفي مقابله أدوات الحساب (بحث · إشعارات · الحساب).
  * حُذف مبدّل الأدوار من داخل الحساب عمدًا — مكانه شاشة الدخول وحدها.
  */
-export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarProps) {
+export function Topbar({ role, isHome, unreadCount, onSearchOpen, onNotifOpen }: TopbarProps) {
   const user = SESSION_USER[role];
 
   return (
@@ -40,7 +42,12 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
 
         <div className="min-w-0 flex-1">
           <div className="text-[11.5px] text-ink-3">{greetingFor()}</div>
-          <div className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">{user.displayName}</div>
+          {/* الترحيب هو عنوان الصفحة على اللوحة (h1)، وفي بقية الشاشات عنوانها في PageHeader */}
+          {isHome ? (
+            <h1 className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">{user.displayName}</h1>
+          ) : (
+            <div className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">{user.displayName}</div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-none">

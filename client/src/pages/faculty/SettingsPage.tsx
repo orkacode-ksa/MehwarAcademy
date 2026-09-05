@@ -8,13 +8,15 @@ import { Toggle } from "../../components/ui/Toggle.js";
 import { Field, SelectField } from "../../components/auth/Field.js";
 import { Icon, type IconName } from "../../icons/Icon.js";
 import { SESSION_USER } from "../../mock/session.js";
+import { PLAN, PRODUCTION } from "../../mock/quota.js";
+import { COURSES } from "../../mock/courses.js";
+import { toArabicDigits } from "../../lib/numerals.js";
 import { useToast } from "../../state/ToastContext.js";
 
 const AI_SETTINGS: [key: string, title: string, sub: string, initial: boolean][] = [
   ["process", "السماح بمعالجة محتوى مقرراتي", "لازم لتوليد المحاضرات والفيديو والبودكاست", true],
   ["examples", "حفظ مخرجاتي المعتمدة كأمثلة", "يجعل التوليد أقرب إلى أسلوبك كل فصل", true],
   ["badge", "إظهار وسم «مولّد بالذكاء» للطلاب", "شفافية مع طلابك", true],
-  ["disable", "تعطيل كل ميزات الذكاء", "المنصة تعمل كاملة بدونها", false],
 ];
 
 const NOTIFY: [key: string, label: string, initial: boolean][] = [
@@ -31,11 +33,12 @@ const DATA_ACTIONS: [title: string, sub: string, icon: IconName, danger: boolean
   ["احذف حسابي", "حذف مجدول بعد ٣٠ يوماً مع نافذة تراجع", "lock", true],
 ];
 
+/** الاستهلاك محسوب من المقررات والباقة — لا أرقام مكتوبة يدوياً تناقض بقية الشاشات */
 const PLAN_USAGE: [string, string][] = [
-  ["المقررات", "٦ من بلا حد"],
-  ["الطلاب", "٥٣٣ من ٩٠٠"],
-  ["التخزين", "٣٨ من ١٠٠ جيجا"],
-  ["دقائق الإنتاج", "١٤٢ متبقية من ٦٠٠"],
+  ["المقررات", `${toArabicDigits(COURSES.length)} من بلا حد`],
+  ["الطلاب", `${toArabicDigits(COURSES.reduce((s, c) => s + c.st, 0))} من ${toArabicDigits(PLAN.maxStudents)}`],
+  ["التخزين", `${toArabicDigits(PLAN.usedStorageGb)} من ${toArabicDigits(PLAN.storageGb)} جيجا`],
+  ["دقائق الإنتاج", `${toArabicDigits(PRODUCTION.remainingMinutes)} متبقية من ${toArabicDigits(PRODUCTION.monthlyMinutes)}`],
 ];
 
 /** الإعدادات — منقولة من V.settings، مع مفاتيح تبديل تعمل فعلاً بدل الزخرفية */
@@ -43,7 +46,27 @@ export function SettingsPage() {
   const { showToast } = useToast();
   const user = SESSION_USER.faculty;
   const [ai, setAi] = useState(() => Object.fromEntries(AI_SETTINGS.map(([k, , , v]) => [k, v])) as Record<string, boolean>);
+  const [aiOff, setAiOff] = useState(false);
   const [notify, setNotify] = useState(() => Object.fromEntries(NOTIFY.map(([k, , v]) => [k, v])) as Record<string, boolean>);
+  // الملف الشخصي كان حقولاً غير مضبوطة بلا زر حفظ: يكتب المستخدم اسمه فلا يُحفظ ولا يُنبَّه
+  const [profile, setProfile] = useState({
+    fullName: user.fullName,
+    rank: "أستاذ مشارك",
+    dept: "الأحياء الدقيقة",
+    college: "العلوم التطبيقية",
+    university: "جامعة أم القرى",
+  });
+  const [dirty, setDirty] = useState(false);
+
+  function field(key: keyof typeof profile) {
+    return {
+      value: profile[key],
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setProfile((p) => ({ ...p, [key]: e.target.value }));
+        setDirty(true);
+      },
+    };
+  }
 
   return (
     <div>
@@ -55,16 +78,16 @@ export function SettingsPage() {
             <WorkHeader title="الملف الشخصي" meta="يظهر في ترويسة اختباراتك وملفات الجودة" />
             <div className="p-[18px]">
               <div className="grid grid-cols-1 min-[560px]:grid-cols-2 gap-x-3.5">
-                <Field label="الاسم الكامل" defaultValue="عبدالله بن سعيد الغامدي" />
-                <SelectField label="الرتبة العلمية" defaultValue="أستاذ مشارك">
+                <Field label="الاسم الكامل" {...field("fullName")} />
+                <SelectField label="الرتبة العلمية" {...field("rank")}>
                   {["أستاذ مشارك", "أستاذ", "أستاذ مساعد"].map((r) => (
                     <option key={r}>{r}</option>
                   ))}
                 </SelectField>
-                <Field label="القسم" defaultValue="الأحياء الدقيقة" />
-                <Field label="الكلية" defaultValue="العلوم التطبيقية" />
+                <Field label="القسم" {...field("dept")} />
+                <Field label="الكلية" {...field("college")} />
               </div>
-              <Field label="الجامعة" defaultValue="جامعة أم القرى" />
+              <Field label="الجامعة" {...field("university")} />
               <div className="flex gap-3 items-center p-3 rounded-rmd bg-[#F7FAF7] border border-line">
                 <div className="w-[30px] h-[30px] rounded-[9px] grid place-items-center flex-none bg-teal/[.14] text-[#2C6B52]">
                   <Icon name="file" className="w-4 h-4" />
@@ -77,31 +100,65 @@ export function SettingsPage() {
                   استبدل
                 </Button>
               </div>
+
+              <div className="flex items-center gap-3 mt-4 pt-3.5 border-t border-line-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!dirty}
+                  onClick={() => {
+                    setDirty(false);
+                    showToast("حُفظت بيانات ملفك الشخصي");
+                  }}
+                >
+                  <Icon name="chk" /> احفظ التغييرات
+                </Button>
+                <span className="text-[11px] text-ink-3">{dirty ? "لديك تغييرات لم تُحفظ" : "كل شيء محفوظ"}</span>
+              </div>
             </div>
           </Surface>
 
           <Surface variant="card" className="overflow-hidden mb-4">
             <WorkHeader title="الذكاء الاصطناعي والخصوصية" />
             <div className="p-[18px]">
-              {AI_SETTINGS.map(([key, title, sub], i) => (
-                <div
-                  key={key}
-                  className={`flex justify-between items-center gap-3.5 py-3 ${i < AI_SETTINGS.length - 1 ? "border-b border-line-2" : ""}`}
-                >
-                  <div>
-                    <div className="text-[13px] font-medium">{title}</div>
-                    <div className="text-[11px] text-ink-3">{sub}</div>
-                  </div>
-                  <Toggle
-                    label={title}
-                    checked={ai[key] ?? false}
-                    onChange={(next) => {
-                      setAi((s) => ({ ...s, [key]: next }));
-                      showToast(next ? `فُعِّل: ${title}` : `عُطِّل: ${title}`);
-                    }}
-                  />
+              {/* المفتاح الرئيس أولاً ثم تفاصيله: كان «تعطيل كل ميزات الذكاء» مفتاحاً
+                  مساوياً لبقية المفاتيح، فيمكن تعطيل كل الميزات وإبقاء «السماح بالمعالجة»
+                  مفعّلاً في الوقت نفسه — حالة متناقضة لا معنى لها. */}
+              <div className="flex justify-between items-center gap-3.5 pb-3 border-b border-line">
+                <div>
+                  <div className="text-[13px] font-medium">تعطيل كل ميزات الذكاء</div>
+                  <div className="text-[11px] text-ink-3">المنصة تعمل كاملة بدونها — والخيارات أدناه تتعطّل معها</div>
                 </div>
-              ))}
+                <Toggle
+                  label="تعطيل كل ميزات الذكاء"
+                  checked={aiOff}
+                  onChange={(next) => {
+                    setAiOff(next);
+                    showToast(next ? "عُطِّلت كل ميزات الذكاء" : "أُعيد تفعيل ميزات الذكاء");
+                  }}
+                />
+              </div>
+              <div className={aiOff ? "opacity-45 pointer-events-none" : ""} aria-disabled={aiOff}>
+                {AI_SETTINGS.map(([key, title, sub], i) => (
+                  <div
+                    key={key}
+                    className={`flex justify-between items-center gap-3.5 py-3 ${i < AI_SETTINGS.length - 1 ? "border-b border-line-2" : ""}`}
+                  >
+                    <div>
+                      <div className="text-[13px] font-medium">{title}</div>
+                      <div className="text-[11px] text-ink-3">{sub}</div>
+                    </div>
+                    <Toggle
+                      label={title}
+                      checked={!aiOff && (ai[key] ?? false)}
+                      onChange={(next) => {
+                        setAi((s) => ({ ...s, [key]: next }));
+                        showToast(next ? `فُعِّل: ${title}` : `عُطِّل: ${title}`);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </Surface>
 
@@ -139,10 +196,10 @@ export function SettingsPage() {
           <Surface variant="card" pad className="mb-4 bg-gradient-to-br from-mint to-white border-teal/30">
             <SectionLabel>اشتراكك</SectionLabel>
             <div className="flex items-baseline gap-2">
-              <span className="font-amiri text-[20px] font-bold">مِحوَر برو</span>
+              <span className="font-amiri text-[20px] font-bold">{PLAN.name}</span>
               <Chip tone="teal">نشط</Chip>
             </div>
-            <div className="text-xs text-ink-2 mt-1.5">يتجدّد في ١٢ سبتمبر · ١٧٩ ر.س شهرياً</div>
+            <div className="text-xs text-ink-2 mt-1.5">يتجدّد في {PRODUCTION.renewsOn} · {PLAN.priceLabel}</div>
             <div className="mt-4 pt-3.5 border-t border-teal/25">
               {PLAN_USAGE.map(([t, v]) => (
                 <div key={t} className="flex justify-between text-xs py-1">

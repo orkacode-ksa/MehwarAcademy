@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Grid2, SectionLabel } from "../../../components/shared/Section.js";
 import { CourseRing } from "../../../components/shared/CourseRing.js";
 import { Surface } from "../../../components/ui/Surface.js";
@@ -5,29 +6,38 @@ import { Button } from "../../../components/ui/Button.js";
 import { Chip } from "../../../components/ui/Chip.js";
 import { Alert } from "../../../components/ui/Alert.js";
 import { Icon } from "../../../icons/Icon.js";
-import { QUALITY } from "../../../mock/faculty.js";
+import { qualityFor, qualityCount } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
+import { toArabicDigits } from "../../../lib/numerals.js";
 
 const EXPORT_CONTENTS = [
   "غلاف بهوية الجامعة والقسم",
-  "فهرس مرقّم بالعناصر الأحد عشر",
+  "فهرس مرقّم بالعناصر",
   "كل عنصر في قسم مستقل",
   "ترقيم صفحات وتذييل",
   "تاريخ هجري وميلادي",
 ];
 
-/** ملف الجودة: أحد عشر عنصراً، ثمانية منها تُبنى تلقائياً — منقول من CT.quality */
+/**
+ * ملف الجودة.
+ * كان هذا التبويب يعرض ٨ من ١١ لكل المقررات، فيقول تبويب الجودة «٨» بينما تقول بطاقة
+ * المقرر نفسه «٣». الآن العناصر مشتقّة من المقرر، وزر كل عنصر ناقص يفتح الخطوة التي
+ * تُستكمل منها فعلاً بدل رسالة توست لا تقود لشيء.
+ */
 export function QualityTab({ course }: { course: MockCourse }) {
+  const navigate = useNavigate();
   const { showToast } = useToast();
-  const items = QUALITY.flatMap((g) => g.items);
-  const done = items.filter((i) => i.ok).length;
-  const missing = items.length - done;
+  const groups = qualityFor(course);
+  const { done, total } = qualityCount(course);
+  const pending = groups.flatMap((g) => g.items).filter((i) => !i.ok);
+  const manualPending = pending.filter((i) => i.manual);
+  const autoPending = pending.filter((i) => !i.manual);
 
   return (
     <Grid2>
       <Surface variant="card" className="overflow-hidden">
-        {QUALITY.map((group) => (
+        {groups.map((group) => (
           <div key={group.s}>
             <div className="px-4 py-2.5 bg-[#F2F6F2] text-[10.5px] font-semibold tracking-[.07em] text-ink-2 uppercase border-b border-line-2">
               {group.s}
@@ -49,9 +59,13 @@ export function QualityTab({ course }: { course: MockCourse }) {
                   <Chip tone="teal" className="flex-none">
                     مربوط تلقائياً
                   </Chip>
+                ) : item.goTab ? (
+                  <Button variant="primary" size="sm" className="flex-none" onClick={() => navigate(`/course/${course.id}/${item.goTab}`)}>
+                    افتح الخطوة ←
+                  </Button>
                 ) : (
-                  <Button variant="primary" size="sm" className="flex-none" onClick={() => showToast(`استكمال: ${item.t}`)}>
-                    استكمال العنصر ←
+                  <Button variant="secondary" size="sm" className="flex-none" onClick={() => showToast(`ارفع ملف: ${item.t}`)}>
+                    <Icon name="up" /> ارفع
                   </Button>
                 )}
               </div>
@@ -63,12 +77,16 @@ export function QualityTab({ course }: { course: MockCourse }) {
       <div>
         <Surface variant="card" pad className="text-center mb-4">
           <div className="grid place-items-center">
-            <CourseRing syllabus={done / 11} quality={done} assessments={course.as} size={132} />
+            <CourseRing syllabus={course.syl} quality={done} qualityTotal={total} assessments={course.as} size={132} />
           </div>
           <div className="mt-3.5">
-            <div className="text-[13px] font-semibold">{done} من ١١ عنصراً</div>
+            <div className="text-[13px] font-semibold">
+              {toArabicDigits(done)} من {toArabicDigits(total)} عنصراً
+            </div>
             <p className="text-xs text-ink-2 mt-1.5 leading-[1.65]">
-              ينقصك {missing} عناصر. اثنان منها يكتملان تلقائياً بعد رصد النهائي.
+              {pending.length === 0
+                ? "الملف مكتمل — يمكنك تصديره الآن."
+                : `ينقصك ${toArabicDigits(pending.length)} ${pending.length === 1 ? "عنصر" : "عناصر"}: ${toArabicDigits(autoPending.length)} تكتمل تلقائياً بتقدّم المقرر، و${toArabicDigits(manualPending.length)} تحتاج رفعاً منك.`}
             </p>
           </div>
           <Button variant="primary" className="w-full mt-3.5" onClick={() => showToast("صُدِّر ملف الجودة بصيغة PDF")}>
@@ -76,9 +94,13 @@ export function QualityTab({ course }: { course: MockCourse }) {
           </Button>
         </Surface>
 
-        <Alert tone="amber" icon="clock" title="تنبيه استباقي">
-          باقٍ ١٧ يوماً على نهاية الفصل. العنصر الوحيد الذي يحتاج فعلاً منك الآن: رفع نتائج تقييم الطلبة.
-        </Alert>
+        {manualPending.length > 0 && (
+          <Alert tone="amber" icon="clock" title="ما يحتاج يدك أنت">
+            {manualPending.length === 1
+              ? `العنصر الوحيد الذي يحتاج منك عملاً الآن: ${manualPending[0]?.t}. البقية تكتمل تلقائياً بتقدّم المقرر.`
+              : `العناصر التي تحتاج رفعاً منك: ${manualPending.map((i) => i.t).join(" · ")}.`}
+          </Alert>
+        )}
 
         <Surface variant="card" pad className="mt-4">
           <SectionLabel>ماذا يحوي التصدير</SectionLabel>

@@ -4,15 +4,10 @@ import { Button } from "../../../components/ui/Button.js";
 import { Alert } from "../../../components/ui/Alert.js";
 import { TableScroll, TdId } from "../../../components/ui/TableScroll.js";
 import { Icon, type IconName } from "../../../icons/Icon.js";
+import { labsFor } from "../../../mock/courseData.js";
+import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-
-const LABS: [n: string, t: string, assets: [boolean, boolean, boolean], reports: string][] = [
-  ["٠١", "الزرع البكتيري وتقنيات التعقيم", [true, true, true], "152/152"],
-  ["٠٢", "صبغة جرام والفحص المجهري", [true, true, true], "150/152"],
-  ["٠٣", "عزل المستعمرات النقية", [true, true, true], "148/152"],
-  ["٠٤", "اختبارات الحساسية للمضادات", [true, true, false], "—"],
-  ["٠٥", "الزرع اللاهوائي", [false, false, false], "—"],
-];
+import { toArabicDigits } from "../../../lib/numerals.js";
 
 const ASSETS: [title: string, sub: string, icon: IconName][] = [
   ["مرجع المعمل", "كتيب المختبر المعتمد من القسم", "file"],
@@ -23,9 +18,11 @@ const ASSETS: [title: string, sub: string, icon: IconName][] = [
 
 const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap";
 
-/** الشق العملي — يظهر فقط للمقررات ذات المعمل. منقول من CT.lab */
-export function LabTab() {
+/** الشق العملي — يظهر فقط للمقررات ذات المعمل */
+export function LabTab({ course }: { course: MockCourse }) {
   const { showToast } = useToast();
+  const labs = labsFor(course);
+  const ready = labs.filter((l) => l.assets[0]).length;
 
   return (
     <div>
@@ -37,7 +34,7 @@ export function LabTab() {
         <Surface variant="work" className="overflow-hidden">
           <WorkHeader
             title="المعامل"
-            meta="٦ من ١٠"
+            meta={`${toArabicDigits(ready)} من ${toArabicDigits(labs.length)}`}
             actions={
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيف معمل جديد")}>
                 <Icon name="plus" /> معمل
@@ -58,16 +55,16 @@ export function LabTab() {
                 </tr>
               </thead>
               <tbody>
-                {LABS.map(([n, t, assets, reports]) => (
-                  <tr key={n} className="hover:bg-[#F9FBF9]">
-                    <TdId>{n}</TdId>
-                    <td className="px-3 py-2 border-b border-line-2">{t}</td>
-                    {assets.map((v, i) => (
+                {labs.map((l) => (
+                  <tr key={l.n} className="hover:bg-[#F9FBF9]">
+                    <TdId>{l.n}</TdId>
+                    <td className="px-3 py-2 border-b border-line-2">{l.title}</td>
+                    {l.assets.map((v, i) => (
                       <td key={i} className={`px-3 py-2 border-b border-line-2 text-center num ${v ? "text-teal" : "text-ink-3"}`}>
                         {v ? "✓" : "—"}
                       </td>
                     ))}
-                    <td className="px-3 py-2 border-b border-line-2 text-center num text-xs text-ink-2">{reports}</td>
+                    <td className="px-3 py-2 border-b border-line-2 text-center num text-xs text-ink-2">{l.reports}</td>
                   </tr>
                 ))}
               </tbody>

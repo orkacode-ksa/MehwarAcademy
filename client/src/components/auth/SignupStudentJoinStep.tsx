@@ -50,7 +50,7 @@ export function SignupStudentJoinStep({ initial, onNext, onBack }: SignupStudent
 
   return (
     <>
-      <h2 className="text-2xl font-semibold">انضم إلى شعبتك</h2>
+      <h1 className="text-2xl font-semibold">انضم إلى شعبتك</h1>
       <p className="text-ink-2 text-[13px] my-2 mb-[22px]">اطلب كود الشعبة من أستاذك — ست خانات على الأقل.</p>
       <form onSubmit={handleSubmit(onNext)} noValidate>
         <Field

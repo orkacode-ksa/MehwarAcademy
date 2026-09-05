@@ -3,6 +3,8 @@ import { CourseRing } from "./CourseRing.js";
 import { Chip } from "../ui/Chip.js";
 import { Bar } from "../ui/Bar.js";
 import type { MockCourse } from "../../mock/courses.js";
+import { journeyProgress, qualityCount } from "../../mock/courseData.js";
+import { toArabicDigits } from "../../lib/numerals.js";
 
 const TINT: Record<MockCourse["tint"], string> = {
   mint: "bg-gradient-to-br from-mint to-[#F4FAF6]",
@@ -11,21 +13,29 @@ const TINT: Record<MockCourse["tint"], string> = {
   sky: "bg-gradient-to-br from-sky to-[#F4F8F5]",
 };
 
-/** يطابق `.ccard` — بطاقة مقرر بحلقته وتقدّمه في دورة المقرر الثمانية */
+/**
+ * بطاقة المقرر.
+ * كانت تقول «الخطوة ٤ من ٨» وهو تعبير مضلّل: العمل في الفصل لا يسير خطوةً خطوة،
+ * فقد يكون الأستاذ في المحاضرات ٨٢٪ والاختبارات ٨٠٪ معاً. الأصدق عدّ المكتمل من
+ * الإجمالي، وإجمالي المقرر بلا معمل سبع خطوات لا ثمان.
+ */
 export function CourseCard({ course }: { course: MockCourse }) {
+  const { total, done, next } = journeyProgress(course);
+  const quality = qualityCount(course);
+
   return (
     <Link
       to={`/course/${course.id}`}
       className={`block p-[18px] rounded-rlg border border-line transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-[3px] hover:shadow-s3 hover:border-[#CBD8CF] ${TINT[course.tint]}`}
     >
       <div className="flex gap-3.5 items-center">
-        <CourseRing syllabus={course.syl} quality={course.q} assessments={course.as} size={90} />
+        <CourseRing syllabus={course.syl} quality={quality.done} qualityTotal={quality.total} assessments={course.as} size={90} />
         <div className="min-w-0">
           <div className="font-mono text-[11px] text-ink-3">{course.code}</div>
           <h3 className="text-[15px] font-semibold mb-0.5">{course.name}</h3>
           <div className="flex gap-3 items-center text-[11.5px] text-ink-2 flex-wrap">
-            <span>{course.st} طالباً</span>
-            <span>{course.secs} شعب</span>
+            <span>{toArabicDigits(course.st)} طالباً</span>
+            <span>{toArabicDigits(course.secs)} شعب</span>
             {course.lab && (
               <Chip tone="neutral" className="!px-[7px] !py-px">
                 عملي
@@ -33,8 +43,14 @@ export function CourseCard({ course }: { course: MockCourse }) {
             )}
           </div>
           <div className="mt-2.5">
-            <Bar value={(course.step / 8) * 100} height={4} />
-            <div className="text-[11px] text-ink-3 mt-1">الخطوة {course.step} من ٨ في دورة المقرر</div>
+            <Bar value={(done / total) * 100} height={4} />
+            <div className="text-[11px] text-ink-3 mt-1">
+              {course.fresh
+                ? "لم يبدأ بعد — ابدأ بالشعب والطلاب"
+                : next
+                  ? `اكتمل ${toArabicDigits(done)} من ${toArabicDigits(total)} · التالي: ${next.t}`
+                  : `اكتملت خطوات الدورة ${toArabicDigits(total)}`}
+            </div>
           </div>
         </div>
       </div>

@@ -7,7 +7,9 @@ import { Alert } from "../../components/ui/Alert.js";
 import { Bar } from "../../components/ui/Bar.js";
 import { TableScroll, TdId } from "../../components/ui/TableScroll.js";
 import { Icon } from "../../icons/Icon.js";
+import { useState } from "react";
 import { useToast } from "../../state/ToastContext.js";
+import { toArabicDigits } from "../../lib/numerals.js";
 
 type Tone = "teal" | "amber" | "neutral";
 const SLOTS: [day: string, time: string, student: string, course: string, topic: string, status: string, tone: Tone][] = [
@@ -36,13 +38,19 @@ const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b
 /** الساعات المكتبية — منقولة من V.office */
 export function OfficePage() {
   const { showToast } = useToast();
+  // طلبات الحجز كانت تُعرض بحالة «بانتظار قبولك» بلا أي زر للقبول أو الاعتذار —
+  // انتظارٌ معلّق لا مخرج منه. الآن لكل طلب قرار.
+  const [decided, setDecided] = useState<Record<string, "accepted" | "declined">>({});
+  const totalSlots = 16;
+  const booked = SLOTS.filter((r) => r[5] !== "متاح").length;
+  const weekly = Math.round((booked / totalSlots) * 100);
 
   return (
     <div>
       <PageHeader
         kicker="تنسيق المواعيد مع الطلاب"
         title="الساعات المكتبية"
-        description="٤ ساعات أسبوعياً · فترات ١٥ دقيقة · إشغال ٧٤٪"
+        description={`٤ ساعات أسبوعياً · فترات ١٥ دقيقة · محجوز ${toArabicDigits(booked)} من ${toArabicDigits(totalSlots)} (${toArabicDigits(weekly)}٪)`}
         actions={
           <>
             <Button variant="secondary" onClick={() => showToast("صُدِّر ملف التقويم")}>
@@ -57,7 +65,7 @@ export function OfficePage() {
 
       <Grid2>
         <Surface variant="work" className="overflow-hidden">
-          <WorkHeader title="مواعيد هذا الأسبوع" actions={<Chip tone="teal">٧ محجوزة من ١٦</Chip>} />
+          <WorkHeader title="مواعيد هذا الأسبوع" actions={<Chip tone="teal">{toArabicDigits(booked)} محجوزة من {toArabicDigits(totalSlots)}</Chip>} />
           <TableScroll minWidth={760}>
             <table className="w-full border-collapse text-[13px]">
               <thead>
@@ -78,7 +86,34 @@ export function OfficePage() {
                     <TdId>{course}</TdId>
                     <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-2">{topic}</td>
                     <td className="px-3 py-2 border-b border-line-2">
-                      <Chip tone={tone}>{status}</Chip>
+                      {status === "بانتظار قبولك" && !decided[student] ? (
+                        <div className="flex gap-1.5">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              setDecided((d) => ({ ...d, [student]: "accepted" }));
+                              showToast(`قُبل موعد ${student}`);
+                            }}
+                          >
+                            اقبل
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setDecided((d) => ({ ...d, [student]: "declined" }));
+                              showToast(`اعتُذر عن موعد ${student} — يُخطر الطالب باقتراح بديل`);
+                            }}
+                          >
+                            اعتذر
+                          </Button>
+                        </div>
+                      ) : (
+                        <Chip tone={decided[student] === "declined" ? "crimson" : decided[student] === "accepted" ? "teal" : tone}>
+                          {decided[student] === "declined" ? "معتذَر عنه" : decided[student] === "accepted" ? "مؤكّد" : status}
+                        </Chip>
+                      )}
                     </td>
                   </tr>
                 ))}

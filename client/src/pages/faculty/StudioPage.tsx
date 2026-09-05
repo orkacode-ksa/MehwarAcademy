@@ -1,20 +1,18 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Grid2, SectionLabel, WorkHeader } from "../../components/shared/Section.js";
 import { PipelineStep } from "../../components/shared/PipelineStep.js";
+import { CoursePicker } from "../../components/shared/CoursePicker.js";
 import { Surface } from "../../components/ui/Surface.js";
 import { Button } from "../../components/ui/Button.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { PIPE } from "../../mock/faculty.js";
+import { lecturesFor } from "../../mock/courseData.js";
+import { PRODUCTION } from "../../mock/quota.js";
+import { courseById } from "../../mock/courses.js";
 import { useToast } from "../../state/ToastContext.js";
-
-const OUTLINE: [n: string, t: string, src: string, mins: string][] = [
-  ["١", "الطفرات: التعريف والأنواع", "Prescott ص ٣١٢–٣١٨", "12 د"],
-  ["٢", "آليات الإصلاح الذاتي للحمض النووي", "Brock ص ٤٠١–٤٠٩", "15 د"],
-  ["٣", "الانتقال الجيني الأفقي", "Prescott ص ٣٢٤–٣٣٠", "14 د"],
-  ["٤", "التطبيقات في المقاومة الدوائية", "مذكرة القسم ص ٧–١١", "9 د"],
-];
+import { toArabicDigits } from "../../lib/numerals.js";
 
 const SETTINGS: [string, string][] = [
   ["عمق المحتوى", "متوسط"],
@@ -32,28 +30,82 @@ const STEP_LABEL: Record<"done" | "gate" | "wait", string> = {
   wait: "بالانتظار",
 };
 
+/** مخطط مُولَّد لموضوع — أربعة محاور بمصادرها من مراجع المقرر */
+function outlineFor(topic: string, refs: [string, string, string][]): [n: string, t: string, src: string, mins: string][] {
+  const ref = (i: number) => refs[i % Math.max(refs.length, 1)]?.[0] ?? "مراجع المقرر";
+  return [
+    ["١", `مدخل إلى ${topic}`, `${ref(0)} — الفصل المرتبط`, "12 د"],
+    ["٢", "المفاهيم والآليات الأساسية", `${ref(1)} — القسم النظري`, "15 د"],
+    ["٣", "أمثلة وتطبيقات", `${ref(2)} — دراسات حالة`, "14 د"],
+    ["٤", "الخلاصة وأسئلة التقويم", "مخرجات التعلم المعتمدة", "9 د"],
+  ];
+}
+
 /**
- * استوديو التوليد — منقول من V.studio.
- * انحراف مقصود عن البروتوتايب: كان يعرض رقم تكلفة داخلية لكل خطوة (0.01، 0.67 …)
- * وهذا يخالف القسم ٨ صراحةً: «ممنوع أي رقم تكلفة داخلية في أي واجهة يراها مستخدم».
- * استُبدل بحالة الخطوة، والتكلفة تُعرض للمستخدم بالدقائق فقط كما تنص القاعدة نفسها.
+ * استوديو التوليد.
+ * انحرافان مقصودان عن البروتوتايب:
+ * ١) كان يعرض رقم تكلفة داخلية لكل خطوة، وهذا يخالف القسم ٨ صراحةً — استُبدل بحالة الخطوة.
+ * ٢) كان مثبّتاً على MIC 231 والموضوع ١٠ مهما كان المقرر الذي فُتح منه، وزر «رجوع»
+ *    يعيدك إلى مقرر آخر غير الذي جئت منه. الآن الشاشة تعمل بسياق المقرر والموضوع،
+ *    وتسأل عنهما إن دخلتَها من أدوات اللوحة بلا سياق.
  */
 export function StudioPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [params, setParams] = useSearchParams();
+  const course = courseById(params.get("course") ?? undefined);
+
+  if (!course) {
+    return (
+      <div>
+        <PageHeader kicker="توليد المحتوى" title="استوديو التوليد" description="اختر المقرر الذي تريد توليد محتواه" />
+        <CoursePicker
+          title="أي مقرر تريد أن تولّد له؟"
+          body="التوليد يعتمد على توصيف المقرر ومراجعه ومخرجات تعلّمه — لذلك يبدأ من اختيار المقرر."
+          onPick={(c) => setParams({ course: String(c.id) })}
+          filter={(c) => c.topics.length > 0}
+        />
+      </div>
+    );
+  }
+
+  const lectures = lecturesFor(course);
+  const suggested = lectures.findIndex((l) => l.status !== "منشورة");
+  const topicIndex = Number(params.get("topic") ?? (suggested >= 0 ? suggested : 0));
+  const lecture = lectures[topicIndex] ?? lectures[0];
+  const topic = lecture?.title ?? course.topics[0] ?? course.name;
+  const outline = outlineFor(topic, course.refs);
+  const remainingAfter = PRODUCTION.remainingMinutes - PRODUCTION.lectureJobMinutes;
 
   return (
     <div>
       <PageHeader
-        kicker="MIC 231 · الموضوع ١٠"
+        kicker={`${course.code} · ${course.name}`}
         title="استوديو التوليد"
-        description="الوراثة الميكروبية والطفرات · ٣ مراجع مختارة · مطابق لفهرس التوصيف"
+        description={`الموضوع: ${topic} · ${toArabicDigits(course.refs.length)} مراجع مختارة · مطابق لفهرس التوصيف`}
         actions={
-          <Button variant="secondary" onClick={() => navigate("/course/0")}>
-            <Icon name="arr" /> رجوع للمقرر
+          <Button variant="secondary" onClick={() => navigate(`/course/${course.id}/lectures`)}>
+            <Icon name="arr" /> رجوع لمحاضرات المقرر
           </Button>
         }
       />
+
+      {/* اختيار الموضوع ظاهر لا مخفيّ: المستخدم يرى أي محاضرة سيولّد قبل أن يصرف رصيده */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1.5 mb-4 [scrollbar-width:none]">
+        {lectures.map((l, i) => (
+          <button
+            key={l.n}
+            type="button"
+            onClick={() => setParams({ course: String(course.id), topic: String(i) })}
+            className={`flex-none px-3 py-1.5 rounded-[10px] text-[12px] font-medium border transition-colors ${
+              i === topicIndex ? "bg-deep text-white border-deep" : "bg-white text-ink-2 border-line hover:border-[#C6D3CB]"
+            }`}
+          >
+            <span className="font-mono text-[10px] opacity-70 me-1.5">{l.n}</span>
+            {l.title}
+          </button>
+        ))}
+      </div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1.5 mb-5 [scrollbar-width:thin]">
         {PIPE.map((p) => (
@@ -68,11 +120,11 @@ export function StudioPage() {
               <div>
                 <div className="text-xs text-[#7C6134] font-semibold mb-2">تكلفة هذه المهمة قبل التشغيل</div>
                 <div className="flex items-baseline gap-2.5">
-                  <span className="num text-[34px] font-semibold text-deep leading-none">32</span>
+                  <span className="num text-[34px] font-semibold text-deep leading-none">{PRODUCTION.lectureJobMinutes}</span>
                   <span className="text-[13px] text-ink-2">دقيقة إنتاج</span>
                 </div>
                 <p className="text-xs text-ink-2 mt-2">
-                  يتبقّى لك بعدها <span className="num">110</span> دقيقة من رصيد هذا الشهر
+                  يتبقّى لك بعدها <span className="num">{remainingAfter}</span> دقيقة من رصيد هذا الشهر
                 </p>
               </div>
               <div className="grid gap-2">
@@ -90,9 +142,9 @@ export function StudioPage() {
             <WorkHeader title="المخطط المُولَّد — يحتاج اعتمادك" actions={<Chip tone="amber">بوابة بشرية</Chip>} />
             <div className="p-[18px]">
               <p className="text-xs text-ink-2 mb-3 leading-[1.65]">
-                بُني من فهرس التوصيف ومخرجات التعلم CLO 3. لا شيء يمرّ لبقية الخطوات قبل اعتمادك.
+                بُني من فهرس التوصيف ومخرجات التعلم المعتمدة في {course.code}. لا شيء يمرّ لبقية الخطوات قبل اعتمادك.
               </p>
-              {OUTLINE.map(([n, t, src, mins]) => (
+              {outline.map(([n, t, src, mins]) => (
                 <div key={n} className="flex gap-3 py-2.5 border-b border-line-2 items-center">
                   <div className="w-[25px] h-[25px] rounded-lg grid place-items-center flex-none bg-deep/[.06] text-ink-3 font-mono text-[10.5px] font-semibold">
                     {n}
@@ -140,15 +192,15 @@ export function StudioPage() {
               <Chip tone="neutral">مولّد بالذكاء</Chip>
             </div>
             <div className="aspect-video p-[22px] flex flex-col justify-center gap-2.5 text-white" style={{ background: "linear-gradient(150deg,var(--deep),var(--deep3))" }}>
-              <h5 className="text-[17px] font-semibold">آليات الانتقال الجيني الأفقي</h5>
+              <h5 className="text-[17px] font-semibold">{topic}</h5>
               <ul className="text-[11.5px] opacity-90 grid gap-1.5">
-                {["التحوّل — Transformation", "الاقتران — Conjugation", "التنبيغ — Transduction"].map((t) => (
+                {outline.slice(0, 3).map(([, t]) => (
                   <li key={t}>
                     <span className="text-[#A8D6C2]">◆</span> {t}
                   </li>
                 ))}
               </ul>
-              <div className="text-[9.5px] opacity-55 mt-1">Prescott&apos;s Microbiology, 12th ed., p. 324</div>
+              <div className="text-[9.5px] opacity-55 mt-1">{course.refs[0]?.[0] ?? ""}</div>
             </div>
           </div>
 
@@ -170,9 +222,7 @@ export function StudioPage() {
                 />
               ))}
             </div>
-            <div className="px-3.5 pb-3 text-[11px] text-ink-2">
-              «نبدأ بسؤال جوهري: كيف تكتسب البكتيريا مقاومةً لمضاد حيوي لم تتعرّض له من قبل؟»
-            </div>
+            <div className="px-3.5 pb-3 text-[11px] text-ink-2">«نبدأ بسؤال جوهري يفتح الموضوع: لماذا يهمّ {topic} في هذا المقرر؟»</div>
           </div>
 
           <div className="border border-line rounded-rmd overflow-hidden bg-white">
@@ -188,7 +238,10 @@ export function StudioPage() {
               </div>
             </div>
             <div className="px-3.5 py-3 text-[11px] text-ink-2">
-              شرائح متحركة + سرد عربي + ترجمة نصية مزامنة <span className="text-ink-3">· يُخصم <span className="num">20</span> دقيقة من رصيدك</span>
+              شرائح متحركة + سرد عربي + ترجمة نصية مزامنة{" "}
+              <span className="text-ink-3">
+                · يُخصم <span className="num">{PRODUCTION.videoMinutes}</span> دقيقة من رصيدك
+              </span>
             </div>
           </div>
         </div>

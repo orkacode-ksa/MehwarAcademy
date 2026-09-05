@@ -4,33 +4,25 @@ import { Button } from "../../../components/ui/Button.js";
 import { Chip } from "../../../components/ui/Chip.js";
 import { TableScroll, TdId, TdNum } from "../../../components/ui/TableScroll.js";
 import { Icon } from "../../../icons/Icon.js";
+import { sectionsFor } from "../../../mock/courseData.js";
+import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-
-const SECTIONS: [name: string, code: string, students: number, time: string, room: string, mode: string][] = [
-  ["شعبة ١", "MIC231-A", 62, "الأحد والثلاثاء ٠٨:٠٠", "مبنى ٤ · ق ٢١٢", "حضوري"],
-  ["شعبة ٢", "MIC231-B", 61, "الأحد والثلاثاء ١٠:٠٠", "مبنى ٤ · ق ٢١٤", "حضوري"],
-  ["شعبة ٣", "MIC231-C", 61, "الاثنين والأربعاء ٠٩:٠٠", "مبنى ٤ · ق ٢٠٨", "حضوري"],
-];
-
-const IMPORT_PREVIEW: [label: string, value: number, tone: "teal" | "neutral" | "amber" | "crimson"][] = [
-  ["سيُضاف", 18, "teal"],
-  ["سيُحدَّث", 43, "neutral"],
-  ["متعارض", 1, "amber"],
-  ["مرفوض", 0, "crimson"],
-];
+import { toArabicDigits } from "../../../lib/numerals.js";
 
 const th = "text-start px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap";
 
-/** الشعب والطلاب — منقولة من CT.sections (سطح عمل مسطّح) */
-export function SectionsTab({ courseSecs, courseStudents }: { courseSecs: number; courseStudents: number }) {
+/** الشعب والطلاب — الجدول مشتقّ من عدد شعب المقرر وطلابه، لا قائمة ثابتة لمقرر واحد */
+export function SectionsTab({ course }: { course: MockCourse }) {
   const { showToast } = useToast();
+  const sections = sectionsFor(course);
+  const first = sections[0];
 
   return (
     <Grid2>
       <Surface variant="work" className="overflow-hidden">
         <WorkHeader
           title="الشعب"
-          meta={`${courseSecs} شعب · ${courseStudents} طالباً`}
+          meta={`${toArabicDigits(course.secs)} شعب · ${toArabicDigits(course.st)} طالباً`}
           actions={
             <>
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيفت شعبة جديدة")}>
@@ -56,18 +48,18 @@ export function SectionsTab({ courseSecs, courseStudents }: { courseSecs: number
               </tr>
             </thead>
             <tbody>
-              {SECTIONS.map(([name, code, students, time, room, mode]) => (
-                <tr key={code} className="hover:bg-[#F9FBF9]">
-                  <td className="px-3 py-2 border-b border-line-2 font-medium whitespace-nowrap">{name}</td>
-                  <TdId>{code}</TdId>
-                  <TdNum>{students}</TdNum>
-                  <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-2 whitespace-nowrap">{time}</td>
-                  <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-2 whitespace-nowrap">{room}</td>
+              {sections.map((s) => (
+                <tr key={s.code} className="hover:bg-[#F9FBF9]">
+                  <td className="px-3 py-2 border-b border-line-2 font-medium whitespace-nowrap">{s.name}</td>
+                  <TdId>{s.code}</TdId>
+                  <TdNum>{s.students}</TdNum>
+                  <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-2 whitespace-nowrap">{s.time}</td>
+                  <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-2 whitespace-nowrap">{s.room}</td>
                   <td className="px-3 py-2 border-b border-line-2">
-                    <Chip tone="neutral">{mode}</Chip>
+                    <Chip tone="neutral">{s.mode}</Chip>
                   </td>
                   <td className="px-3 py-2 border-b border-line-2 text-end">
-                    <Button variant="text" size="sm" aria-label={`فتح ${name}`} onClick={() => showToast(`${name} — تفتح في المرحلة ٧`)}>
+                    <Button variant="text" size="sm" aria-label={`فتح ${s.name}`} onClick={() => showToast(`${s.name} — تفتح في المرحلة ٧`)}>
                       <Icon name="arr" />
                     </Button>
                   </td>
@@ -85,32 +77,30 @@ export function SectionsTab({ courseSecs, courseStudents }: { courseSecs: number
             <div className="text-[13px] font-semibold">أفلت كشف الطلاب هنا</div>
             <p className="text-[11px] text-ink-2 mt-1">Excel · CSV · PDF · لصق نصي</p>
           </div>
-          <SectionLabel>آخر استيراد — تشغيل تجريبي</SectionLabel>
-          <div className="grid gap-[7px] text-xs">
-            {IMPORT_PREVIEW.map(([label, value, tone]) => (
-              <div key={label} className="flex justify-between items-center">
-                <span>{label}</span>
-                <Chip tone={tone}>
-                  <span className="num">{value}</span>
-                </Chip>
-              </div>
-            ))}
-          </div>
-          <p className="text-[11px] text-ink-3 mt-3 leading-[1.65]">
+          <p className="text-[11px] text-ink-3 leading-[1.65]">
             إعادة استيراد نفس الملف تُحدِّث ولا تُكرِّر. الطالب الغائب عن الملف يُعلَّم «منسحب» بانتظار تأكيدك — ولا يُحذف.
           </p>
-          <Button variant="primary" size="sm" className="w-full mt-3" onClick={() => showToast("فُتحت مراجعة الاستيراد")}>
-            مراجعة الاستيراد وتأكيده
-          </Button>
         </Surface>
 
-        <Surface variant="card" pad>
-          <SectionLabel>كود انضمام الطلاب</SectionLabel>
-          <div className="text-center p-4 rounded-rmd bg-gradient-to-br from-mint to-white border border-teal/30">
-            <div className="num text-[25px] font-semibold tracking-[.13em] text-deep">MIC231-A</div>
-            <p className="text-[11px] text-ink-2 mt-1.5">يدخله الطالب مرة واحدة عند التسجيل</p>
-          </div>
-        </Surface>
+        {first && (
+          <Surface variant="card" pad>
+            <SectionLabel>كود انضمام الطلاب</SectionLabel>
+            <div className="text-center p-4 rounded-rmd bg-gradient-to-br from-mint to-white border border-teal/30">
+              <div className="num text-[25px] font-semibold tracking-[.13em] text-deep">{first.code}</div>
+              <p className="text-[11px] text-ink-2 mt-1.5">كود {first.name} — يدخله الطالب مرة واحدة عند التسجيل</p>
+            </div>
+            {sections.length > 1 && (
+              <div className="mt-3 grid gap-1.5">
+                {sections.slice(1).map((s) => (
+                  <div key={s.code} className="flex justify-between text-[11.5px] text-ink-2">
+                    <span>{s.name}</span>
+                    <b className="num font-medium">{s.code}</b>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Surface>
+        )}
       </div>
     </Grid2>
   );

@@ -38,7 +38,7 @@ export function SignupFacultyDetailsStep({ initial, onNext, onBack }: SignupFacu
 
   return (
     <>
-      <h2 className="text-2xl font-semibold">بياناتك الأساسية</h2>
+      <h1 className="text-2xl font-semibold">بياناتك الأساسية</h1>
       <p className="text-ink-2 text-[13px] my-2 mb-[22px]">تُستخدم في ترويسة اختباراتك وملفات الجودة.</p>
       <form onSubmit={handleSubmit(onNext)} noValidate>
         <Field label="الاسم الكامل" placeholder="د. عبدالله بن سعيد الغامدي" error={errors.fullName?.message} {...register("fullName")} />

@@ -6,7 +6,7 @@ import { NAV, type Role } from "../../nav/nav.js";
  * الشريط الجانبي — سطح المكتب فقط (عرضه --rail). الجوال له مكوّن مستقل: BottomNav،
  * لأن دمج السياقين في عنصر واحد كان يفرض حلولًا وسطًا تُسيء للاثنين معًا.
  */
-export function Rail({ role }: { role: Role }) {
+export function Rail({ role, onLogout }: { role: Role; onLogout: () => void }) {
   const items = NAV[role];
 
   return (
@@ -38,10 +38,16 @@ export function Rail({ role }: { role: Role }) {
 
       <div className="flex-1" />
 
-      <Link to="/" title="خروج" className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150">
+      {/* الخروج زر بتأكيد لا رابطاً مجاوراً لأزرار التنقّل */}
+      <button
+        type="button"
+        onClick={onLogout}
+        title="خروج"
+        className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150"
+      >
         <Icon name="logout" className="w-[19px] h-[19px]" />
         <i className="not-italic text-[9.5px] font-medium">خروج</i>
-      </Link>
+      </button>
     </aside>
   );
 }

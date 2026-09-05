@@ -43,29 +43,37 @@ export function LoginPage() {
     <AuthLayout
       left={
         <>
-          <h2 className="text-2xl font-semibold">أهلاً بعودتك</h2>
-          <p className="text-ink-2 text-[13px] my-2 mb-6">ادخل ببريدك، أو جرّب أدواراً مختلفة من الأزرار أدناه.</p>
+          <h1 className="text-2xl font-semibold">أهلاً بعودتك</h1>
+          <p className="text-ink-2 text-[13px] my-2 mb-6">ادخل ببريدك الجامعي وكلمة مرورك.</p>
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <Field label="البريد الإلكتروني" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
             <PasswordField label="كلمة المرور" placeholder="••••••••" error={errors.password?.message} {...register("password")} />
+            {/* طريق للخروج من المأزق: كانت الشاشة بلا أي مسار لمن نسي كلمة مروره */}
+            <button
+              type="button"
+              className="text-[11.5px] font-semibold text-deep block mb-3"
+              onClick={() => showToast("سيصلك رابط إعادة التعيين على بريدك الجامعي")}
+            >
+              نسيت كلمة المرور؟
+            </button>
             <Button type="submit" variant="primary" size="lg" className="w-full mt-1.5" disabled={isSubmitting}>
               دخول <Icon name="arr" className="w-4 h-4" />
             </Button>
           </form>
 
-          <div className="flex items-center gap-3 my-[22px]">
-            <i className="flex-1 h-px bg-line" />
-            <span className="text-xs text-ink-3">أو ادخل بدور آخر للمعاينة</span>
-            <i className="flex-1 h-px bg-line" />
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            {PREVIEW_ROLES.map(({ role, icon }) => (
-              <Button key={role} type="button" variant="secondary" size="sm" onClick={() => navigate(`/${ROLE_HOME[role]}`)}>
-                <Icon name={icon} className="w-4 h-4" /> {ROLE_LABEL[role]}
-              </Button>
-            ))}
-          </div>
+          {/* أزرار معاينة الأدوار أداة مراجعة داخلية لا خيار دخول: طُويت حتى لا تُربك
+              المستخدم الحقيقي، وتُزال أو تُحمى خلف صلاحية إدارية قبل الإنتاج. */}
+          <details className="mt-[22px] border-t border-line pt-3.5">
+            <summary className="text-xs text-ink-3 cursor-pointer select-none">معاينة الأدوار — للمراجعة فقط</summary>
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              {PREVIEW_ROLES.map(({ role, icon }) => (
+                <Button key={role} type="button" variant="secondary" size="sm" onClick={() => navigate(`/${ROLE_HOME[role]}`)}>
+                  <Icon name={icon} className="w-4 h-4" /> {ROLE_LABEL[role]}
+                </Button>
+              ))}
+            </div>
+          </details>
 
           <p className="text-xs text-ink-3 mt-[22px] text-center">
             ليس لديك حساب؟{" "}

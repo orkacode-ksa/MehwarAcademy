@@ -74,10 +74,15 @@ export function AlertCarousel({ alerts }: { alerts: PreventiveAlert[] }) {
           <h3 className="text-[15px] font-semibold leading-snug">{current.title}</h3>
           <p className="text-[12.5px] text-ink-2 mt-1 leading-[1.7]">{current.body}</p>
           <div className="flex items-center gap-2 flex-wrap mt-3">
+            {/* التنبيه المطمئن لا إجراء عليه، فزرّه لا يُرسم بثقل زر الإجراء العاجل */}
             {current.actionPath && current.actionLabel && (
               <Link
                 to={current.actionPath}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-deep text-white text-[12.5px] font-semibold shadow-s1 hover:bg-deep2 transition-colors"
+                className={
+                  current.tone === "teal"
+                    ? "inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-deep hover:underline"
+                    : "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-deep text-white text-[12.5px] font-semibold shadow-s1 hover:bg-deep2 transition-colors"
+                }
               >
                 {current.actionLabel} ←
               </Link>

@@ -154,8 +154,8 @@ export function ShowcasePage() {
 
         <Section title="خطوة رحلة المقرر">
           <JStep status="done" number="١" title="الشعب والطلاب" description="أنشئ الشعب واستورد سجل الطلاب" percent={100} />
-          <JStep status="now" number="٣" title="المحاضرات النظرية" description="شرح نصي · عرض · فيديو · بودكاست" percent={82} />
-          <JStep status="lock" number="٦" title="الاختبارات" description="كويزات · نصفي · عملي · نهائي" percent={33} />
+          <JStep status="next" number="٣" title="المحاضرات النظرية" description="شرح نصي · عرض · فيديو · بودكاست" percent={82} />
+          <JStep status="open" number="٦" title="الاختبارات" description="كويزات · نصفي · عملي · نهائي" percent={33} />
         </Section>
 
         <Section title="خط إنتاج الاستوديو">

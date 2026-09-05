@@ -21,7 +21,7 @@ export function SignupFinishStep({ role, onEnter }: SignupFinishStepProps) {
   if (role === "student") {
     return (
       <>
-        <h2 className="text-2xl font-semibold">كل شيء جاهز</h2>
+        <h1 className="text-2xl font-semibold">كل شيء جاهز</h1>
         <p className="text-ink-2 text-[13px] my-2 mb-[22px]">حسابك جاهز. مقرراتك تظهر فوراً.</p>
         <Alert tone="teal" icon="check" title="انضممت إلى ٥ مقررات">
           ربطنا رقمك الجامعي بكل شُعبك المسجّلة تلقائياً.
@@ -35,7 +35,7 @@ export function SignupFinishStep({ role, onEnter }: SignupFinishStepProps) {
 
   return (
     <>
-      <h2 className="text-2xl font-semibold">استورد جدولك</h2>
+      <h1 className="text-2xl font-semibold">استورد جدولك</h1>
       <p className="text-ink-2 text-[13px] my-2 mb-[22px]">تصدير ملف الجدول من نظام الجامعة وارفعه هنا — تُنشأ مقرراتك وشُعبك تلقائياً.</p>
 
       <button

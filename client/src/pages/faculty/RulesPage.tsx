@@ -9,26 +9,10 @@ import { Chip } from "../../components/ui/Chip.js";
 import { Alert } from "../../components/ui/Alert.js";
 import { TableScroll, TdId } from "../../components/ui/TableScroll.js";
 import { Icon } from "../../icons/Icon.js";
+import { PREVENTIVE_ALERTS } from "../../mock/alerts.js";
+import { AUTO_RULES_COUNT, COMPLIANCE_SCORE, MET_RULES_COUNT, OPEN_RULES_COUNT, RULES, RULES_NOW, type Rule } from "../../mock/compliance.js";
+import { toArabicDigits } from "../../lib/numerals.js";
 import { useToast } from "../../state/ToastContext.js";
-
-type Tone = "teal" | "amber" | "neutral";
-type Rule = { code: string; title: string; cat: "أكاديمية" | "إدارية" | "سلوكية"; auto: boolean; esc: string; status: string; tone: Tone };
-
-const RULES: Rule[] = [
-  { code: "ACD-01", title: "التغيب عن حضور المحاضرات", cat: "أكاديمية", auto: true, esc: "د ج ب أ", status: "مستوفٍ", tone: "teal" },
-  { code: "ACD-02", title: "التأخر عن بداية المحاضرات", cat: "أكاديمية", auto: true, esc: "د ج ب أ", status: "مستوفٍ", tone: "teal" },
-  { code: "ACD-05", title: "التأخر أو عدم رصد الدرجات", cat: "أكاديمية", auto: true, esc: "ج ب أ ⇧", status: "مستوفٍ", tone: "teal" },
-  { code: "ACD-08", title: "عدم الالتزام بالساعات المكتبية", cat: "أكاديمية", auto: true, esc: "د ج ب أ", status: "مستوفٍ", tone: "teal" },
-  { code: "ACD-10", title: "عدم تسليم المفردات وتوزيع الدرجات بدايةً", cat: "أكاديمية", auto: true, esc: "ج ب أ ⇧", status: "مستوفٍ", tone: "teal" },
-  { code: "ACD-11", title: "عدم إدخال الغياب في الوقت المحدد", cat: "أكاديمية", auto: true, esc: "ج ب أ ⇧", status: "تنبيه مفتوح", tone: "amber" },
-  { code: "ACD-12", title: "عدم إتاحة مراجعة الإجابات للطالب", cat: "أكاديمية", auto: true, esc: "ج ب أ ⇧", status: "تنبيه مفتوح", tone: "amber" },
-  { code: "ADM-17", title: "عدم تسليم تقرير المقرر", cat: "إدارية", auto: true, esc: "د ج ب أ", status: "مستوفٍ", tone: "teal" },
-  { code: "ADM-18", title: "عدم تسليم أوراق الاختبارات", cat: "إدارية", auto: true, esc: "ج ب أ ⇧", status: "مستوفٍ", tone: "teal" },
-  { code: "ADM-14", title: "عدم حضور مجالس الأقسام والكليات", cat: "إدارية", auto: false, esc: "ب أ ⇧ ⇧", status: "مرجعي", tone: "neutral" },
-  { code: "ADM-20", title: "تسريب الخطابات أو المعلومات السرية", cat: "إدارية", auto: false, esc: "أ مباشرة", status: "مرجعي", tone: "neutral" },
-  { code: "BHV-26", title: "عدم الالتزام بالزي المعتمد", cat: "سلوكية", auto: false, esc: "ج ب أ ⇧", status: "مرجعي", tone: "neutral" },
-  { code: "BHV-30", title: "الإخلال بقيم الأمانة وشرف الوظيفة", cat: "سلوكية", auto: false, esc: "أ مباشرة", status: "مرجعي", tone: "neutral" },
-];
 
 type Filter = "all" | "أكاديمية" | "إدارية" | "سلوكية" | "auto";
 const FILTERS: [Filter, string][] = [
@@ -50,7 +34,11 @@ export function RulesPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
-  const filtered = RULES.filter((r) => {
+  const rules: Rule[] = RULES_NOW;
+  const autoCount = AUTO_RULES_COUNT;
+  const openCount = OPEN_RULES_COUNT;
+
+  const filtered = rules.filter((r) => {
     if (filter === "auto" && !r.auto) return false;
     if (filter !== "all" && filter !== "auto" && r.cat !== filter) return false;
     const q = query.trim();
@@ -58,14 +46,14 @@ export function RulesPage() {
   });
 
   const countFor = (f: Filter) =>
-    f === "all" ? RULES.length : f === "auto" ? RULES.filter((r) => r.auto).length : RULES.filter((r) => r.cat === f).length;
+    f === "all" ? rules.length : f === "auto" ? autoCount : rules.filter((r) => r.cat === f).length;
 
   return (
     <div>
       <PageHeader
         kicker="أداة ذاتية — لا تُشارَك مع أي جهة"
         title="مؤشر الالتزام"
-        description="٣٢ بنداً من دليل الجامعة · ١٦ منها يرصدها النظام آلياً من بياناتك"
+        description={`${toArabicDigits(RULES.length)} بنداً من دليل الجامعة · ${toArabicDigits(RULES.filter((r) => r.auto).length)} منها يرصدها النظام آلياً من بياناتك`}
         actions={
           <Button variant="secondary" onClick={() => showToast("صُدِّر تقرير الالتزام")}>
             <Icon name="down" /> تصدير التقرير
@@ -80,17 +68,17 @@ export function RulesPage() {
       <Grid2 className="mb-5">
         <Surface variant="card" pad>
           <div className="flex items-center gap-5 flex-wrap">
-            <ScoreRing value={0.86} label="86" caption="من ١٠٠" />
+            <ScoreRing value={COMPLIANCE_SCORE / 100} label={String(COMPLIANCE_SCORE)} caption="من ١٠٠" />
             <div className="flex-1 min-w-[180px]">
               <div className="text-[13px] font-semibold mb-2.5">حالتك هذا الفصل</div>
               <div className="grid gap-[7px] text-xs">
                 <div className="flex justify-between">
                   <span>بنود مستوفاة</span>
-                  <b className="num text-teal">14 / 16</b>
+                  <b className="num text-teal">{MET_RULES_COUNT} / {autoCount}</b>
                 </div>
                 <div className="flex justify-between">
                   <span>تنبيهات مفتوحة</span>
-                  <b className="num text-amber">2</b>
+                  <b className="num text-amber">{openCount}</b>
                 </div>
                 <div className="flex justify-between">
                   <span>نافذة السريان</span>
@@ -101,22 +89,31 @@ export function RulesPage() {
           </div>
         </Surface>
 
+        {/* التنبيهات هنا هي نفسها تنبيهات اللوحة لا نسخة ثانية تُصان يدوياً وتتناقض معها */}
         <div>
-          <Alert
-            tone="amber"
-            icon="alert"
-            title="غياب محاضرة الأحد لم يُدخل"
-            action={
-              <Link to="/attend" className="inline-block text-[12px] font-semibold text-deep pt-1.5">
-                فتح جلسة الحضور ←
-              </Link>
-            }
-          >
-            البند ١١ — أمامك ٤٨ ساعة.
-          </Alert>
-          <Alert tone="amber" icon="alert" title="نافذة مراجعة الإجابات لم تُفتح">
-            البند ١٢ — مضى ٦ أيام على رصد النصفي.
-          </Alert>
+          {PREVENTIVE_ALERTS.filter((a) => a.tone !== "teal")
+            .slice(0, 2)
+            .map((a) => (
+              <Alert
+                key={a.id}
+                tone={a.tone === "crimson" ? "crimson" : "amber"}
+                icon="alert"
+                title={a.title}
+                action={
+                  a.actionPath && a.actionLabel ? (
+                    <Link to={a.actionPath} className="inline-block text-[12px] font-semibold text-deep pt-1.5">
+                      {a.actionLabel} ←
+                    </Link>
+                  ) : undefined
+                }
+              >
+                {a.rule ? `${a.rule} — ` : ""}
+                {a.deadline ?? a.body}
+              </Alert>
+            ))}
+          <Link to="/alerts" className="inline-block text-[11.5px] font-semibold text-deep mt-1">
+            كل التنبيهات الوقائية ←
+          </Link>
         </div>
       </Grid2>
 

@@ -6,42 +6,19 @@ import { Alert } from "../../../components/ui/Alert.js";
 import { Bar } from "../../../components/ui/Bar.js";
 import { LRow } from "../../../components/shared/LRow.js";
 import { Icon } from "../../../icons/Icon.js";
+import { topicsFor, weightsFor } from "../../../mock/courseData.js";
+import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
+import { toArabicDigits } from "../../../lib/numerals.js";
 
-const CLOS: [string, string][] = [
-  ["CLO 1", "يصف التركيب الخلوي للكائنات الدقيقة وطرق تصنيفها"],
-  ["CLO 2", "يفسّر العمليات الأيضية ومنحنى النمو البكتيري"],
-  ["CLO 3", "يحلّل آليات الوراثة الميكروبية ومقاومة المضادات"],
-  ["CLO 4", "يطبّق تقنيات الزرع والعزل والتشخيص المخبري"],
-];
-
-const TOPICS: [n: string, t: string, clo: string, status: string, tone: "ok" | "no" | "na"][] = [
-  ["٠٧", "تصنيف البكتيريا والتسمية العلمية", "CLO 1", "مُنجز", "ok"],
-  ["٠٨", "التمثيل الغذائي البكتيري", "CLO 2", "مُنجز", "ok"],
-  ["٠٩", "النمو البكتيري ومنحنى النمو", "CLO 2", "هذا الأسبوع", "no"],
-  ["١٠", "الوراثة الميكروبية والطفرات", "CLO 3", "مسوّدة مولّدة", "no"],
-  ["١١", "مضادات الميكروبات وآليات المقاومة", "CLO 3، 4", "لم يبدأ", "na"],
-  ["١٢", "الفطريات الطبية", "CLO 4", "لم يبدأ", "na"],
-];
-
-const REFS: [title: string, meta: string, src: string][] = [
-  ["Prescott's Microbiology", "الطبعة ١٢ · كتاب", "من التوصيف"],
-  ["Brock Biology of Microorganisms", "الطبعة ١٦ · كتاب", "من التوصيف"],
-  ["مذكرة القسم — المقاومة البكتيرية", "٢٠٢٥ · ملف", "أضفتها أنت"],
-  ["Antimicrobial Resistance Review", "ورقة علمية · 2024", "من بنك المقرر"],
-];
-
-const WEIGHTS: [string, number][] = [
-  ["أنشطة ومشاركات", 10],
-  ["واجبات وبحوث", 15],
-  ["اختبار عملي", 20],
-  ["اختبار نصفي", 20],
-  ["اختبار نهائي", 35],
-];
-
-/** البيانات العامة: التوصيف ومخرجات التعلم والمواضيع والمراجع وتوزيع الدرجات — من CT.general */
-export function GeneralTab() {
+/** البيانات العامة: التوصيف ومخرجات التعلم والمواضيع والمراجع وتوزيع الدرجات */
+export function GeneralTab({ course }: { course: MockCourse }) {
   const { showToast } = useToast();
+  const topics = topicsFor(course);
+  const weights = weightsFor(course);
+  const totalWeight = weights.reduce((s, w) => s + w.weight, 0);
+  const maxWeight = Math.max(...weights.map((w) => w.weight));
+  const approved = course.stepPercents.general === 100;
 
   return (
     <Grid2>
@@ -50,7 +27,10 @@ export function GeneralTab() {
           <WorkHeader
             title={
               <>
-                توصيف المقرر <Chip tone="teal" className="ms-2">مرفوع ومُستخرَج</Chip>
+                توصيف المقرر{" "}
+                <Chip tone={approved ? "teal" : "amber"} className="ms-2">
+                  {approved ? "مرفوع ومُستخرَج" : "قيد المراجعة"}
+                </Chip>
               </>
             }
             actions={
@@ -64,10 +44,10 @@ export function GeneralTab() {
               استُخرجت هذه الحقول من ملف التوصيف تلقائياً. راجعها واعتمدها — لا تُكتب في النظام قبل اعتمادك.
             </p>
             <SectionLabel>مخرجات التعلم (CLO)</SectionLabel>
-            {CLOS.map(([k, t]) => (
-              <div key={k} className="flex gap-3 py-2.5 border-b border-line-2 last:border-b-0">
+            {course.clos.map((t, i) => (
+              <div key={t} className="flex gap-3 py-2.5 border-b border-line-2 last:border-b-0">
                 <Chip tone="neutral" className="num flex-none self-start">
-                  {k}
+                  CLO {i + 1}
                 </Chip>
                 <span className="text-xs flex-1 leading-[1.7]">{t}</span>
               </div>
@@ -78,15 +58,15 @@ export function GeneralTab() {
         <Surface variant="card" className="overflow-hidden">
           <WorkHeader
             title="فهرس المحتويات والمواضيع"
-            meta="١٤ موضوعاً · ١٥ أسبوعاً"
+            meta={`${toArabicDigits(topics.length)} مواضيع · ١٥ أسبوعاً`}
             actions={
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيف موضوع جديد")}>
                 <Icon name="plus" /> موضوع
               </Button>
             }
           />
-          {TOPICS.map(([n, t, clo, status, tone]) => (
-            <LRow key={n} tone={tone} label={n} title={t} subtitle={`${clo} · ${status}`} />
+          {topics.map((t) => (
+            <LRow key={t.n} tone={t.tone} label={t.n} title={t.title} subtitle={`${t.clo} · ${t.status}`} />
           ))}
         </Surface>
       </div>
@@ -101,26 +81,31 @@ export function GeneralTab() {
               </Button>
             }
           />
-          {REFS.map(([t, meta, src]) => (
+          {course.refs.map(([t, meta, src]) => (
             <LRow key={t} tone="ok" icon="file" title={t} subtitle={`${meta} · ${src}`} />
           ))}
         </Surface>
 
         <Surface variant="card" pad>
           <SectionLabel>توزيع الدرجات المعتمد</SectionLabel>
-          {WEIGHTS.map(([t, w]) => (
-            <div key={t} className="mb-2.5">
+          {weights.map((w) => (
+            <div key={w.key} className="mb-2.5">
               <div className="flex justify-between text-xs mb-1">
-                <span>{t}</span>
-                <b className="num">{w}%</b>
+                <span>{w.label}</span>
+                <b className="num">{w.weight}%</b>
               </div>
-              <Bar value={w * 2.85} height={4} />
+              <Bar value={(w.weight / maxWeight) * 100} height={4} />
             </div>
           ))}
           <div className="flex justify-between pt-2.5 border-t border-line font-semibold text-[12.5px]">
             <span>الإجمالي</span>
-            <span className="num text-teal">100%</span>
+            <span className="num text-teal">{totalWeight}%</span>
           </div>
+          {!course.lab && (
+            <p className="text-[11px] text-ink-3 mt-2.5 leading-[1.65]">
+              لا اختبار عملي في هذا المقرر لأنه بلا شق معملي — ونصيبه أُعيد توزيعه على بقية التقييمات.
+            </p>
+          )}
           <Alert tone="teal" icon="check" className="mt-3.5 mb-0">
             نُشر للطلاب في الأسبوع الأول — البند ١٠ في لوائح الالتزام مستوفى.
           </Alert>

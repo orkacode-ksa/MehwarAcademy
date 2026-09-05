@@ -15,12 +15,17 @@ const SUMMARY: [label: string, n: number, icon: IconName][] = [
   ["تغذية راجعة", 94, "users"],
 ];
 
-const QUESTIONS: [q: string, kind: string, clo: string, used: number, solved: number, disc: string, ver: string][] = [
-  ["اذكر أطوار منحنى النمو البكتيري الأربعة", "مقالي", "CLO 2", 7, 72, "0.41", "v3"],
-  ["أي التالي يمثّل آلية الاقتران البكتيري؟", "اختياري", "CLO 3", 5, 58, "0.55", "v2"],
-  ["قارن بين صبغة جرام الموجبة والسالبة", "مقالي", "CLO 1", 9, 81, "0.33", "v4"],
-  ["احسب زمن التضاعف من البيانات المعطاة", "رقمي", "CLO 2", 4, 44, "0.62", "v1"],
-  ["علّل: مقاومة البلازميد تنتقل أسرع من الطفرة", "مقالي", "CLO 3", 6, 51, "0.58", "v2"],
+/**
+ * البنك يجمع حصيلة كل المقررات، فعمود المقرر ليس زينة: بدونه لا يعرف الأستاذ
+ * أي سؤال يخصّ أي مقرر قبل أن يستدعيه إلى اختبار.
+ */
+const QUESTIONS: [q: string, course: string, kind: string, clo: string, used: number, solved: number, disc: string, ver: string][] = [
+  ["اذكر أطوار منحنى النمو البكتيري الأربعة", "MIC 231", "مقالي", "CLO 2", 7, 72, "0.41", "v3"],
+  ["أي التالي يمثّل آلية الاقتران البكتيري؟", "MIC 231", "اختياري", "CLO 3", 5, 58, "0.55", "v2"],
+  ["قارن بين صبغة جرام الموجبة والسالبة", "MIC 232", "مقالي", "CLO 1", 9, 81, "0.33", "v4"],
+  ["ميّز بين المناعة الفطرية والمكتسبة بثلاثة فروق", "MIC 342", "مقالي", "CLO 1", 6, 66, "0.47", "v2"],
+  ["احسب زمن التضاعف من البيانات المعطاة", "MIC 231", "رقمي", "CLO 2", 4, 44, "0.62", "v1"],
+  ["علّل: مقاومة البلازميد تنتقل أسرع من الطفرة", "MIC 451", "مقالي", "CLO 3", 6, 51, "0.58", "v2"],
 ];
 
 const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap";
@@ -63,11 +68,12 @@ export function BankPage() {
             </Button>
           }
         />
-        <TableScroll minWidth={820}>
+        <TableScroll minWidth={900}>
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
                 <th className={`${th} text-start`}>السؤال</th>
+                <th className={`${th} text-start`}>المقرر</th>
                 <th className={`${th} text-start`}>النوع</th>
                 <th className={`${th} text-start`}>المخرج</th>
                 <th className={`${th} text-center`}>استُخدم</th>
@@ -77,9 +83,10 @@ export function BankPage() {
               </tr>
             </thead>
             <tbody>
-              {QUESTIONS.map(([q, kind, clo, used, solved, disc, ver]) => (
+              {QUESTIONS.map(([q, courseCode, kind, clo, used, solved, disc, ver]) => (
                 <tr key={q} className="hover:bg-[#F9FBF9]">
                   <td className="px-3 py-2 border-b border-line-2">{q}</td>
+                  <TdId>{courseCode}</TdId>
                   <td className="px-3 py-2 border-b border-line-2">
                     <Chip tone="neutral">{kind}</Chip>
                   </td>

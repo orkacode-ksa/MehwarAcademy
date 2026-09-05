@@ -6,10 +6,11 @@ interface MoreSheetProps {
   role: Role;
   open: boolean;
   onClose: () => void;
+  onLogout: () => void;
 }
 
 /** لوحة «كل الشاشات» السفلية على الجوال — منقولة حرفيًا من `#sheet`/`.sh-*` في البروتوتايب */
-export function MoreSheet({ role, open, onClose }: MoreSheetProps) {
+export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
   const { pathname } = useLocation();
   if (!open) return null;
 
@@ -43,14 +44,18 @@ export function MoreSheet({ role, open, onClose }: MoreSheetProps) {
               </Link>
             );
           })}
-          <Link
-            to="/"
-            onClick={onClose}
+          {/* خروج بتأكيد: كان رابطاً في الشبكة نفسها بلا سؤال، فلمسة خاطئة تنهي الجلسة */}
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onLogout();
+            }}
             className="grid justify-items-center gap-[7px] py-3.5 px-1.5 rounded-[14px] border border-line bg-[#F7FAF7] text-ink-2 text-[11px] font-medium"
           >
-            <Icon name="lock" className="w-[19px] h-[19px]" />
+            <Icon name="logout" className="w-[19px] h-[19px]" />
             <span>خروج</span>
-          </Link>
+          </button>
         </div>
       </div>
     </div>

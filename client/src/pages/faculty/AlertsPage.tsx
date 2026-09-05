@@ -68,7 +68,11 @@ export function AlertsPage() {
                 {a.actionPath && a.actionLabel && (
                   <Link
                     to={a.actionPath}
-                    className="flex-none inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-deep text-white text-[12.5px] font-semibold shadow-s1 hover:bg-deep2 transition-colors"
+                    className={
+                      a.tone === "teal"
+                        ? "flex-none inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-deep hover:underline"
+                        : "flex-none inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-deep text-white text-[12.5px] font-semibold shadow-s1 hover:bg-deep2 transition-colors"
+                    }
                   >
                     {a.actionLabel} ←
                   </Link>
