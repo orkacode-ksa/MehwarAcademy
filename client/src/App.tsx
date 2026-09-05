@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./layouts/AppShell.js";
+import { ScrollManager } from "./components/shell/ScrollManager.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { CoursePage } from "./pages/CoursePage.js";
 import { StudentCoursePage } from "./pages/StudentCoursePage.js";
@@ -47,6 +48,7 @@ const FACULTY_BUILT: Record<string, JSX.Element> = {
 export function App() {
   return (
     <BrowserRouter>
+      <ScrollManager />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />

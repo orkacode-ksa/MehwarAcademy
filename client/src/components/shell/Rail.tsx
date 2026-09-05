@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
 import { NAV, type Role } from "../../nav/nav.js";
 
@@ -7,6 +7,7 @@ import { NAV, type Role } from "../../nav/nav.js";
  * لأن دمج السياقين في عنصر واحد كان يفرض حلولًا وسطًا تُسيء للاثنين معًا.
  */
 export function Rail({ role, onLogout }: { role: Role; onLogout: () => void }) {
+  const { pathname } = useLocation();
   const items = NAV[role];
 
   return (
@@ -25,6 +26,9 @@ export function Rail({ role, onLogout }: { role: Role; onLogout: () => void }) {
           key={item.key}
           to={`/${item.key}`}
           aria-label={item.label}
+          onClick={() => {
+            if (pathname === `/${item.key}`) window.scrollTo(0, 0);
+          }}
           className={({ isActive }) =>
             `w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 transition-colors duration-150 ${
               isActive ? "bg-deep text-white shadow-s2" : "text-ink-2 hover:bg-deep/[.06] hover:text-deep"
