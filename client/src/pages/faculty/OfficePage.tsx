@@ -5,35 +5,19 @@ import { Button } from "../../components/ui/Button.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Alert } from "../../components/ui/Alert.js";
 import { Bar } from "../../components/ui/Bar.js";
-import { TableScroll, TdId } from "../../components/ui/TableScroll.js";
+import { DataTable } from "../../components/shared/DataTable.js";
 import { Icon } from "../../icons/Icon.js";
 import { useState } from "react";
+import { OFFICE_BLOCKS, OFFICE_SLOTS, blocksOf } from "../../mock/office.js";
 import { useToast } from "../../state/ToastContext.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
-type Tone = "teal" | "amber" | "neutral";
-const SLOTS: [day: string, time: string, student: string, course: string, topic: string, status: string, tone: Tone][] = [
-  ["الأحد", "١٠:٠٠", "ريما ناصر الحربي", "MIC 231", "استفسار عن منحنى النمو", "مؤكّد", "teal"],
-  ["الأحد", "١٠:١٥", "خالد إبراهيم الأحمدي", "MIC 231", "مراجعة درجة النصفي", "مؤكّد", "teal"],
-  ["الأحد", "١٠:٣٠", "—", "—", "—", "متاح", "neutral"],
-  ["الثلاثاء", "١١:٠٠", "هيا مشعل الرشيدي", "MIC 342", "مقترح البحث", "مؤكّد", "teal"],
-  ["الثلاثاء", "١١:١٥", "ماجد سعود الخالدي", "MIC 231", "صعوبة في المعمل", "بانتظار قبولك", "amber"],
-  ["الثلاثاء", "١١:٣٠", "—", "—", "—", "متاح", "neutral"],
-];
-
-const BLOCKS: [day: string, time: string, place: string][] = [
-  ["الأحد", "١٠:٠٠ – ١١:٠٠", "مكتب ٣٠٤ · حضوري"],
-  ["الثلاثاء", "١١:٠٠ – ١٢:٠٠", "مكتب ٣٠٤ · حضوري"],
-  ["الأربعاء", "١٣:٠٠ – ١٥:٠٠", "أونلاين"],
-];
-
+const FACULTY = "د. عبدالله الغامدي";
 const TOPICS: [string, number][] = [
   ["مراجعة الدرجات", 9],
   ["صعوبات المعمل", 6],
   ["مقترحات البحوث", 4],
 ];
-
-const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap text-start";
 
 /** الساعات المكتبية — منقولة من V.office */
 export function OfficePage() {
@@ -41,16 +25,53 @@ export function OfficePage() {
   // طلبات الحجز كانت تُعرض بحالة «بانتظار قبولك» بلا أي زر للقبول أو الاعتذار —
   // انتظارٌ معلّق لا مخرج منه. الآن لكل طلب قرار.
   const [decided, setDecided] = useState<Record<string, "accepted" | "declined">>({});
-  const totalSlots = 16;
-  const booked = SLOTS.filter((r) => r[5] !== "متاح").length;
+  const blocks = blocksOf(FACULTY);
+  const slots = OFFICE_SLOTS.filter((sl) => blocks.some((b) => b.id === sl.blockId));
+  const totalSlots = slots.length;
+  const booked = slots.filter((sl) => sl.status !== "متاح").length;
   const weekly = Math.round((booked / totalSlots) * 100);
+  const dayOf = (blockId: string) => OFFICE_BLOCKS.find((b) => b.id === blockId)?.day ?? "";
+
+  function statusCell(slot: (typeof slots)[number]) {
+    const key = slot.student ?? slot.time;
+    const decision = decided[key];
+    if (slot.status === "بانتظار القبول" && !decision) {
+      return (
+        <div className="flex gap-1.5">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setDecided((d) => ({ ...d, [key]: "accepted" }));
+              showToast(`قُبل موعد ${slot.student}`);
+            }}
+          >
+            اقبل
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setDecided((d) => ({ ...d, [key]: "declined" }));
+              showToast(`اعتُذر عن موعد ${slot.student} — يُخطر الطالب باقتراح بديل`);
+            }}
+          >
+            اعتذر
+          </Button>
+        </div>
+      );
+    }
+    const label = decision === "declined" ? "معتذَر عنه" : decision === "accepted" ? "مؤكّد" : slot.status === "موعدك" ? "مؤكّد" : slot.status;
+    const tone = decision === "declined" ? "crimson" : label === "مؤكّد" ? "teal" : label === "متاح" ? "neutral" : "amber";
+    return <Chip tone={tone}>{label}</Chip>;
+  }
 
   return (
     <div>
       <PageHeader
         kicker="تنسيق المواعيد مع الطلاب"
         title="الساعات المكتبية"
-        description={`٤ ساعات أسبوعياً · فترات ١٥ دقيقة · محجوز ${toArabicDigits(booked)} من ${toArabicDigits(totalSlots)} (${toArabicDigits(weekly)}٪)`}
+        description={`${formatNum(blocks.length)} كتل أسبوعية · فترات 15 دقيقة · محجوز ${formatNum(booked)} من ${formatNum(totalSlots)} (${formatNum(weekly)}٪)`}
         actions={
           <>
             <Button variant="secondary" onClick={() => showToast("صُدِّر ملف التقويم")}>
@@ -65,73 +86,37 @@ export function OfficePage() {
 
       <Grid2>
         <Surface variant="work" className="overflow-hidden">
-          <WorkHeader title="مواعيد هذا الأسبوع" actions={<Chip tone="teal">{toArabicDigits(booked)} محجوزة من {toArabicDigits(totalSlots)}</Chip>} />
-          <TableScroll minWidth={760}>
-            <table className="w-full border-collapse text-[13px]">
-              <thead>
-                <tr>
-                  {["اليوم", "الوقت", "الطالب", "المقرر", "الموضوع", "الحالة"].map((h) => (
-                    <th key={h} className={th}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {SLOTS.map(([day, time, student, course, topic, status, tone], i) => (
-                  <tr key={i} className="hover:bg-[#F9FBF9]">
-                    <td className="px-3 py-2 border-b border-line-2 whitespace-nowrap">{day}</td>
-                    <td className="px-3 py-2 border-b border-line-2 font-mono text-xs tabular-nums">{time}</td>
-                    <td className="px-3 py-2 border-b border-line-2 whitespace-nowrap">{student}</td>
-                    <TdId>{course}</TdId>
-                    <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-2">{topic}</td>
-                    <td className="px-3 py-2 border-b border-line-2">
-                      {status === "بانتظار قبولك" && !decided[student] ? (
-                        <div className="flex gap-1.5">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              setDecided((d) => ({ ...d, [student]: "accepted" }));
-                              showToast(`قُبل موعد ${student}`);
-                            }}
-                          >
-                            اقبل
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => {
-                              setDecided((d) => ({ ...d, [student]: "declined" }));
-                              showToast(`اعتُذر عن موعد ${student} — يُخطر الطالب باقتراح بديل`);
-                            }}
-                          >
-                            اعتذر
-                          </Button>
-                        </div>
-                      ) : (
-                        <Chip tone={decided[student] === "declined" ? "crimson" : decided[student] === "accepted" ? "teal" : tone}>
-                          {decided[student] === "declined" ? "معتذَر عنه" : decided[student] === "accepted" ? "مؤكّد" : status}
-                        </Chip>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableScroll>
+          <WorkHeader title="مواعيد هذا الأسبوع" actions={<Chip tone="teal">{formatNum(booked)} محجوزة من {formatNum(totalSlots)}</Chip>} />
+          <DataTable
+            rows={slots}
+            rowKey={(sl) => `${sl.blockId}-${sl.time}`}
+            minWidth={760}
+            empty="لا فترات هذا الأسبوع."
+            columns={[
+              { key: "day", header: "اليوم", cell: (sl) => dayOf(sl.blockId), card: "subtitle" },
+              { key: "time", header: "الوقت", mono: true, cell: (sl) => sl.time, card: "field" },
+              { key: "student", header: "الطالب", cell: (sl) => sl.student ?? "—", card: "title" },
+              { key: "course", header: "المقرر", mono: true, cell: (sl) => sl.courseCode ?? "—", card: "field" },
+              { key: "topic", header: "الموضوع", cell: (sl) => <span className="text-xs text-ink-2">{sl.topic ?? "—"}</span>, card: "field" },
+              { key: "status", header: "الحالة", cell: (sl) => statusCell(sl), card: "badge" },
+            ]}
+          />
         </Surface>
 
         <div>
           <Surface variant="card" pad className="mb-4">
             <SectionLabel>الكتل الأسبوعية</SectionLabel>
-            {BLOCKS.map(([day, time, place], i) => (
-              <div key={day} className={`flex justify-between py-2.5 ${i < BLOCKS.length - 1 ? "border-b border-line-2" : ""}`}>
+            {blocks.map((b, i) => (
+              <div key={b.id} className={`flex justify-between py-2.5 ${i < blocks.length - 1 ? "border-b border-line-2" : ""}`}>
                 <div>
-                  <div className="text-[13px] font-medium">{day}</div>
-                  <div className="text-[11px] text-ink-3">{place}</div>
+                  <div className="text-[13px] font-medium">{b.day}</div>
+                  <div className="text-[11px] text-ink-3">
+                    {b.place} · {b.mode}
+                  </div>
                 </div>
-                <span className="num text-xs text-ink-2">{time}</span>
+                <span className="num text-xs text-ink-2">
+                  {b.from} – {b.to}
+                </span>
               </div>
             ))}
           </Surface>

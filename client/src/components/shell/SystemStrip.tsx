@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Icon, type IconName } from "../../icons/Icon.js";
 import { SYSTEM_NOTICES } from "../../mock/session.js";
 
-const TERM_ITEM = { icon: "cal" as IconName, text: "الفصل الأول ١٤٤٧ · الأسبوع ٩ من ١٥", tag: "جارٍ" };
+const TERM_ITEM = { icon: "cal" as IconName, text: "الفصل الأول 1447 · الأسبوع 9 من 15", tag: "جارٍ" };
 const ROTATE_MS = 7000;
 
 /**

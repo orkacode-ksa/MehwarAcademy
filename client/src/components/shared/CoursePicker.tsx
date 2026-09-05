@@ -1,7 +1,7 @@
 import { Icon } from "../../icons/Icon.js";
 import { COURSES, type MockCourse } from "../../mock/courses.js";
 import { Surface } from "../ui/Surface.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 /**
  * اختيار المقرر قبل أداة لا تعمل بلا مقرر (الاستوديو · منشئ الاختبار · جلسة الحضور).
@@ -40,7 +40,7 @@ export function CoursePicker({
               <span className="block font-mono text-[10.5px] text-ink-3">{c.code}</span>
               <span className="block text-[13px] font-semibold truncate">{c.name}</span>
               <span className="block text-[10.5px] text-ink-3">
-                {toArabicDigits(c.secs)} شعب · {toArabicDigits(c.st)} طالباً
+                {formatNum(c.secs)} شعب · {formatNum(c.st)} طالباً
               </span>
             </span>
             <Icon name="arr" className="w-4 h-4 text-ink-3 flex-none" />

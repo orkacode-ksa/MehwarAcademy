@@ -220,7 +220,7 @@ export function LandingPage() {
                   <b className="font-mono text-[40px] font-semibold text-deep tracking-[-.04em]">89</b>
                   <span className="text-[13px] text-ink-2">ريالاً شهرياً</span>
                 </div>
-                <div className="text-xs text-ink-3 mt-0.5">أو ٣٢٠ للفصل · ٨٩٠ سنوياً</div>
+                <div className="text-xs text-ink-3 mt-0.5">أو 320 للفصل · 890 سنوياً</div>
                 <ul className="grid gap-2.5 my-[22px]">
                   {PLAN_FEATURES.base.map((t) => (
                     <li key={t} className="flex gap-2 items-start text-[13px] text-ink-2">
@@ -243,7 +243,7 @@ export function LandingPage() {
                   <b className="font-mono text-[40px] font-semibold text-deep tracking-[-.04em]">179</b>
                   <span className="text-[13px] text-ink-2">ريالاً شهرياً</span>
                 </div>
-                <div className="text-xs text-ink-3 mt-0.5">أو ٦٤٠ للفصل · ١٧٩٠ سنوياً</div>
+                <div className="text-xs text-ink-3 mt-0.5">أو 640 للفصل · 1790 سنوياً</div>
                 <ul className="grid gap-2.5 my-[22px]">
                   {PLAN_FEATURES.pro.map((t) => (
                     <li key={t} className="flex gap-2 items-start text-[13px] text-ink-2">

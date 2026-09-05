@@ -3,7 +3,7 @@ import { CourseCard } from "../../components/shared/CourseCard.js";
 import { Button } from "../../components/ui/Button.js";
 import { Icon } from "../../icons/Icon.js";
 import { COURSES } from "../../mock/courses.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 import { useToast } from "../../state/ToastContext.js";
 
 /** شبكة المقررات — منقولة من V.courses */
@@ -15,9 +15,9 @@ export function CoursesPage() {
       <PageHeader
         kicker="دورة المقرر"
         title="مقرراتي"
-        description={`${toArabicDigits(COURSES.length)} مقررات — اضغط أياً منها لتفتح دورة المقرر بخطواتها`}
+        description={`${formatNum(COURSES.length)} مقررات — اضغط أياً منها لتفتح دورة المقرر بخطواتها`}
         actions={
-          <Button variant="secondary" onClick={() => showToast("أضف مقرراً يدوياً — يُوصل بالخادم في المرحلة ٧")}>
+          <Button variant="secondary" onClick={() => showToast("أضف مقرراً يدوياً — يُوصل بالخادم في المرحلة 7")}>
             <Icon name="plus" /> أضف مقرراً يدوياً
           </Button>
         }

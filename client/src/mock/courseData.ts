@@ -1,13 +1,13 @@
 import type { IconName } from "../icons/Icon.js";
-import { COURSES, type MockCourse, type StepKey } from "./courses.js";
-import { toArabicDigits } from "../lib/numerals.js";
+import { ALL_COURSES, type MockCourse, type StepKey } from "./courses.js";
+import { formatNum } from "../lib/numerals.js";
 
 /**
  * اشتقاق بيانات كل مقرر من سجلّه الواحد.
  *
  * سبب وجود هذا الملف: قبل التمشيط كانت كل تبويبات المقرر تعرض بيانات MIC 231 مهما
- * كان المقرر المفتوح، فتقول بطاقة المقرر «٣ من ١١ عنصر جودة» ويقول تبويب الجودة
- * «٨ من ١١» لنفس المقرر. هنا يُشتقّ كل شيء من MockCourse، فالتناقض يصبح مستحيلاً.
+ * كان المقرر المفتوح، فتقول بطاقة المقرر «3 من 11 عنصر جودة» ويقول تبويب الجودة
+ * «8 من 11» لنفس المقرر. هنا يُشتقّ كل شيء من MockCourse، فالتناقض يصبح مستحيلاً.
  */
 
 /* ————————————————————— دورة المقرر ————————————————————— */
@@ -53,7 +53,7 @@ export function journeyFor(course: MockCourse): JourneyStep[] {
   return steps.map((s, i) => ({
     ...s,
     order: i + 1,
-    label: toArabicDigits(i + 1),
+    label: formatNum(i + 1),
     percent: percents[i] ?? 0,
     status: (percents[i] ?? 0) >= 100 ? "done" : i === nextIndex ? "next" : "open",
   }));
@@ -184,24 +184,17 @@ const SECTION_LETTERS = ["A", "B", "C", "D", "E"];
  * الأستاذ لا يستطيع أن يكون في ثلاث قاعات في الساعة الثامنة من يوم الأحد. توزَّع
  * الفترات على كل شعب المنصة بالترتيب، فلا يقع تعارض في الجدول.
  */
-const SLOT_TABLE: { days: string[]; clock: string }[] = [
-  { days: ["الأحد", "الثلاثاء"], clock: "٠٨:٠٠" },
-  { days: ["الاثنين", "الأربعاء"], clock: "٠٨:٠٠" },
-  { days: ["الأحد", "الثلاثاء"], clock: "١٠:٠٠" },
-  { days: ["الاثنين", "الأربعاء"], clock: "١٠:٠٠" },
-  { days: ["الأحد", "الثلاثاء"], clock: "١٢:٠٠" },
-  { days: ["الاثنين", "الأربعاء"], clock: "١٢:٠٠" },
-  { days: ["الأحد", "الثلاثاء"], clock: "١٤:٠٠" },
-  { days: ["الاثنين", "الأربعاء"], clock: "١٤:٠٠" },
-  { days: ["الخميس"], clock: "٠٨:٠٠" },
-  { days: ["الخميس"], clock: "١٠:٠٠" },
-  { days: ["الخميس"], clock: "١٢:٠٠" },
-  { days: ["الخميس"], clock: "١٤:٠٠" },
-];
+const SLOT_TABLE: { days: string[]; clock: string }[] = (() => {
+  const groups = [["الأحد", "الثلاثاء"], ["الاثنين", "الأربعاء"], ["الخميس"]];
+  const clocks = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"];
+  // الترتيب يتنقّل بين المجموعات قبل أن يتقدّم في الوقت، فأي مجموعة فهارس متمايزة
+  // تعطي مواعيد متمايزة بالضرورة — لا تعارض في جدول أي شخص مهما كانت مقرراته.
+  return clocks.flatMap((clock) => groups.map((days) => ({ days, clock })));
+})();
 
 /** أول فترة يبدأ منها هذا المقرر في الجدول العام */
 function slotOffset(course: MockCourse): number {
-  return COURSES.filter((c) => c.id < course.id).reduce((sum, c) => sum + c.secs, 0);
+  return ALL_COURSES.filter((c) => c.id < course.id).reduce((sum, c) => sum + c.secs, 0);
 }
 
 export function sectionsFor(course: MockCourse): SectionRow[] {
@@ -213,13 +206,13 @@ export function sectionsFor(course: MockCourse): SectionRow[] {
   return Array.from({ length: course.secs }, (_, i) => {
     const slot = SLOT_TABLE[(offset + i) % SLOT_TABLE.length] ?? SLOT_TABLE[0]!;
     return {
-      name: `شعبة ${toArabicDigits(i + 1)}`,
+      name: `شعبة ${formatNum(i + 1)}`,
       code: `${compact}-${SECTION_LETTERS[i] ?? String(i + 1)}`,
       students: base + (i < remainder ? 1 : 0),
       days: slot.days,
       clock: slot.clock,
       time: `${slot.days.join(" و")} ${slot.clock}`,
-      room: `مبنى ٤ · ق ${toArabicDigits(208 + ((offset + i) % 6) * 2)}`,
+      room: `مبنى 4 · ق ${formatNum(208 + ((offset + i) % 6) * 2)}`,
       mode: "حضوري",
     };
   });
@@ -272,7 +265,7 @@ export function lecturesFor(course: MockCourse): LectureRow[] {
     const done = i < ready;
     const drafting = i === ready && percent > 0 && percent < 100;
     return {
-      n: toArabicDigits(String(i + 7).padStart(2, "0")),
+      n: formatNum(String(i + 7).padStart(2, "0")),
       title,
       assets: [done || drafting, done || drafting, done, done && i < ready - 1],
       status: done ? "منشورة" : drafting ? "مسوّدة مولّدة" : "لم تبدأ",
@@ -300,8 +293,8 @@ export function labsFor(course: MockCourse): LabRow[] {
   return course.topics.map((title, i) => {
     const done = i < ready;
     return {
-      n: toArabicDigits(String(i + 1).padStart(2, "0")),
-      title: `معمل ${toArabicDigits(i + 1)} — ${title}`,
+      n: formatNum(String(i + 1).padStart(2, "0")),
+      title: `معمل ${formatNum(i + 1)} — ${title}`,
       assets: [done, done, done && i < ready - 1],
       reports: done ? `${perSection - (i % 4)}/${perSection}` : "—",
     };
@@ -321,7 +314,7 @@ export interface TaskRow {
   tone: "teal" | "amber" | "neutral";
 }
 
-const DUE_DATES = ["٢٨ صفر", "١٢ ربيع الأول", "٨ ربيع الآخر", "٢٠ ربيع الآخر", "٢٥ ربيع الآخر", "٢ جمادى الأولى"];
+const DUE_DATES = ["28 صفر", "12 ربيع الأول", "8 ربيع الآخر", "20 ربيع الآخر", "25 ربيع الآخر", "2 جمادى الأولى"];
 
 export function tasksFor(course: MockCourse): TaskRow[] {
   const percent = course.stepPercents.tasks;
@@ -369,20 +362,23 @@ export interface ExamRow {
 export function examsFor(course: MockCourse): ExamRow[] {
   const w = weightsFor(course);
   const weightOf = (key: string) => w.find((x) => x.key === key);
-  const recorded = (key: string) => weightOf(key)?.recorded ?? false;
   const rows: ExamRow[] = [];
   const quizWeight = weightOf("activity")?.weight ?? 10;
-  const quizzes = Math.max(1, Math.round((course.stepPercents.exams / 100) * 3));
-  for (let i = 0; i < quizzes; i++) {
+  // كويزات مرصودة بقدر تقدّم المقرر، وواحد مفتوح الآن ما دام المقرر لم يُغلق اختباراته.
+  // هذا ما يراه الطالب مفتوحاً على جهازه، فلا بد أن تتفق الشاشتان على وجوده.
+  const done = Math.round((course.stepPercents.exams / 100) * 3);
+  const openQuiz = course.stepPercents.exams < 100 ? 1 : 0;
+  for (let i = 0; i < done + openQuiz; i++) {
+    const isOpen = i >= done;
     rows.push({
       id: `quiz-${i + 1}`,
-      title: `كويز ${toArabicDigits(i + 1)} — ${course.topics[i] ?? course.name}`,
+      title: `كويز ${formatNum(i + 1)} — ${course.topics[i] ?? course.name}`,
       kind: "كويز",
       delivery: "جهاز الطالب في القاعة",
       grade: Math.round(quizWeight / 3),
       questions: 12 + i * 3,
-      status: recorded("activity") ? "مرصود" : "مفتوح الآن",
-      tone: recorded("activity") ? "teal" : "amber",
+      status: isOpen ? "مفتوح الآن" : "مرصود",
+      tone: isOpen ? "amber" : "teal",
     });
   }
   const mid = weightOf("mid");
@@ -447,24 +443,24 @@ export interface QualityGroup {
 }
 
 const QUALITY_TEMPLATE: { n: string; t: string; group: string; done: string; todo: string; goTab?: StepKey; manual?: boolean }[] = [
-  { n: "١", t: "السيرة الذاتية", group: "هوية وتخطيط", done: "من ملفك الشخصي — نُسخت تلقائياً", todo: "ارفع سيرتك في الإعدادات لتُنسخ هنا", manual: true },
-  { n: "٢", t: "توصيف المقرر", group: "هوية وتخطيط", done: "مربوط بالتوصيف المرفوع في الخطوة ٢", todo: "لم يُرفع التوصيف بعد", goTab: "general" },
-  { n: "٣", t: "الاختبار النصفي", group: "أدوات التقييم", done: "مربوط بالاختبار المرصود", todo: "لم يُرصد النصفي بعد", goTab: "exams" },
-  { n: "٤", t: "الاختبار العملي", group: "أدوات التقييم", done: "مربوط باختبار المعمل", todo: "لم يُرصد الاختبار العملي بعد", goTab: "exams" },
-  { n: "٥", t: "الاختبار النهائي", group: "أدوات التقييم", done: "مربوط بالاختبار المرصود", todo: "يُنشأ في الأسبوع ١٥", goTab: "exams" },
-  { n: "٦", t: "نموذج الإجابة", group: "أدوات التقييم", done: "مرفوع لكل اختبار", todo: "ينقص نموذج إجابة لاختبار واحد", goTab: "exams" },
-  { n: "٧", t: "تقرير استيفاء الاختبار للمعايير", group: "تحليل", done: "مُولَّد من تحليل الاختبار", todo: "يُولَّد بعد بناء الاختبار", goTab: "exams" },
-  { n: "٨", t: "الأعلى والأدنى والمتوسط", group: "النتائج والإغلاق", done: "محسوب من كشف الدرجات", todo: "يُحسب بعد اكتمال الرصد", goTab: "grades" },
-  { n: "٩", t: "نماذج من أعمال الطلبة", group: "النتائج والإغلاق", done: "٣ نماذج مُنتقاة تلقائياً", todo: "تُنتقى بعد تصحيح التكاليف", goTab: "tasks" },
-  { n: "١٠", t: "نتائج تقييم الطلبة", group: "النتائج والإغلاق", done: "مرفوعة من موقع العضو", todo: "تُرفع يدوياً من موقع العضو", manual: true },
-  { n: "١١", t: "تقرير المقرر", group: "النتائج والإغلاق", done: "مسوّدة جاهزة — تحتاج مراجعتك", todo: "يُبنى تلقائياً بعد إغلاق الدرجات", goTab: "grades" },
+  { n: "1", t: "السيرة الذاتية", group: "هوية وتخطيط", done: "من ملفك الشخصي — نُسخت تلقائياً", todo: "ارفع سيرتك في الإعدادات لتُنسخ هنا", manual: true },
+  { n: "2", t: "توصيف المقرر", group: "هوية وتخطيط", done: "مربوط بالتوصيف المرفوع في الخطوة 2", todo: "لم يُرفع التوصيف بعد", goTab: "general" },
+  { n: "3", t: "الاختبار النصفي", group: "أدوات التقييم", done: "مربوط بالاختبار المرصود", todo: "لم يُرصد النصفي بعد", goTab: "exams" },
+  { n: "4", t: "الاختبار العملي", group: "أدوات التقييم", done: "مربوط باختبار المعمل", todo: "لم يُرصد الاختبار العملي بعد", goTab: "exams" },
+  { n: "5", t: "الاختبار النهائي", group: "أدوات التقييم", done: "مربوط بالاختبار المرصود", todo: "يُنشأ في الأسبوع 15", goTab: "exams" },
+  { n: "6", t: "نموذج الإجابة", group: "أدوات التقييم", done: "مرفوع لكل اختبار", todo: "ينقص نموذج إجابة لاختبار واحد", goTab: "exams" },
+  { n: "7", t: "تقرير استيفاء الاختبار للمعايير", group: "تحليل", done: "مُولَّد من تحليل الاختبار", todo: "يُولَّد بعد بناء الاختبار", goTab: "exams" },
+  { n: "8", t: "الأعلى والأدنى والمتوسط", group: "النتائج والإغلاق", done: "محسوب من كشف الدرجات", todo: "يُحسب بعد اكتمال الرصد", goTab: "grades" },
+  { n: "9", t: "نماذج من أعمال الطلبة", group: "النتائج والإغلاق", done: "3 نماذج مُنتقاة تلقائياً", todo: "تُنتقى بعد تصحيح التكاليف", goTab: "tasks" },
+  { n: "10", t: "نتائج تقييم الطلبة", group: "النتائج والإغلاق", done: "مرفوعة من موقع العضو", todo: "تُرفع يدوياً من موقع العضو", manual: true },
+  { n: "11", t: "تقرير المقرر", group: "النتائج والإغلاق", done: "مسوّدة جاهزة — تحتاج مراجعتك", todo: "يُبنى تلقائياً بعد إغلاق الدرجات", goTab: "grades" },
 ];
 
 const QUALITY_GROUPS = ["هوية وتخطيط", "أدوات التقييم", "تحليل", "النتائج والإغلاق"];
 
 /** العناصر المكتملة = course.q، تُستوفى بترتيب الاعتماد الطبيعي فلا يسبق عنصر شرطه */
 export function qualityFor(course: MockCourse): QualityGroup[] {
-  const applicable = QUALITY_TEMPLATE.filter((i) => course.lab || i.n !== "٤");
+  const applicable = QUALITY_TEMPLATE.filter((i) => course.lab || i.n !== "4");
   return QUALITY_GROUPS.map((g) => ({
     s: g,
     items: applicable
@@ -473,8 +469,8 @@ export function qualityFor(course: MockCourse): QualityGroup[] {
         const index = applicable.indexOf(i);
         const ok = index < course.q;
         // ترقيم متسلسل داخل هذا المقرر: حذف عنصر «الاختبار العملي» من مقرر بلا معمل
-        // كان يترك فجوة في الترقيم (٣ ثم ٥) تُقرأ كعنصر ضائع
-        const item: QualityItem = { n: toArabicDigits(index + 1), t: i.t, src: ok ? i.done : i.todo, ok };
+        // كان يترك فجوة في الترقيم (3 ثم 5) تُقرأ كعنصر ضائع
+        const item: QualityItem = { n: formatNum(index + 1), t: i.t, src: ok ? i.done : i.todo, ok };
         if (i.goTab) item.goTab = i.goTab;
         if (i.manual) item.manual = true;
         return item;
@@ -483,7 +479,7 @@ export function qualityFor(course: MockCourse): QualityGroup[] {
 }
 
 export function qualityCount(course: MockCourse): { done: number; total: number } {
-  const total = QUALITY_TEMPLATE.filter((i) => course.lab || i.n !== "٤").length;
+  const total = QUALITY_TEMPLATE.filter((i) => course.lab || i.n !== "4").length;
   return { done: Math.min(course.q, total), total };
 }
 
@@ -501,9 +497,9 @@ export function topicsFor(course: MockCourse): TopicRow[] {
   const percent = course.stepPercents.lectures;
   const ready = Math.round((percent / 100) * course.topics.length);
   return course.topics.map((title, i) => ({
-    n: toArabicDigits(String(i + 7).padStart(2, "0")),
+    n: formatNum(String(i + 7).padStart(2, "0")),
     title,
-    clo: `CLO ${toArabicDigits((i % Math.max(course.clos.length, 1)) + 1)}`,
+    clo: `CLO ${formatNum((i % Math.max(course.clos.length, 1)) + 1)}`,
     status: i < ready ? "مُنجز" : i === ready ? "هذا الأسبوع" : "لم يبدأ",
     tone: i < ready ? "ok" : i === ready ? "no" : "na",
   }));
@@ -548,4 +544,12 @@ export function initialAttendance(course: MockCourse, sectionIndex: number): Att
     if (r < 0.95) return { status: "absent" as const, time: "—" };
     return { status: "excused" as const, time: "—" };
   });
+}
+
+/**
+ * الرمز الرقمي لجلسة حضور شعبة — يعرضه عضو هيئة التدريس على شاشة القاعة ويُدخله
+ * الطالب على جهازه. مصدر واحد للطرفين، وإلا صار الرمز المعروض غير الرمز المقبول.
+ */
+export function attendanceCode(courseId: number, sectionIndex: number): string {
+  return String(472916 + courseId * 137 + sectionIndex * 11).slice(0, 6);
 }

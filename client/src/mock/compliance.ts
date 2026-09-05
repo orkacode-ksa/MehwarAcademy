@@ -2,7 +2,7 @@ import { PREVENTIVE_ALERTS } from "./alerts.js";
 
 /**
  * بنود الالتزام — مصدر واحد تقرأ منه شاشة «مؤشر الالتزام» وبطاقة اللوحة معاً.
- * كانت درجة المؤشر مكتوبة يدوياً (٨٦) في اللوحة وفي شاشة الالتزام، فلا تتغيّر مهما
+ * كانت درجة المؤشر مكتوبة يدوياً (86) في اللوحة وفي شاشة الالتزام، فلا تتغيّر مهما
  * تغيّرت التنبيهات المفتوحة.
  */
 export type RuleTone = "teal" | "amber" | "neutral";
@@ -38,5 +38,5 @@ export const RULES_NOW: Rule[] = RULES.map((r) =>
 export const AUTO_RULES_COUNT = RULES_NOW.filter((r) => r.auto).length;
 export const OPEN_RULES_COUNT = RULES_NOW.filter((r) => r.auto && r.status === "تنبيه مفتوح").length;
 export const MET_RULES_COUNT = AUTO_RULES_COUNT - OPEN_RULES_COUNT;
-/** درجة المؤشر من ١٠٠ — محسوبة لا مكتوبة */
+/** درجة المؤشر من 100 — محسوبة لا مكتوبة */
 export const COMPLIANCE_SCORE = Math.round((MET_RULES_COUNT / AUTO_RULES_COUNT) * 100);

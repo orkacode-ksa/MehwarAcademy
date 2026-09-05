@@ -11,7 +11,7 @@ const RANKS = ["أستاذ", "أستاذ مشارك", "أستاذ مساعد", "
 
 /**
  * حقول الرتبة/القسم/الجامعة ليست في `registerSchema` المشترك بعد — مسجَّلة في
- * docs/api-gaps.md لتوسيع مخطط التسجيل والنموذج في Prisma بالمرحلة ٧.
+ * docs/api-gaps.md لتوسيع مخطط التسجيل والنموذج في Prisma بالمرحلة 7.
  */
 const facultyDetailsSchema = z.object({
   fullName: z.string().trim().min(2, "الاسم الكامل مطلوب").max(120),
@@ -43,7 +43,7 @@ export function SignupFacultyDetailsStep({ initial, onNext, onBack }: SignupFacu
       <form onSubmit={handleSubmit(onNext)} noValidate>
         <Field label="الاسم الكامل" placeholder="د. عبدالله بن سعيد الغامدي" error={errors.fullName?.message} {...register("fullName")} />
         <Field label="البريد الجامعي" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
-        <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" error={errors.password?.message} {...register("password")} />
+        <PasswordField label="كلمة المرور" placeholder="10 أحرف على الأقل" error={errors.password?.message} {...register("password")} />
         <div className="grid grid-cols-2 gap-3">
           <SelectField label="الرتبة العلمية" error={errors.rank?.message} defaultValue="" {...register("rank")}>
             <option value="" disabled>

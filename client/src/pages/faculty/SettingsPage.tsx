@@ -10,7 +10,7 @@ import { Icon, type IconName } from "../../icons/Icon.js";
 import { SESSION_USER } from "../../mock/session.js";
 import { PLAN, PRODUCTION } from "../../mock/quota.js";
 import { COURSES } from "../../mock/courses.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 import { useToast } from "../../state/ToastContext.js";
 
 const AI_SETTINGS: [key: string, title: string, sub: string, initial: boolean][] = [
@@ -30,15 +30,15 @@ const NOTIFY: [key: string, label: string, initial: boolean][] = [
 const DATA_ACTIONS: [title: string, sub: string, icon: IconName, danger: boolean][] = [
   ["تصدير كل بياناتي", "أرشيف كامل بصيغة JSON مع كل ملفاتك", "down", false],
   ["انسخ ملفاتي إلى درايفي", "مرآة اختيارية في حسابك أنت", "box", false],
-  ["احذف حسابي", "حذف مجدول بعد ٣٠ يوماً مع نافذة تراجع", "lock", true],
+  ["احذف حسابي", "حذف مجدول بعد 30 يوماً مع نافذة تراجع", "lock", true],
 ];
 
 /** الاستهلاك محسوب من المقررات والباقة — لا أرقام مكتوبة يدوياً تناقض بقية الشاشات */
 const PLAN_USAGE: [string, string][] = [
-  ["المقررات", `${toArabicDigits(COURSES.length)} من بلا حد`],
-  ["الطلاب", `${toArabicDigits(COURSES.reduce((s, c) => s + c.st, 0))} من ${toArabicDigits(PLAN.maxStudents)}`],
-  ["التخزين", `${toArabicDigits(PLAN.usedStorageGb)} من ${toArabicDigits(PLAN.storageGb)} جيجا`],
-  ["دقائق الإنتاج", `${toArabicDigits(PRODUCTION.remainingMinutes)} متبقية من ${toArabicDigits(PRODUCTION.monthlyMinutes)}`],
+  ["المقررات", `${formatNum(COURSES.length)} من بلا حد`],
+  ["الطلاب", `${formatNum(COURSES.reduce((s, c) => s + c.st, 0))} من ${formatNum(PLAN.maxStudents)}`],
+  ["التخزين", `${formatNum(PLAN.usedStorageGb)} من ${formatNum(PLAN.storageGb)} جيجا`],
+  ["دقائق الإنتاج", `${formatNum(PRODUCTION.remainingMinutes)} متبقية من ${formatNum(PRODUCTION.monthlyMinutes)}`],
 ];
 
 /** الإعدادات — منقولة من V.settings، مع مفاتيح تبديل تعمل فعلاً بدل الزخرفية */

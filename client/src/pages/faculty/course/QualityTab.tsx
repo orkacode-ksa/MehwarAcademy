@@ -9,7 +9,7 @@ import { Icon } from "../../../icons/Icon.js";
 import { qualityFor, qualityCount } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 const EXPORT_CONTENTS = [
   "غلاف بهوية الجامعة والقسم",
@@ -21,8 +21,8 @@ const EXPORT_CONTENTS = [
 
 /**
  * ملف الجودة.
- * كان هذا التبويب يعرض ٨ من ١١ لكل المقررات، فيقول تبويب الجودة «٨» بينما تقول بطاقة
- * المقرر نفسه «٣». الآن العناصر مشتقّة من المقرر، وزر كل عنصر ناقص يفتح الخطوة التي
+ * كان هذا التبويب يعرض 8 من 11 لكل المقررات، فيقول تبويب الجودة «8» بينما تقول بطاقة
+ * المقرر نفسه «3». الآن العناصر مشتقّة من المقرر، وزر كل عنصر ناقص يفتح الخطوة التي
  * تُستكمل منها فعلاً بدل رسالة توست لا تقود لشيء.
  */
 export function QualityTab({ course }: { course: MockCourse }) {
@@ -81,12 +81,12 @@ export function QualityTab({ course }: { course: MockCourse }) {
           </div>
           <div className="mt-3.5">
             <div className="text-[13px] font-semibold">
-              {toArabicDigits(done)} من {toArabicDigits(total)} عنصراً
+              {formatNum(done)} من {formatNum(total)} عنصراً
             </div>
             <p className="text-xs text-ink-2 mt-1.5 leading-[1.65]">
               {pending.length === 0
                 ? "الملف مكتمل — يمكنك تصديره الآن."
-                : `ينقصك ${toArabicDigits(pending.length)} ${pending.length === 1 ? "عنصر" : "عناصر"}: ${toArabicDigits(autoPending.length)} تكتمل تلقائياً بتقدّم المقرر، و${toArabicDigits(manualPending.length)} تحتاج رفعاً منك.`}
+                : `ينقصك ${formatNum(pending.length)} ${pending.length === 1 ? "عنصر" : "عناصر"}: ${formatNum(autoPending.length)} تكتمل تلقائياً بتقدّم المقرر، و${formatNum(manualPending.length)} تحتاج رفعاً منك.`}
             </p>
           </div>
           <Button variant="primary" className="w-full mt-3.5" onClick={() => showToast("صُدِّر ملف الجودة بصيغة PDF")}>

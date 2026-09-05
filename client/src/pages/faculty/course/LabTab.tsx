@@ -7,7 +7,7 @@ import { Icon, type IconName } from "../../../icons/Icon.js";
 import { labsFor } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 const ASSETS: [title: string, sub: string, icon: IconName][] = [
   ["مرجع المعمل", "كتيب المختبر المعتمد من القسم", "file"],
@@ -34,7 +34,7 @@ export function LabTab({ course }: { course: MockCourse }) {
         <Surface variant="work" className="overflow-hidden">
           <WorkHeader
             title="المعامل"
-            meta={`${toArabicDigits(ready)} من ${toArabicDigits(labs.length)}`}
+            meta={`${formatNum(ready)} من ${formatNum(labs.length)}`}
             actions={
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيف معمل جديد")}>
                 <Icon name="plus" /> معمل

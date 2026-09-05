@@ -8,7 +8,7 @@ import { Button } from "../../../components/ui/Button.js";
 import { Alert } from "../../../components/ui/Alert.js";
 import { journeyProgress, qualityCount, lecturesFor, examsFor } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 /** آخر نشاط — مشتقّ من حالة المقرر نفسه لا قائمة ثابتة تظهر في كل المقررات */
 function activityFor(course: MockCourse): [title: string, when: string, icon: "sparks" | "tbl" | "users" | "file"][] {
@@ -17,7 +17,7 @@ function activityFor(course: MockCourse): [title: string, when: string, icon: "s
   if (lastPublished) rows.push([`نشرت محاضرة ${lastPublished.n} — ${lastPublished.title}`, course.updatedLabel, "sparks"]);
   const recordedExam = examsFor(course).find((e) => e.status === "مرصود");
   if (recordedExam) rows.push([`رصدت درجات ${recordedExam.title}`, "هذا الأسبوع", "tbl"]);
-  if (course.st > 0) rows.push([`استوردت ${toArabicDigits(course.st)} طالباً في ${toArabicDigits(course.secs)} شعب`, "بداية الفصل", "users"]);
+  if (course.st > 0) rows.push([`استوردت ${formatNum(course.st)} طالباً في ${formatNum(course.secs)} شعب`, "بداية الفصل", "users"]);
   if (course.stepPercents.general === 100) rows.push(["رفعت توصيف المقرر واعتمدت مخرجاته", "بداية الفصل", "file"]);
   return rows;
 }
@@ -33,7 +33,7 @@ export function OverviewTab({ course }: { course: MockCourse }) {
     <Grid2>
       <div>
         <SectionLabel>
-          دورة المقرر — {toArabicDigits(total)} خطوات · اكتمل {toArabicDigits(done)}
+          دورة المقرر — {formatNum(total)} خطوات · اكتمل {formatNum(done)}
         </SectionLabel>
         <div className="grid gap-2.5">
           {steps.map((s) => (
@@ -91,11 +91,11 @@ export function OverviewTab({ course }: { course: MockCourse }) {
           >
             {course.fresh
               ? "هذا مقرر جديد لم يبدأ بعد. ابدأ بالخطوة الأولى: إنشاء الشعب واستيراد سجل الطلاب."
-              : `أكملت ${toArabicDigits(done)} من ${toArabicDigits(total)} خطوات. أقرب ما ينقص دورة هذا المقرر هو «${next.t}» — ${next.percent}% منجز منه.`}
+              : `أكملت ${formatNum(done)} من ${formatNum(total)} خطوات. أقرب ما ينقص دورة هذا المقرر هو «${next.t}» — ${next.percent}% منجز منه.`}
           </Alert>
         ) : (
           <Alert tone="teal" icon="check" title="دورة المقرر مكتملة">
-            الخطوات {toArabicDigits(total)} كلها منجزة. ما يتبقّى هو إغلاق الدرجات وتصدير ملف الجودة عند نهاية الفصل.
+            الخطوات {formatNum(total)} كلها منجزة. ما يتبقّى هو إغلاق الدرجات وتصدير ملف الجودة عند نهاية الفصل.
           </Alert>
         )}
 

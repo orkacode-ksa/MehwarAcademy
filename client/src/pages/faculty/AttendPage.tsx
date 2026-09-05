@@ -10,9 +10,9 @@ import { Stat } from "../../components/shared/Kpi.js";
 import { TableScroll, TdId } from "../../components/ui/TableScroll.js";
 import { Icon } from "../../icons/Icon.js";
 import { courseById } from "../../mock/courses.js";
-import { initialAttendance, rosterFor, sectionsFor, type AttendanceStatus } from "../../mock/courseData.js";
+import { attendanceCode, initialAttendance, rosterFor, sectionsFor, type AttendanceStatus } from "../../mock/courseData.js";
 import { useToast } from "../../state/ToastContext.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 /**
  * نمط الرمز المرئي المعروض على شاشة القاعة (تمثيل لا رمز حقيقي).
@@ -53,9 +53,9 @@ const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b
 /**
  * جلسة الحضور.
  * خطآن منطقيان صُحّحا هنا:
- * ١) كانت الشاشة مثبّتة على «MIC 231 · شعبة ٢» بلا أي طريقة لاختيار الجلسة، مع أن
+ * 1) كانت الشاشة مثبّتة على «MIC 231 · شعبة 2» بلا أي طريقة لاختيار الجلسة، مع أن
  *    الأستاذ يدرّس ست مقررات باثنتي عشرة شعبة.
- * ٢) كانت تَعِد بـ«رصد يدوي» ثم لا تتيح تغيير حالة طالب واحد — الجدول كان للعرض فقط.
+ * 2) كانت تَعِد بـ«رصد يدوي» ثم لا تتيح تغيير حالة طالب واحد — الجدول كان للعرض فقط.
  */
 export function AttendPage() {
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ export function AttendPage() {
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13px] font-semibold">{s.name}</span>
                   <span className="block text-[11px] text-ink-3">
-                    {s.time} · {s.room} · {toArabicDigits(s.students)} طالباً
+                    {s.time} · {s.room} · {formatNum(s.students)} طالباً
                   </span>
                 </span>
                 <Icon name="arr" className="w-4 h-4 text-ink-3 flex-none" />
@@ -156,7 +156,7 @@ function AttendSession({
       <PageHeader
         kicker={`${course.code} · ${section.name} · ${section.time}`}
         title="جلسة الحضور"
-        description={`${section.room} · ${toArabicDigits(section.students)} طالباً مسجّلاً`}
+        description={`${section.room} · ${formatNum(section.students)} طالباً مسجّلاً`}
         actions={
           <>
             <Button variant="secondary" onClick={onReset}>
@@ -165,7 +165,7 @@ function AttendSession({
             <Button
               variant="primary"
               onClick={() => {
-                showToast(`أُغلقت جلسة ${section.name} وحُفظ رصد ${toArabicDigits(entries.length)} طالباً`);
+                showToast(`أُغلقت جلسة ${section.name} وحُفظ رصد ${formatNum(entries.length)} طالباً`);
                 onExit();
               }}
             >
@@ -179,7 +179,7 @@ function AttendSession({
         <Surface variant="work" className="overflow-hidden">
           <WorkHeader
             title="الرصد المباشر"
-            meta={`${toArabicDigits(counts[0] ?? 0)} حضروا من ${toArabicDigits(entries.length)}`}
+            meta={`${formatNum(counts[0] ?? 0)} حضروا من ${formatNum(entries.length)}`}
             actions={
               <>
                 {undo ? (
@@ -275,9 +275,9 @@ function AttendSession({
             <div className="mt-4">
               <div className="text-xs text-ink-3">أو يُملى هذا الرمز الرقمي</div>
               <div className="num font-semibold tracking-[.12em] text-deep mt-1 whitespace-nowrap" style={{ fontSize: "clamp(22px,7vw,34px)" }}>
-                {String(472916 + course.id * 137 + sectionIndex * 11).slice(0, 6).split("").join(" ")}
+                {attendanceCode(course.id, sectionIndex).split("").join(" ")}
               </div>
-              <div className="text-[11px] text-ink-3 mt-1.5">يتغيّر كل ٣٠ ثانية · ينتهي بعد ١٠ دقائق</div>
+              <div className="text-[11px] text-ink-3 mt-1.5">يتغيّر كل 30 ثانية · ينتهي بعد 10 دقائق</div>
             </div>
           </Surface>
 

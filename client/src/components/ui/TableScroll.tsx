@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * يطابق `.tw` — حاوية تمرير أفقي إلزامية لكل جدول (قاعدة استجابة ٢، القسم ٦).
+ * يطابق `.tw` — حاوية تمرير أفقي إلزامية لكل جدول (قاعدة استجابة 2، القسم 6).
  * `maxHeight` يفعّل التمرير الرأسي مع ترويسة لاصقة، مثل `.scroll` في البروتوتايب.
  */
 export function TableScroll({ children, minWidth = 640, maxHeight }: { children: ReactNode; minWidth?: number; maxHeight?: number }) {

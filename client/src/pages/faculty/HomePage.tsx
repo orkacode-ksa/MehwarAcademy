@@ -12,14 +12,14 @@ import { PREVENTIVE_ALERTS } from "../../mock/alerts.js";
 import { PRODUCTION } from "../../mock/quota.js";
 import { AUTO_RULES_COUNT, COMPLIANCE_SCORE, OPEN_RULES_COUNT } from "../../mock/compliance.js";
 import { agendaFor, todayName, WEEK_DAYS } from "../../mock/courseData.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 const RECENT_COUNT = 3;
 
 /**
  * لوحة عضو هيئة التدريس — رُتّبت على سؤال المستخدم الأول: «ماذا يجب أن أفعل الآن؟»
- * ١) التنبيهات الوقائية في بطاقة واحدة تُستعرض · ٢) أدواتي · ٣) محاضرات اليوم
- * · ٤) آخر ثلاثة مقررات عملت عليها · ٥) حالتك.
+ * 1) التنبيهات الوقائية في بطاقة واحدة تُستعرض · 2) أدواتي · 3) محاضرات اليوم
+ * · 4) آخر ثلاثة مقررات عملت عليها · 5) حالتك.
  * لا عنوان صفحة: الرأس يرحّب بالاسم، وإضافة عنوان فوقه تكرار بلا فائدة.
  */
 export function FacultyHomePage() {
@@ -63,7 +63,7 @@ export function FacultyHomePage() {
             لا محاضرات لك في {day}.
           </Surface>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid gap-2 [&>*]:min-w-0">
             {agenda.map((e) => (
               <Link
                 key={e.section.code}
@@ -76,7 +76,7 @@ export function FacultyHomePage() {
                     {e.course.name} — {e.section.name}
                   </span>
                   <span className="block text-[11px] text-ink-3">
-                    {e.course.code} · {e.section.room} · {toArabicDigits(e.section.students)} طالباً
+                    {e.course.code} · {e.section.room} · {formatNum(e.section.students)} طالباً
                   </span>
                 </span>
                 <span className="flex-none text-[11.5px] font-semibold text-deep flex items-center gap-1">
@@ -93,7 +93,7 @@ export function FacultyHomePage() {
           icon="book"
           action={
             <Link to="/courses" className="text-[11.5px] font-semibold text-deep flex items-center gap-1">
-              عرض جميع المقررات ({toArabicDigits(COURSES.length)}) <Icon name="arr" className="w-3.5 h-3.5" />
+              عرض جميع المقررات ({formatNum(COURSES.length)}) <Icon name="arr" className="w-3.5 h-3.5" />
             </Link>
           }
         >
@@ -127,7 +127,7 @@ export function FacultyHomePage() {
           <Bar value={COMPLIANCE_SCORE} />
           <p className="text-[11px] text-ink-3 mt-2.5 leading-[1.6]">
             {OPEN_RULES_COUNT > 0
-              ? `${toArabicDigits(OPEN_RULES_COUNT)} بنود مفتوحة من ${toArabicDigits(AUTO_RULES_COUNT)} يرصدها النظام. مؤشر داخلي لك وحدك لا يُشارَك مع أي جهة.`
+              ? `${formatNum(OPEN_RULES_COUNT)} بنود مفتوحة من ${formatNum(AUTO_RULES_COUNT)} يرصدها النظام. مؤشر داخلي لك وحدك لا يُشارَك مع أي جهة.`
               : "كل البنود المرصودة آلياً مستوفاة. مؤشر داخلي لك وحدك لا يُشارَك مع أي جهة."}
           </p>
         </Surface>
@@ -144,12 +144,12 @@ export function FacultyHomePage() {
           </SectionLabel>
           <div className="flex items-baseline gap-1.5 mb-2.5">
             <span className="num text-[27px] font-semibold text-deep">{PRODUCTION.remainingMinutes}</span>
-            <span className="text-xs text-ink-2">دقيقة متبقية من {toArabicDigits(PRODUCTION.monthlyMinutes)}</span>
+            <span className="text-xs text-ink-2">دقيقة متبقية من {formatNum(PRODUCTION.monthlyMinutes)}</span>
           </div>
           <Bar value={(PRODUCTION.remainingMinutes / PRODUCTION.monthlyMinutes) * 100} />
           <p className="text-[11px] text-ink-3 mt-2.5">
-            يكفي {toArabicDigits(Math.floor(PRODUCTION.remainingMinutes / PRODUCTION.videoMinutes))} فيديوهات محاضرات أو{" "}
-            {toArabicDigits(Math.floor(PRODUCTION.remainingMinutes / PRODUCTION.podcastMinutes))} بودكاست.
+            يكفي {formatNum(Math.floor(PRODUCTION.remainingMinutes / PRODUCTION.videoMinutes))} فيديوهات محاضرات أو{" "}
+            {formatNum(Math.floor(PRODUCTION.remainingMinutes / PRODUCTION.podcastMinutes))} بودكاست.
           </p>
         </Surface>
 

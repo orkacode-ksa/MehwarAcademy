@@ -10,7 +10,7 @@ interface SignupRoleStepProps {
   onNext: (role: SignupRole) => void;
 }
 
-/** الخطوة ١ من معالج التسجيل — اختيار نوع الحساب (يطابق البروتوتايب) */
+/** الخطوة 1 من معالج التسجيل — اختيار نوع الحساب (يطابق البروتوتايب) */
 export function SignupRoleStep({ initial, onNext }: SignupRoleStepProps) {
   const [role, setRole] = useState<SignupRole | null>(initial);
 

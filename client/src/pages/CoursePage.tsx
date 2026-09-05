@@ -9,7 +9,7 @@ import { courseById } from "../mock/courses.js";
 import { journeyFor } from "../mock/courseData.js";
 import { freshStateFor } from "../mock/faculty.js";
 import { useToast } from "../state/ToastContext.js";
-import { toArabicDigits } from "../lib/numerals.js";
+import { formatNum } from "../lib/numerals.js";
 import { OverviewTab } from "./faculty/course/OverviewTab.js";
 import { SectionsTab } from "./faculty/course/SectionsTab.js";
 import { GeneralTab } from "./faculty/course/GeneralTab.js";
@@ -51,7 +51,7 @@ export function CoursePage() {
   // تبويب لا وجود له في هذا المقرر (العملي في مقرر بلا معمل) يعود للنظرة العامة
   const activeTab = tabs.some((t) => t.key === tab) ? tab : "overview";
   const steps = journeyFor(c);
-  // ترقيم التبويبات يتبع ترتيب الخطوة في هذا المقرر تحديدًا، فلا تظهر فجوة رقم ٤
+  // ترقيم التبويبات يتبع ترتيب الخطوة في هذا المقرر تحديدًا، فلا تظهر فجوة رقم 4
   // في المقررات بلا معمل كما كان يحدث حين كان الترقيم بترتيب التبويب المطلق.
   const numbers = tabs.map((t) => steps.find((s) => s.key === t.key)?.label ?? "");
   const fresh = c.fresh ? freshStateFor(c, activeTab) : undefined;
@@ -103,12 +103,12 @@ export function CoursePage() {
       </Link>
 
       <PageHeader
-        kicker={`${c.code} · ${toArabicDigits(c.secs)} شعب · ${toArabicDigits(c.st)} طالباً`}
+        kicker={`${c.code} · ${formatNum(c.secs)} شعب · ${formatNum(c.st)} طالباً`}
         title={c.name}
         description={
           c.fresh
             ? "مقرر جديد لم يبدأ بعد — ابدأ من الخطوة الأولى"
-            : `الخطوة ${steps.find((s) => s.status === "next")?.label ?? steps.length} من ${toArabicDigits(steps.length)} في دورة المقرر${c.lab ? " · يتضمن شقاً عملياً" : ""}`
+            : `الخطوة ${steps.find((s) => s.status === "next")?.label ?? steps.length} من ${formatNum(steps.length)} في دورة المقرر${c.lab ? " · يتضمن شقاً عملياً" : ""}`
         }
         actions={
           <>

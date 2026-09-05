@@ -1,7 +1,7 @@
 import type { Role } from "../nav/nav.js";
 
 /**
- * مستخدم الجلسة — بيانات مؤقتة تُستبدل بجلسة حقيقية من الخادم في المرحلة ٧
+ * مستخدم الجلسة — بيانات مؤقتة تُستبدل بجلسة حقيقية من الخادم في المرحلة 7
  * (مسجَّلة في docs/api-gaps.md). الاسم يظهر في ترحيب الرأس.
  */
 export interface SessionUser {
@@ -12,7 +12,7 @@ export interface SessionUser {
 
 export const SESSION_USER: Record<Role, SessionUser> = {
   faculty: { displayName: "د. عبدالله", fullName: "د. عبدالله بن سعيد الغامدي", subtitle: "أستاذ مشارك · الأحياء الدقيقة" },
-  student: { displayName: "ريما", fullName: "ريما ناصر الحربي", subtitle: "الرقم الجامعي ٤٤٤١٠٢١٥٥" },
+  student: { displayName: "ريما", fullName: "ريما ناصر الحربي", subtitle: "الرقم الجامعي 444102155" },
   dept: { displayName: "د. فيصل", fullName: "د. فيصل بن محمد العتيبي", subtitle: "رئيس قسم الأحياء الدقيقة" },
   admin: { displayName: "حسن", fullName: "حسن القرني", subtitle: "مالك المنصة" },
 };
@@ -28,7 +28,7 @@ export interface SystemNotice {
 
 export const SYSTEM_NOTICES: SystemNotice[] = [
   { icon: "sparks", text: "إصدار جديد: توليد بنك الأسئلة من مواضيع المقرر مباشرةً" },
-  { icon: "clock", text: "صيانة مجدولة الجمعة ٢:٠٠ – ٤:٠٠ فجراً · لا انقطاع متوقع" },
+  { icon: "clock", text: "صيانة مجدولة الجمعة 2:00 – 4:00 فجراً · لا انقطاع متوقع" },
   { icon: "shield", text: "تذكير: بيانات مقرراتك مستقلة تمامًا ولا تُشارَك مع أي جهة" },
 ];
 

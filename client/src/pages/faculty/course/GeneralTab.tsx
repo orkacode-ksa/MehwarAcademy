@@ -9,7 +9,7 @@ import { Icon } from "../../../icons/Icon.js";
 import { topicsFor, weightsFor } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 /** البيانات العامة: التوصيف ومخرجات التعلم والمواضيع والمراجع وتوزيع الدرجات */
 export function GeneralTab({ course }: { course: MockCourse }) {
@@ -34,7 +34,7 @@ export function GeneralTab({ course }: { course: MockCourse }) {
               </>
             }
             actions={
-              <Button variant="secondary" size="sm" onClick={() => showToast("استبدال التوصيف — يُوصل بالخادم في المرحلة ٧")}>
+              <Button variant="secondary" size="sm" onClick={() => showToast("استبدال التوصيف — يُوصل بالخادم في المرحلة 7")}>
                 <Icon name="edit" /> استبدل
               </Button>
             }
@@ -58,7 +58,7 @@ export function GeneralTab({ course }: { course: MockCourse }) {
         <Surface variant="card" className="overflow-hidden">
           <WorkHeader
             title="فهرس المحتويات والمواضيع"
-            meta={`${toArabicDigits(topics.length)} مواضيع · ١٥ أسبوعاً`}
+            meta={`${formatNum(topics.length)} مواضيع · 15 أسبوعاً`}
             actions={
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيف موضوع جديد")}>
                 <Icon name="plus" /> موضوع
@@ -107,7 +107,7 @@ export function GeneralTab({ course }: { course: MockCourse }) {
             </p>
           )}
           <Alert tone="teal" icon="check" className="mt-3.5 mb-0">
-            نُشر للطلاب في الأسبوع الأول — البند ١٠ في لوائح الالتزام مستوفى.
+            نُشر للطلاب في الأسبوع الأول — البند 10 في لوائح الالتزام مستوفى.
           </Alert>
         </Surface>
       </div>

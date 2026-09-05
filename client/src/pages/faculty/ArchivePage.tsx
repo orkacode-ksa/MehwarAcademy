@@ -7,9 +7,9 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 
 const YEARS: [year: string, terms: string, courses: number, students: string, quality: number][] = [
-  ["١٤٤٦", "فصلان", 12, "٢٬٠٤٠", 10.4],
-  ["١٤٤٥", "فصلان", 11, "١٬٨٩٠", 9.8],
-  ["١٤٤٤", "فصلان", 9, "١٬٥٢٠", 9.1],
+  ["1446", "فصلان", 12, "2٬040", 10.4],
+  ["1445", "فصلان", 11, "1٬890", 9.8],
+  ["1444", "فصلان", 9, "1٬520", 9.1],
 ];
 
 /** الأرشيف — السنوات المؤرشفة كاملة للقراءة والتصدير. منقول من V.archive */
@@ -56,7 +56,7 @@ export function ArchivePage() {
       ))}
 
       <div className="rounded-rlg border border-dashed border-line p-[18px] text-center">
-        <div className="text-[13px] font-semibold">السنة الحالية ١٤٤٧ — جارية</div>
+        <div className="text-[13px] font-semibold">السنة الحالية 1447 — جارية</div>
         <p className="text-xs text-ink-2 mt-1.5">تُتاح الأرشفة بعد إغلاق درجات الفصل الثاني. يفعّلها مالك المنصة من لوحة التقويم.</p>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { Icon } from "../../../icons/Icon.js";
 import { sectionsFor } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 const th = "text-start px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap";
 
@@ -22,7 +22,7 @@ export function SectionsTab({ course }: { course: MockCourse }) {
       <Surface variant="work" className="overflow-hidden">
         <WorkHeader
           title="الشعب"
-          meta={`${toArabicDigits(course.secs)} شعب · ${toArabicDigits(course.st)} طالباً`}
+          meta={`${formatNum(course.secs)} شعب · ${formatNum(course.st)} طالباً`}
           actions={
             <>
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيفت شعبة جديدة")}>
@@ -59,7 +59,7 @@ export function SectionsTab({ course }: { course: MockCourse }) {
                     <Chip tone="neutral">{s.mode}</Chip>
                   </td>
                   <td className="px-3 py-2 border-b border-line-2 text-end">
-                    <Button variant="text" size="sm" aria-label={`فتح ${s.name}`} onClick={() => showToast(`${s.name} — تفتح في المرحلة ٧`)}>
+                    <Button variant="text" size="sm" aria-label={`فتح ${s.name}`} onClick={() => showToast(`${s.name} — تفتح في المرحلة 7`)}>
                       <Icon name="arr" />
                     </Button>
                   </td>

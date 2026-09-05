@@ -23,7 +23,7 @@ export function SignupFinishStep({ role, onEnter }: SignupFinishStepProps) {
       <>
         <h1 className="text-2xl font-semibold">كل شيء جاهز</h1>
         <p className="text-ink-2 text-[13px] my-2 mb-[22px]">حسابك جاهز. مقرراتك تظهر فوراً.</p>
-        <Alert tone="teal" icon="check" title="انضممت إلى ٥ مقررات">
+        <Alert tone="teal" icon="check" title="انضممت إلى 5 مقررات">
           ربطنا رقمك الجامعي بكل شُعبك المسجّلة تلقائياً.
         </Alert>
         <Button variant="primary" size="lg" className="w-full mt-2.5" onClick={onEnter}>
@@ -75,7 +75,7 @@ export function SignupFinishStep({ role, onEnter }: SignupFinishStepProps) {
       </button>
 
       <Alert tone="teal" icon="check" title="السنة والفصل جاهزان">
-        الفصل الأول ١٤٤٧ أُنشئ تلقائياً من التقويم الدراسي — بإجازاته وفترة اختباراته.
+        الفصل الأول 1447 أُنشئ تلقائياً من التقويم الدراسي — بإجازاته وفترة اختباراته.
       </Alert>
 
       <Button variant="primary" size="lg" className="w-full mt-2.5" onClick={onEnter} disabled={!file}>

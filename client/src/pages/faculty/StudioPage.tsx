@@ -12,13 +12,13 @@ import { lecturesFor } from "../../mock/courseData.js";
 import { PRODUCTION } from "../../mock/quota.js";
 import { courseById } from "../../mock/courses.js";
 import { useToast } from "../../state/ToastContext.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 const SETTINGS: [string, string][] = [
   ["عمق المحتوى", "متوسط"],
   ["اللهجة", "أكاديمي رصين"],
   ["لغة التدريس", "العربية"],
-  ["طول الفيديو", "٢٠ دقيقة"],
+  ["طول الفيديو", "20 دقيقة"],
   ["صوت السرد", "رجالي — هادئ"],
   ["إظهار الاستشهادات", "نعم"],
 ];
@@ -34,18 +34,18 @@ const STEP_LABEL: Record<"done" | "gate" | "wait", string> = {
 function outlineFor(topic: string, refs: [string, string, string][]): [n: string, t: string, src: string, mins: string][] {
   const ref = (i: number) => refs[i % Math.max(refs.length, 1)]?.[0] ?? "مراجع المقرر";
   return [
-    ["١", `مدخل إلى ${topic}`, `${ref(0)} — الفصل المرتبط`, "12 د"],
-    ["٢", "المفاهيم والآليات الأساسية", `${ref(1)} — القسم النظري`, "15 د"],
-    ["٣", "أمثلة وتطبيقات", `${ref(2)} — دراسات حالة`, "14 د"],
-    ["٤", "الخلاصة وأسئلة التقويم", "مخرجات التعلم المعتمدة", "9 د"],
+    ["1", `مدخل إلى ${topic}`, `${ref(0)} — الفصل المرتبط`, "12 د"],
+    ["2", "المفاهيم والآليات الأساسية", `${ref(1)} — القسم النظري`, "15 د"],
+    ["3", "أمثلة وتطبيقات", `${ref(2)} — دراسات حالة`, "14 د"],
+    ["4", "الخلاصة وأسئلة التقويم", "مخرجات التعلم المعتمدة", "9 د"],
   ];
 }
 
 /**
  * استوديو التوليد.
  * انحرافان مقصودان عن البروتوتايب:
- * ١) كان يعرض رقم تكلفة داخلية لكل خطوة، وهذا يخالف القسم ٨ صراحةً — استُبدل بحالة الخطوة.
- * ٢) كان مثبّتاً على MIC 231 والموضوع ١٠ مهما كان المقرر الذي فُتح منه، وزر «رجوع»
+ * 1) كان يعرض رقم تكلفة داخلية لكل خطوة، وهذا يخالف القسم 8 صراحةً — استُبدل بحالة الخطوة.
+ * 2) كان مثبّتاً على MIC 231 والموضوع 10 مهما كان المقرر الذي فُتح منه، وزر «رجوع»
  *    يعيدك إلى مقرر آخر غير الذي جئت منه. الآن الشاشة تعمل بسياق المقرر والموضوع،
  *    وتسأل عنهما إن دخلتَها من أدوات اللوحة بلا سياق.
  */
@@ -82,7 +82,7 @@ export function StudioPage() {
       <PageHeader
         kicker={`${course.code} · ${course.name}`}
         title="استوديو التوليد"
-        description={`الموضوع: ${topic} · ${toArabicDigits(course.refs.length)} مراجع مختارة · مطابق لفهرس التوصيف`}
+        description={`الموضوع: ${topic} · ${formatNum(course.refs.length)} مراجع مختارة · مطابق لفهرس التوصيف`}
         actions={
           <Button variant="secondary" onClick={() => navigate(`/course/${course.id}/lectures`)}>
             <Icon name="arr" /> رجوع لمحاضرات المقرر
@@ -188,7 +188,7 @@ export function StudioPage() {
 
           <div className="border border-line rounded-rmd overflow-hidden bg-white mb-4">
             <div className="px-3.5 py-2.5 bg-[#FAFCFA] border-b border-line text-[11.5px] font-semibold flex justify-between items-center">
-              <span>الشريحة ٤ من ٢٤</span>
+              <span>الشريحة 4 من 24</span>
               <Chip tone="neutral">مولّد بالذكاء</Chip>
             </div>
             <div className="aspect-video p-[22px] flex flex-col justify-center gap-2.5 text-white" style={{ background: "linear-gradient(150deg,var(--deep),var(--deep3))" }}>
@@ -207,7 +207,7 @@ export function StudioPage() {
           <div className="border border-line rounded-rmd overflow-hidden bg-white mb-4">
             <div className="px-3.5 py-2.5 bg-[#FAFCFA] border-b border-line text-[11.5px] font-semibold flex justify-between items-center">
               <span className="flex items-center gap-1.5">
-                <Icon name="mic" className="w-4 h-4" /> البودكاست — ١٠:١٥
+                <Icon name="mic" className="w-4 h-4" /> البودكاست — 10:15
               </span>
               <Button variant="text" size="sm" aria-label="تشغيل البودكاست" onClick={() => showToast("تشغيل معاينة البودكاست")}>
                 <Icon name="play" />

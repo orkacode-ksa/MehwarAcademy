@@ -7,9 +7,9 @@ import { Topbar } from "../components/shell/Topbar.js";
 import { SearchPalette } from "../components/shell/SearchPalette.js";
 import { NotificationPanel } from "../components/shell/NotificationPanel.js";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog.js";
-import { roleOf } from "../nav/nav.js";
+import { ROLE_HOME, roleOf } from "../nav/nav.js";
 import { jumpPath, type JumpTarget } from "../nav/jump.js";
-import { NOTIFICATIONS as INITIAL_NOTIFICATIONS } from "../mock/notifications.js";
+import { NOTIFICATIONS_BY_ROLE, type MockNotification } from "../mock/notifications.js";
 import { useToast } from "../state/ToastContext.js";
 
 /**
@@ -25,11 +25,16 @@ export function AppShell() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<MockNotification[]>([]);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   const screenKey = location.pathname.split("/")[1] || "home";
   const role = roleOf(screenKey);
+
+  // الإشعارات تتبع الدور: الطالب كان يرى إشعارات عضو هيئة التدريس لأن القائمة واحدة
+  useEffect(() => {
+    setNotifications(NOTIFICATIONS_BY_ROLE[role] ?? []);
+  }, [role]);
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   useEffect(() => {
@@ -79,7 +84,7 @@ export function AppShell() {
       <Rail role={role} onLogout={() => setLogoutOpen(true)} />
       <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
       <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} onLogout={() => setLogoutOpen(true)} />
-      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
+      <SearchPalette role={role} open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
       <ConfirmDialog
         open={logoutOpen}
         title="تسجيل الخروج"
@@ -101,7 +106,7 @@ export function AppShell() {
       />
       <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
         <div className="max-w-[1260px] mx-auto" id="main">
-          <Topbar role={role} isHome={location.pathname === "/home"} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
+          <Topbar role={role} isHome={screenKey === ROLE_HOME[role]} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
           <Outlet />
         </div>
       </main>

@@ -9,10 +9,10 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 
 const TREND: [year: string, value: number][] = [
-  ["١٤٤٤", 82],
-  ["١٤٤٥", 86],
-  ["١٤٤٦", 89],
-  ["١٤٤٧", 93],
+  ["1444", 82],
+  ["1445", 86],
+  ["1446", 89],
+  ["1447", 93],
 ];
 
 const FACTORS: [string, number][] = [
@@ -50,8 +50,8 @@ export function EvalPage() {
         title="تقييم الأداء السنوي"
         description="ارفع نتيجتك من موقع العضو، وقارنها بما تحسبه المنصة من عملك الفعلي"
         actions={
-          <Button variant="primary" onClick={() => showToast("١٤٤٧ لم تصدر رسمياً بعد — ارفعها فور صدورها")}>
-            <Icon name="up" /> ارفع نتيجة ١٤٤٧
+          <Button variant="primary" onClick={() => showToast("1447 لم تصدر رسمياً بعد — ارفعها فور صدورها")}>
+            <Icon name="up" /> ارفع نتيجة 1447
           </Button>
         }
       />
@@ -74,14 +74,14 @@ export function EvalPage() {
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-ink-3 mt-1.5">١٤٤٧ تقدير تنبؤي محسوب من بيانات المنصة — لم يصدر رسمياً بعد.</p>
+          <p className="text-[11px] text-ink-3 mt-1.5">1447 تقدير تنبؤي محسوب من بيانات المنصة — لم يصدر رسمياً بعد.</p>
         </Surface>
 
         <Surface variant="card" pad>
-          <SectionLabel>التقدير التنبؤي ١٤٤٧</SectionLabel>
+          <SectionLabel>التقدير التنبؤي 1447</SectionLabel>
           <div className="flex items-baseline gap-2.5 mb-4">
             <span className="num text-[38px] font-semibold text-teal tracking-[-.04em]">93</span>
-            <span className="text-[13px] text-ink-2">من ١٠٠ · ممتاز</span>
+            <span className="text-[13px] text-ink-2">من 100 · ممتاز</span>
           </div>
           {FACTORS.map(([t, v]) => (
             <div key={t} className="mb-2.5">
@@ -103,8 +103,8 @@ export function EvalPage() {
               <thead>
                 <tr>
                   <th className={`${th} text-start`}>البند</th>
-                  <th className={`${th} text-center`}>١٤٤٦</th>
-                  <th className={`${th} text-center`}>١٤٤٧ (تنبؤي)</th>
+                  <th className={`${th} text-center`}>1446</th>
+                  <th className={`${th} text-center`}>1447 (تنبؤي)</th>
                   <th className={`${th} text-center`}>الفرق</th>
                   <th className={`${th} text-start`}>المصدر</th>
                 </tr>
@@ -116,7 +116,7 @@ export function EvalPage() {
                     <TdNum className="text-ink-2">{prev}</TdNum>
                     <TdNum className="font-semibold text-deep">{next}</TdNum>
                     <TdNum className={`font-semibold ${diff.startsWith("−") ? "text-crim" : diff === "—" ? "text-ink-3" : "text-teal"}`}>
-                      {diff}
+                      <span dir="ltr">{diff}</span>
                     </TdNum>
                     <td className="px-3 py-2 border-b border-line-2 text-xs text-ink-3">{src}</td>
                   </tr>
@@ -128,7 +128,7 @@ export function EvalPage() {
 
         <div>
           <Alert tone="amber" icon="alert" title="ما قد تخسره" className="mb-4">
-            بند الإرشاد الأكاديمي انخفض درجة واحدة. سبب الانخفاض: إشغال ساعاتك المكتبية ٧٤٪ فقط، وثلاثة مواعيد لم تُفتح.
+            بند الإرشاد الأكاديمي انخفض درجة واحدة. سبب الانخفاض: إشغال ساعاتك المكتبية 74٪ فقط، وثلاثة مواعيد لم تُفتح.
           </Alert>
 
           <Surface variant="card" pad>
@@ -151,7 +151,7 @@ export function EvalPage() {
               ))}
             </div>
             <p className="text-[11px] text-ink-3 mt-3 leading-[1.65]">
-              الخطوتان الأوليان منجزتان لنتيجة ١٤٤٦ المرفوعة، وتُعادان لنتيجة ١٤٤٧ حين تصدر رسمياً. لا ربط مع أنظمة الجامعة — والقيمة ليست عرض
+              الخطوتان الأوليان منجزتان لنتيجة 1446 المرفوعة، وتُعادان لنتيجة 1447 حين تصدر رسمياً. لا ربط مع أنظمة الجامعة — والقيمة ليست عرض
               الدرجة، بل معرفة ما ستخسره قبل أن تخسره.
             </p>
           </Surface>

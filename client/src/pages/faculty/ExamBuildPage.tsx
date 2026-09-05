@@ -11,7 +11,7 @@ import { Icon } from "../../icons/Icon.js";
 import { courseById } from "../../mock/courses.js";
 import { examsFor } from "../../mock/courseData.js";
 import { useToast } from "../../state/ToastContext.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 const KINDS = ["مقالي", "اختياري", "مقالي", "رقمي", "مقالي", "مطابقة", "قصير", "صح/خطأ"];
 const STEMS = [
@@ -26,8 +26,8 @@ const STEMS = [
 ];
 
 const PRINT_SETTINGS: [string, string][] = [
-  ["المدة", "١٢٠ دقيقة"],
-  ["عدد النسخ", "٣ نسخ (أ ب ج)"],
+  ["المدة", "120 دقيقة"],
+  ["عدد النسخ", "3 نسخ (أ ب ج)"],
   ["ترتيب الأسئلة", "مختلف لكل نسخة"],
   ["مساحة الإجابة", "واسعة"],
   ["نموذج الإجابة", "يُطبع منفصلاً"],
@@ -77,7 +77,7 @@ export function ExamBuildPage() {
   const questions = Array.from({ length: count }, (_, i) => {
     const topic = topics[i % Math.max(topics.length, 1)] ?? course.name;
     return {
-      n: toArabicDigits(i + 1),
+      n: formatNum(i + 1),
       q: (STEMS[i % STEMS.length] ?? STEMS[0]!)(topic),
       kind: KINDS[i % KINDS.length] ?? "مقالي",
       clo: `CLO ${(i % Math.max(course.clos.length, 1)) + 1}`,
@@ -131,7 +131,7 @@ export function ExamBuildPage() {
           <Surface variant="card" className="overflow-hidden mb-4">
             <WorkHeader
               title={exam?.title ?? "اختبار جديد"}
-              meta={`${toArabicDigits(questions.length)} أسئلة · ${totalMarks} من ${target} درجة`}
+              meta={`${formatNum(questions.length)} أسئلة · ${totalMarks} من ${target} درجة`}
               actions={<Chip tone={balanced ? "teal" : "amber"}>{balanced ? "التوزيع مكتمل" : "التوزيع ناقص"}</Chip>}
             />
             {questions.map((q) => (

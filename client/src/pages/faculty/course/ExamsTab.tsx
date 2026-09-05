@@ -119,7 +119,7 @@ export function ExamsTab({ course }: { course: MockCourse }) {
                   <div className="min-w-0">
                     <div className="text-[13px] font-medium">{reviewOpen ? "مفتوحة للطلاب" : "لم تُفتح بعد"}</div>
                     <div className="text-[11px] text-ink-3 mt-px">
-                      {reviewOpen ? "يستطيع الطالب رؤية ورقته وملاحظاتك خلال ٧٢ ساعة" : "البند ACD-12 يوجب إتاحتها خلال أسبوع من الرصد"}
+                      {reviewOpen ? "يستطيع الطالب رؤية ورقته وملاحظاتك خلال 72 ساعة" : "البند ACD-12 يوجب إتاحتها خلال أسبوع من الرصد"}
                     </div>
                   </div>
                   <Toggle
@@ -127,7 +127,7 @@ export function ExamsTab({ course }: { course: MockCourse }) {
                     checked={reviewOpen}
                     onChange={(next) => {
                       setReviewOpen(next);
-                      showToast(next ? "فُتحت نافذة المراجعة للطلاب ٧٢ ساعة" : "أُغلقت نافذة المراجعة");
+                      showToast(next ? "فُتحت نافذة المراجعة للطلاب 72 ساعة" : "أُغلقت نافذة المراجعة");
                     }}
                   />
                 </div>
@@ -162,13 +162,13 @@ export function ExamsTab({ course }: { course: MockCourse }) {
                 <div className="grid grid-cols-2 gap-1.5 text-[10.5px] text-ink-2">
                   <span>الاسم: ..................</span>
                   <span>الرقم: ..................</span>
-                  <span>الشعبة: ١</span>
-                  <span>المدة: ٦٠ دقيقة</span>
+                  <span>الشعبة: 1</span>
+                  <span>المدة: 60 دقيقة</span>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-dashed border-line text-[10.5px] text-ink-3 leading-[1.9]">
-                  س١ (٥ درجات) — {course.topics[0] ? `عرّف ${course.topics[0]} واذكر عناصره الأساسية.` : "—"}
+                  س1 (5 درجات) — {course.topics[0] ? `عرّف ${course.topics[0]} واذكر عناصره الأساسية.` : "—"}
                   <br />
-                  <span className="opacity-50">صفحة ١ من ٦</span>
+                  <span className="opacity-50">صفحة 1 من 6</span>
                 </div>
               </div>
               <p className="text-[11px] text-ink-3 mt-3 leading-[1.7]">

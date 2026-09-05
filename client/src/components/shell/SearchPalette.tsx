@@ -5,6 +5,8 @@ import type { JumpTarget } from "../../nav/jump.js";
 import { parseJump } from "../../nav/jump.js";
 
 interface SearchPaletteProps {
+  /** فهرس البحث يتبع دور المستخدم */
+  role: string;
   open: boolean;
   onClose: () => void;
   onJump: (target: JumpTarget) => void;
@@ -15,7 +17,7 @@ interface SearchPaletteProps {
  * (شاشات · مقررات · إجراءات)، Esc يغلق. `.fd-*` بلا قواعد CSS في البروتوتايب (فجوة فيه)،
  * فالشكل هنا مصمَّم حديثًا بلغة الرموز نفسها.
  */
-export function SearchPalette({ open, onClose, onJump }: SearchPaletteProps) {
+export function SearchPalette({ role, open, onClose, onJump }: SearchPaletteProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +32,7 @@ export function SearchPalette({ open, onClose, onJump }: SearchPaletteProps) {
 
   if (!open) return null;
 
-  const groups = filterFind(query);
+  const groups = filterFind(query, role);
 
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-label="بحث موحّد">

@@ -35,7 +35,7 @@ export function ShowcasePage() {
             </span>
             <span className="font-amiri font-bold text-[19px]">مِحوَر</span>
           </div>
-          <h1 className="text-[28px] mb-1">صفحة عرض المكوّنات — المرحلة ١</h1>
+          <h1 className="text-[28px] mb-1">صفحة عرض المكوّنات — المرحلة 1</h1>
           <p className="text-ink-2 text-sm">
             كل مكوّن هنا منقول من <span className="font-mono text-[12px]">mihwar-prototype-v2.html</span> بلا أي تعديل بصري.
           </p>
@@ -49,7 +49,7 @@ export function ShowcasePage() {
             <p className="text-sm text-ink-2 mb-2">
               نص متن عادي بخط IBM Plex Sans Arabic — يُستخدم في كل نصوص الواجهة والأزرار والصفوف الكثيفة.
             </p>
-            <span className="num text-2xl text-deep">١٢٣٬٤٥٦.٧٨</span>
+            <span className="num text-2xl text-deep">123٬456.78</span>
             <span className="text-ink-3 text-xs mr-2">— أرقام بخط IBM Plex Mono، محاذاة عمودية</span>
           </Surface>
         </Section>
@@ -111,13 +111,13 @@ export function ShowcasePage() {
 
         <Section title="التنبيهات">
           <Alert tone="amber" icon="alert" title="لم يُدخل غياب محاضرة الأحد">
-            MIC 231 شعبة ٢ — الإدخال خلال ٤٨ ساعة يُبقي سجلك نظيفًا.
+            MIC 231 شعبة 2 — الإدخال خلال 48 ساعة يُبقي سجلك نظيفًا.
           </Alert>
           <Alert tone="teal" icon="check" title="الساعات المكتبية منتظمة">
-            ١١ موعدًا هذا الشهر · ٩ حضور · إشغال ٧٤٪.
+            11 موعدًا هذا الشهر · 9 حضور · إشغال 74٪.
           </Alert>
           <Alert tone="crimson" icon="alert" title="نافذة المراجعة لم تُفتح">
-            مضى ٦ أيام على رصد النصفي.
+            مضى 6 أيام على رصد النصفي.
           </Alert>
         </Section>
 
@@ -146,25 +146,25 @@ export function ShowcasePage() {
 
         <Section title="صفوف قائمة">
           <Surface variant="card" className="overflow-hidden">
-            <LRow tone="ok" icon="check" title="ولّدت محاضرة ١٠ — الوراثة الميكروبية" subtitle="قبل ساعتين" />
-            <LRow tone="no" label="٠٩" title="النمو البكتيري ومنحنى النمو" subtitle="CLO 2 · هذا الأسبوع" />
-            <LRow tone="na" label="١٢" title="الفطريات الطبية" subtitle="CLO 4 · لم يبدأ" />
+            <LRow tone="ok" icon="check" title="ولّدت محاضرة 10 — الوراثة الميكروبية" subtitle="قبل ساعتين" />
+            <LRow tone="no" label="09" title="النمو البكتيري ومنحنى النمو" subtitle="CLO 2 · هذا الأسبوع" />
+            <LRow tone="na" label="12" title="الفطريات الطبية" subtitle="CLO 4 · لم يبدأ" />
           </Surface>
         </Section>
 
         <Section title="خطوة رحلة المقرر">
-          <JStep status="done" number="١" title="الشعب والطلاب" description="أنشئ الشعب واستورد سجل الطلاب" percent={100} />
-          <JStep status="next" number="٣" title="المحاضرات النظرية" description="شرح نصي · عرض · فيديو · بودكاست" percent={82} />
-          <JStep status="open" number="٦" title="الاختبارات" description="كويزات · نصفي · عملي · نهائي" percent={33} />
+          <JStep status="done" number="1" title="الشعب والطلاب" description="أنشئ الشعب واستورد سجل الطلاب" percent={100} />
+          <JStep status="next" number="3" title="المحاضرات النظرية" description="شرح نصي · عرض · فيديو · بودكاست" percent={82} />
+          <JStep status="open" number="6" title="الاختبارات" description="كويزات · نصفي · عملي · نهائي" percent={33} />
         </Section>
 
         <Section title="خط إنتاج الاستوديو">
           <div className="flex gap-1.5 overflow-x-auto pb-1.5">
-            <PipelineStep status="done" code="٠١" title="فهرسة المراجع" cost="0.01" />
-            <PipelineStep status="done" code="٠٢" title="بناء المخطط" cost="0.01" />
+            <PipelineStep status="done" code="01" title="فهرسة المراجع" cost="0.01" />
+            <PipelineStep status="done" code="02" title="بناء المخطط" cost="0.01" />
             <PipelineStep status="gate" code="⏸" title="مراجعتك واعتمادك" cost="بوابة" />
-            <PipelineStep status="wait" code="٠٣" title="نص المحاضرة" cost="0.04" />
-            <PipelineStep status="wait" code="٠٦" title="الصوت" cost="0.67" />
+            <PipelineStep status="wait" code="03" title="نص المحاضرة" cost="0.04" />
+            <PipelineStep status="wait" code="06" title="الصوت" cost="0.67" />
           </div>
         </Section>
 
@@ -198,10 +198,10 @@ export function ShowcasePage() {
                 </thead>
                 <tbody>
                   <tr>
-                    <TdId>٤٤٤١٠١٢٣٨</TdId>
+                    <TdId>444101238</TdId>
                     <td className="px-3 py-2 border-b border-line-2 text-[13px]">عبدالرحمن سالم الزهراني</td>
-                    <TdNum>١٩</TdNum>
-                    <TdNum className="bg-[#F2F6F2] font-semibold text-deep">٨٨</TdNum>
+                    <TdNum>19</TdNum>
+                    <TdNum className="bg-[#F2F6F2] font-semibold text-deep">88</TdNum>
                   </tr>
                 </tbody>
               </table>

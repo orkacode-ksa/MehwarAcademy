@@ -2,7 +2,7 @@ import type { IconName } from "../icons/Icon.js";
 import type { MockCourse, StepKey } from "./courses.js";
 import { journeyFor } from "./courseData.js";
 
-/** خط إنتاج الاستوديو — منسوخ من ثابت PIPE. التكلفة رقم داخلي لا يُعرض لمستخدم (القسم ٨) */
+/** خط إنتاج الاستوديو — منسوخ من ثابت PIPE. التكلفة رقم داخلي لا يُعرض لمستخدم (القسم 8) */
 export interface PipeStep {
   k: string;
   t: string;
@@ -10,17 +10,17 @@ export interface PipeStep {
 }
 
 export const PIPE: PipeStep[] = [
-  { k: "٠١", t: "فهرسة المراجع", s: "done" },
-  { k: "٠٢", t: "بناء المخطط", s: "done" },
+  { k: "01", t: "فهرسة المراجع", s: "done" },
+  { k: "02", t: "بناء المخطط", s: "done" },
   { k: "⏸", t: "مراجعتك واعتمادك", s: "gate" },
-  { k: "٠٣", t: "نص المحاضرة", s: "wait" },
-  { k: "٠٤", t: "العرض التقديمي", s: "wait" },
-  { k: "٠٥", t: "نص السرد", s: "wait" },
-  { k: "٠٦", t: "الصوت", s: "wait" },
-  { k: "٠٧", t: "تصيير الفيديو", s: "wait" },
-  { k: "٠٨", t: "حوار البودكاست", s: "wait" },
-  { k: "٠٩", t: "صوت البودكاست", s: "wait" },
-  { k: "١٠", t: "بنك الأسئلة", s: "wait" },
+  { k: "03", t: "نص المحاضرة", s: "wait" },
+  { k: "04", t: "العرض التقديمي", s: "wait" },
+  { k: "05", t: "نص السرد", s: "wait" },
+  { k: "06", t: "الصوت", s: "wait" },
+  { k: "07", t: "تصيير الفيديو", s: "wait" },
+  { k: "08", t: "حوار البودكاست", s: "wait" },
+  { k: "09", t: "صوت البودكاست", s: "wait" },
+  { k: "10", t: "بنك الأسئلة", s: "wait" },
 ];
 
 export interface EmptyStateDef {
@@ -30,7 +30,7 @@ export interface EmptyStateDef {
   cta?: string;
   /** مسار حقيقي يُفتح بالضغط */
   to?: string;
-  /** رسالة توست حين لا يوجد إجراء حقيقي بعد (يُوصل بالخادم في المرحلة ٧) */
+  /** رسالة توست حين لا يوجد إجراء حقيقي بعد (يُوصل بالخادم في المرحلة 7) */
   toast?: string;
 }
 

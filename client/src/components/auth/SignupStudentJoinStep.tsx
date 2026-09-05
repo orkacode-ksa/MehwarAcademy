@@ -62,7 +62,7 @@ export function SignupStudentJoinStep({ initial, onNext, onBack }: SignupStudent
         />
         <Field label="الاسم الكامل" placeholder="اسمك الثلاثي" error={errors.fullName?.message} {...register("fullName")} />
         <Field label="الرقم الجامعي" inputMode="numeric" placeholder="444XXXXXX" className="font-mono" error={errors.universityId?.message} {...register("universityId")} />
-        <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" error={errors.password?.message} {...register("password")} />
+        <PasswordField label="كلمة المرور" placeholder="10 أحرف على الأقل" error={errors.password?.message} {...register("password")} />
 
         {sectionCode.trim().length >= 6 &&
           (matched ? (

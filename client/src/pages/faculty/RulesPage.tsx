@@ -11,7 +11,7 @@ import { TableScroll, TdId } from "../../components/ui/TableScroll.js";
 import { Icon } from "../../icons/Icon.js";
 import { PREVENTIVE_ALERTS } from "../../mock/alerts.js";
 import { AUTO_RULES_COUNT, COMPLIANCE_SCORE, MET_RULES_COUNT, OPEN_RULES_COUNT, RULES, RULES_NOW, type Rule } from "../../mock/compliance.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 import { useToast } from "../../state/ToastContext.js";
 
 type Filter = "all" | "أكاديمية" | "إدارية" | "سلوكية" | "auto";
@@ -53,7 +53,7 @@ export function RulesPage() {
       <PageHeader
         kicker="أداة ذاتية — لا تُشارَك مع أي جهة"
         title="مؤشر الالتزام"
-        description={`${toArabicDigits(RULES.length)} بنداً من دليل الجامعة · ${toArabicDigits(RULES.filter((r) => r.auto).length)} منها يرصدها النظام آلياً من بياناتك`}
+        description={`${formatNum(RULES.length)} بنداً من دليل الجامعة · ${formatNum(RULES.filter((r) => r.auto).length)} منها يرصدها النظام آلياً من بياناتك`}
         actions={
           <Button variant="secondary" onClick={() => showToast("صُدِّر تقرير الالتزام")}>
             <Icon name="down" /> تصدير التقرير
@@ -68,13 +68,13 @@ export function RulesPage() {
       <Grid2 className="mb-5">
         <Surface variant="card" pad>
           <div className="flex items-center gap-5 flex-wrap">
-            <ScoreRing value={COMPLIANCE_SCORE / 100} label={String(COMPLIANCE_SCORE)} caption="من ١٠٠" />
+            <ScoreRing value={COMPLIANCE_SCORE / 100} label={String(COMPLIANCE_SCORE)} caption="من 100" />
             <div className="flex-1 min-w-[180px]">
               <div className="text-[13px] font-semibold mb-2.5">حالتك هذا الفصل</div>
               <div className="grid gap-[7px] text-xs">
                 <div className="flex justify-between">
                   <span>بنود مستوفاة</span>
-                  <b className="num text-teal">{MET_RULES_COUNT} / {autoCount}</b>
+                  <b className="num text-teal">{`${MET_RULES_COUNT} من ${autoCount}`}</b>
                 </div>
                 <div className="flex justify-between">
                   <span>تنبيهات مفتوحة</span>

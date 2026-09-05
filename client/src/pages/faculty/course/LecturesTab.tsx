@@ -9,7 +9,7 @@ import { lecturesFor } from "../../../mock/courseData.js";
 import { PRODUCTION } from "../../../mock/quota.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap";
 
@@ -25,7 +25,7 @@ export function LecturesTab({ course }: { course: MockCourse }) {
       <Surface variant="work" className="overflow-hidden mb-4">
         <WorkHeader
           title="المحاضرات النظرية"
-          meta={`${toArabicDigits(published)} من ${toArabicDigits(lectures.length)} · لكل محاضرة أربعة أصول`}
+          meta={`${formatNum(published)} من ${formatNum(lectures.length)} · لكل محاضرة أربعة أصول`}
           actions={
             <>
               <Button variant="secondary" size="sm" onClick={() => showToast("رفع محاضرة يدويًا")}>
@@ -79,7 +79,7 @@ export function LecturesTab({ course }: { course: MockCourse }) {
           </p>
           <div className="flex justify-between mt-3.5 pt-3 border-t border-line-2 text-xs">
             <span className="text-ink-2">يُخصم من رصيدك</span>
-            <b className="num text-teal">{toArabicDigits(PRODUCTION.videoMinutes)} دقيقة</b>
+            <b className="num text-teal">{formatNum(PRODUCTION.videoMinutes)} دقيقة</b>
           </div>
         </Surface>
 
@@ -90,7 +90,7 @@ export function LecturesTab({ course }: { course: MockCourse }) {
           </p>
           <div className="flex justify-between mt-3.5 pt-3 border-t border-line-2 text-xs">
             <span className="text-ink-2">يُخصم من رصيدك</span>
-            <b className="num text-teal">{toArabicDigits(PRODUCTION.podcastMinutes)} دقائق</b>
+            <b className="num text-teal">{formatNum(PRODUCTION.podcastMinutes)} دقائق</b>
           </div>
         </Surface>
 

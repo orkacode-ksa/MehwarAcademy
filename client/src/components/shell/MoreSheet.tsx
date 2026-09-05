@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
 import { NAV, type Role } from "../../nav/nav.js";
 import { PREVENTIVE_ALERTS } from "../../mock/alerts.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 interface MoreSheetProps {
   role: Role;
@@ -21,12 +21,12 @@ const ANIM_MS = 260;
  * لوحة «المزيد» السفلية على الجوال.
  *
  * ثلاثة فوارق عن النسخة السابقة:
- * ١) تُفتح وتُغلق بحركة انزلاق ناعمة بدل الظهور والاختفاء فجأة — وتبقى في الشجرة
+ * 1) تُفتح وتُغلق بحركة انزلاق ناعمة بدل الظهور والاختفاء فجأة — وتبقى في الشجرة
  *    أثناء حركة الخروج ثم تُزال، وإلا اختفت قبل أن تتحرك.
- * ٢) تُسحب بالإصبع للأسفل: اللوحة تتبع الإصبع، وتُغلق إن تجاوز السحب مسافة
+ * 2) تُسحب بالإصبع للأسفل: اللوحة تتبع الإصبع، وتُغلق إن تجاوز السحب مسافة
  *    الإغلاق، وترتد إن لم يتجاوزها. السحب يبدأ من المقبض والترويسة وحدهما حتى لا
  *    يتحوّل الضغط على بطاقة إلى سحب يفتح شاشة بالخطأ.
- * ٣) تتصدّرها بطاقة التنبيهات الوقائية: أول ما يحتاجه المستخدم عند فتح القائمة هو
+ * 3) تتصدّرها بطاقة التنبيهات الوقائية: أول ما يحتاجه المستخدم عند فتح القائمة هو
  *    ما يستحق عمله، لا قائمة الشاشات.
  */
 export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
@@ -139,7 +139,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
           <span className="flex-1 min-w-0">
             <span className="block text-[13.5px] font-semibold">التنبيهات الوقائية</span>
             <span className="block text-[11.5px] text-ink-2">
-              {needsAction === 0 ? "لا شيء يحتاج إجراءً الآن" : `${toArabicDigits(needsAction)} تحتاج إجراءً قبل موعدها`}
+              {needsAction === 0 ? "لا شيء يحتاج إجراءً الآن" : `${formatNum(needsAction)} تحتاج إجراءً قبل موعدها`}
             </span>
           </span>
           <Icon name="arr" className="w-4 h-4 text-ink-3 flex-none" />

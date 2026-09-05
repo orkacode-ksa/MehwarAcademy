@@ -11,7 +11,7 @@ interface EmptyStateProps {
 }
 
 /**
- * الحالة الفارغة القياسية: أيقونة + عنوان + شرح + زر يقود للخطوة التالية (القسم ٥).
+ * الحالة الفارغة القياسية: أيقونة + عنوان + شرح + زر يقود للخطوة التالية (القسم 5).
  * `.empty` بلا قواعد CSS في البروتوتايب (فجوة فيه)، فالشكل مصمَّم بلغة الرموز نفسها.
  */
 export function EmptyState({ icon, title, body, action, compact = false }: EmptyStateProps) {

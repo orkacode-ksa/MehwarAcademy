@@ -11,7 +11,7 @@ import { Icon } from "../../../icons/Icon.js";
 import { rosterFor, sectionsFor, weightsFor } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap sticky top-0 z-[2]";
 
@@ -29,9 +29,9 @@ function gradeLetter(percent: number): string {
 /**
  * كشف الدرجات.
  * ثلاثة أخطاء منطقية صُحّحت هنا:
- * ١) كان الكشف يعرض شعبة واحدة بلا مبدّل، بينما تنبيه «أكمل رصد شعبة ٣» يُنزلك فيه.
- * ٢) كان يعرض عمود «عملي» لمقررات بلا معمل.
- * ٣) كان يحسب التقدير النهائي من مجموع ناقص (قبل رصد النهائي)، فيظهر طالب ممتاز راسباً.
+ * 1) كان الكشف يعرض شعبة واحدة بلا مبدّل، بينما تنبيه «أكمل رصد شعبة 3» يُنزلك فيه.
+ * 2) كان يعرض عمود «عملي» لمقررات بلا معمل.
+ * 3) كان يحسب التقدير النهائي من مجموع ناقص (قبل رصد النهائي)، فيظهر طالب ممتاز راسباً.
  */
 export function GradesTab({ course }: { course: MockCourse }) {
   const navigate = useNavigate();
@@ -66,7 +66,7 @@ export function GradesTab({ course }: { course: MockCourse }) {
     <div>
       {!complete && (
         <Alert tone="amber" icon="alert" title="التقدير النهائي لم يُحتسب بعد" className="mb-4">
-          المرصود حتى الآن {toArabicDigits(recordedMax)} درجة من ١٠٠ ({recorded.map((w) => w.label).join(" · ")}). التقديرات الحرفية تظهر بعد رصد
+          المرصود حتى الآن {formatNum(recordedMax)} درجة من 100 ({recorded.map((w) => w.label).join(" · ")}). التقديرات الحرفية تظهر بعد رصد
           كل التقييمات، فحسابها الآن يُظهر الطالب المجتهد راسباً.
         </Alert>
       )}
@@ -74,7 +74,7 @@ export function GradesTab({ course }: { course: MockCourse }) {
       <Surface variant="work" className="overflow-hidden mb-4">
         <WorkHeader
           title="كشف الدرجات"
-          meta={`${sections[sectionIndex]?.name ?? ""} · ${toArabicDigits(roster.length)} طالباً`}
+          meta={`${sections[sectionIndex]?.name ?? ""} · ${formatNum(roster.length)} طالباً`}
           actions={
             <>
               <Button variant="secondary" size="sm" onClick={() => showToast("أُضيف عمود تقييم")}>
@@ -105,7 +105,7 @@ export function GradesTab({ course }: { course: MockCourse }) {
           <Stat value={min} label="الأدنى" color="var(--crim)" />
           <Stat value={avg.toFixed(1)} label="المتوسط" />
           <Stat value={median} label="الوسيط" />
-          <Stat value={recordedMax} label="المرصود من ١٠٠" />
+          <Stat value={recordedMax} label="المرصود من 100" />
           <Stat value={atRisk} label="تحت الملاحظة" color="var(--amber)" />
         </div>
 

@@ -4,7 +4,7 @@ import { Chip } from "../ui/Chip.js";
 import { Bar } from "../ui/Bar.js";
 import type { MockCourse } from "../../mock/courses.js";
 import { journeyProgress, qualityCount } from "../../mock/courseData.js";
-import { toArabicDigits } from "../../lib/numerals.js";
+import { formatNum } from "../../lib/numerals.js";
 
 const TINT: Record<MockCourse["tint"], string> = {
   mint: "bg-gradient-to-br from-mint to-[#F4FAF6]",
@@ -15,8 +15,8 @@ const TINT: Record<MockCourse["tint"], string> = {
 
 /**
  * بطاقة المقرر.
- * كانت تقول «الخطوة ٤ من ٨» وهو تعبير مضلّل: العمل في الفصل لا يسير خطوةً خطوة،
- * فقد يكون الأستاذ في المحاضرات ٨٢٪ والاختبارات ٨٠٪ معاً. الأصدق عدّ المكتمل من
+ * كانت تقول «الخطوة 4 من 8» وهو تعبير مضلّل: العمل في الفصل لا يسير خطوةً خطوة،
+ * فقد يكون الأستاذ في المحاضرات 82٪ والاختبارات 80٪ معاً. الأصدق عدّ المكتمل من
  * الإجمالي، وإجمالي المقرر بلا معمل سبع خطوات لا ثمان.
  */
 export function CourseCard({ course }: { course: MockCourse }) {
@@ -34,8 +34,8 @@ export function CourseCard({ course }: { course: MockCourse }) {
           <div className="font-mono text-[11px] text-ink-3">{course.code}</div>
           <h3 className="text-[15px] font-semibold mb-0.5">{course.name}</h3>
           <div className="flex gap-3 items-center text-[11.5px] text-ink-2 flex-wrap">
-            <span>{toArabicDigits(course.st)} طالباً</span>
-            <span>{toArabicDigits(course.secs)} شعب</span>
+            <span>{formatNum(course.st)} طالباً</span>
+            <span>{formatNum(course.secs)} شعب</span>
             {course.lab && (
               <Chip tone="neutral" className="!px-[7px] !py-px">
                 عملي
@@ -48,8 +48,8 @@ export function CourseCard({ course }: { course: MockCourse }) {
               {course.fresh
                 ? "لم يبدأ بعد — ابدأ بالشعب والطلاب"
                 : next
-                  ? `اكتمل ${toArabicDigits(done)} من ${toArabicDigits(total)} · التالي: ${next.t}`
-                  : `اكتملت خطوات الدورة ${toArabicDigits(total)}`}
+                  ? `اكتمل ${formatNum(done)} من ${formatNum(total)} · التالي: ${next.t}`
+                  : `اكتملت خطوات الدورة ${formatNum(total)}`}
             </div>
           </div>
         </div>

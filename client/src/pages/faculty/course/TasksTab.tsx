@@ -8,7 +8,7 @@ import { Icon, type IconName } from "../../../icons/Icon.js";
 import { tasksFor } from "../../../mock/courseData.js";
 import type { MockCourse } from "../../../mock/courses.js";
 import { useToast } from "../../../state/ToastContext.js";
-import { toArabicDigits } from "../../../lib/numerals.js";
+import { formatNum } from "../../../lib/numerals.js";
 
 const KIND_META: Record<"واجب" | "بحث" | "نشاط", { title: string; desc: string; icon: IconName; tint: "mint" | "lav" | "peach" }> = {
   واجب: { title: "الواجبات", desc: "رفع ملف أو نص · سياسة تأخير قابلة للضبط", icon: "pen", tint: "mint" },
@@ -54,7 +54,7 @@ export function TasksTab({ course }: { course: MockCourse }) {
       <Surface variant="work" className="overflow-hidden">
         <WorkHeader
           title="كل التكاليف"
-          meta={`${toArabicDigits(tasks.length)} تكاليف · ${course.stepPercents.tasks}٪ منجزة`}
+          meta={`${formatNum(tasks.length)} تكاليف · ${course.stepPercents.tasks}٪ منجزة`}
           actions={
             <>
               <Button variant="secondary" size="sm" onClick={() => showToast("أُنشئ واجب")}>
