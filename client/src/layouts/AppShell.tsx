@@ -7,10 +7,17 @@ import { Topbar } from "../components/shell/Topbar.js";
 import { SearchPalette } from "../components/shell/SearchPalette.js";
 import { NotificationPanel } from "../components/shell/NotificationPanel.js";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog.js";
-import { ROLE_HOME, roleOf } from "../nav/nav.js";
+import { roleOf } from "../nav/nav.js";
 import { jumpPath, type JumpTarget } from "../nav/jump.js";
 import { NOTIFICATIONS_BY_ROLE, type MockNotification } from "../mock/notifications.js";
 import { useToast } from "../state/ToastContext.js";
+
+/**
+ * الشاشات التي يقوم فيها الترحيب مقام عنوان الصفحة (h1).
+ * ليست «لوحة كل دور»: لوحة القسم ولوحة المالك لهما ترويسة صفحة بعنوانها، فجعل
+ * الترحيب عنواناً ثانياً يمنح الصفحة عنوانين رئيسيين.
+ */
+const GREETING_IS_HEADING = new Set(["home", "shome"]);
 
 /**
  * هيكل المنصة الداخلي: الشريط + الشريط العلوي + لوحة الجوال «المزيد» + البحث الموحّد +
@@ -106,7 +113,7 @@ export function AppShell() {
       />
       <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
         <div className="max-w-[1260px] mx-auto" id="main">
-          <Topbar role={role} isHome={screenKey === ROLE_HOME[role]} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
+          <Topbar role={role} isHome={GREETING_IS_HEADING.has(screenKey)} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
           <Outlet />
         </div>
       </main>
