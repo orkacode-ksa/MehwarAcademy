@@ -70,6 +70,18 @@ function generate(): OfficeSlot[] {
 
 export const OFFICE_SLOTS: OfficeSlot[] = generate();
 
+/**
+ * تاريخ أقرب وقوع لكل يوم دراسي — يُعرض مع اليوم والوقت في شاشة الحجز، لأن «الأحد
+ * 10:00» وحدها لا تكفي الطالب ليعرف أي أحد هو.
+ */
+export const UPCOMING_DATES: Record<string, string> = {
+  الأحد: "9 ربيع الآخر",
+  الاثنين: "10 ربيع الآخر",
+  الثلاثاء: "11 ربيع الآخر",
+  الأربعاء: "12 ربيع الآخر",
+  الخميس: "13 ربيع الآخر",
+};
+
 export function blocksOf(instructor: string): OfficeBlock[] {
   return OFFICE_BLOCKS.filter((b) => b.instructor === instructor);
 }

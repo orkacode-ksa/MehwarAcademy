@@ -114,9 +114,7 @@ export function OfficePage() {
                     {b.place} · {b.mode}
                   </div>
                 </div>
-                <span className="num text-xs text-ink-2">
-                  {b.from} – {b.to}
-                </span>
+                <span dir="ltr" className="num text-xs text-ink-2">{`${b.from} – ${b.to}`}</span>
               </div>
             ))}
           </Surface>

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
-import { NAV, type Role } from "../../nav/nav.js";
+import { NAV, ROLE_HOME, type Role } from "../../nav/nav.js";
 import { PREVENTIVE_ALERTS } from "../../mock/alerts.js";
-import { formatNum } from "../../lib/numerals.js";
+import { openDeliverables } from "../../mock/student.js";
 
 interface MoreSheetProps {
   role: Role;
@@ -29,6 +29,41 @@ const ANIM_MS = 260;
  * 3) تتصدّرها بطاقة التنبيهات الوقائية: أول ما يحتاجه المستخدم عند فتح القائمة هو
  *    ما يستحق عمله، لا قائمة الشاشات.
  */
+interface Highlight {
+  title: string;
+  subtitle: string;
+  to: string;
+  icon: "alert" | "pen" | "grid";
+  count: number;
+  urgent: boolean;
+}
+
+function highlightFor(role: Role): Highlight {
+  if (role === "student") {
+    const due = openDeliverables().length;
+    return {
+      title: "المستحق عليك",
+      subtitle: due === 0 ? "لا تسليمات مفتوحة الآن" : `${due} تسليمات مفتوحة`,
+      to: "/sdates",
+      icon: "pen",
+      count: due,
+      urgent: false,
+    };
+  }
+  if (role === "faculty") {
+    const needsAction = PREVENTIVE_ALERTS.filter((a) => a.tone !== "teal").length;
+    return {
+      title: "التنبيهات الوقائية",
+      subtitle: needsAction === 0 ? "لا شيء يحتاج إجراءً الآن" : `${needsAction} تحتاج إجراءً قبل موعدها`,
+      to: "/alerts",
+      icon: "alert",
+      count: needsAction,
+      urgent: PREVENTIVE_ALERTS.some((a) => a.tone === "crimson"),
+    };
+  }
+  return { title: "لوحتك", subtitle: "ابدأ من الصفحة الرئيسية", to: `/${ROLE_HOME[role]}`, icon: "grid", count: 0, urgent: false };
+}
+
 export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
   const { pathname } = useLocation();
   const [render, setRender] = useState(open);
@@ -60,8 +95,10 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
   if (!render) return null;
 
   const items = NAV[role];
-  const needsAction = PREVENTIVE_ALERTS.filter((a) => a.tone !== "teal").length;
-  const urgent = PREVENTIVE_ALERTS.some((a) => a.tone === "crimson");
+  // بطاقة الصدارة تتبع الدور: «التنبيهات الوقائية» أداة عضو هيئة التدريس وحده،
+  // وكانت تظهر لكل الأدوار — فيرى الطالب تنبيهات أستاذه، وفتحها يقلب هيكل الشاشة
+  // إلى تنقّل عضو هيئة التدريس. الطالب يرى ما يخصّه: تسليماته المفتوحة.
+  const highlight = highlightFor(role);
 
   function endDrag() {
     setDragging(false);
@@ -117,30 +154,32 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
           </div>
         </div>
 
-        {/* التنبيهات الوقائية أولاً: ما يستحق عملك قبل قائمة الشاشات */}
+        {/* ما يخصّ هذا الدور أولاً، ثم قائمة الشاشات */}
         <Link
-          to="/alerts"
+          to={highlight.to}
           onClick={onClose}
           className={`flex items-center gap-3 p-3.5 rounded-rmd border mb-3.5 ${
-            needsAction === 0
+            highlight.count === 0
               ? "border-teal/[.3] bg-gradient-to-br from-teal/[.07] to-white"
-              : urgent
+              : highlight.urgent
                 ? "border-crim/[.28] bg-gradient-to-br from-crim/[.06] to-white"
                 : "border-gold2/[.35] bg-gradient-to-br from-gold2/[.08] to-white"
           }`}
         >
           <span
             className={`w-10 h-10 rounded-xl grid place-items-center flex-none ${
-              needsAction === 0 ? "bg-teal/[.14] text-[#2C6B52]" : urgent ? "bg-crim/[.12] text-[#963C34]" : "bg-gold2/[.18] text-[#7C6134]"
+              highlight.count === 0
+                ? "bg-teal/[.14] text-[#2C6B52]"
+                : highlight.urgent
+                  ? "bg-crim/[.12] text-[#963C34]"
+                  : "bg-gold2/[.18] text-[#7C6134]"
             }`}
           >
-            <Icon name="alert" className="w-[18px] h-[18px]" />
+            <Icon name={highlight.icon} className="w-[18px] h-[18px]" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block text-[13.5px] font-semibold">التنبيهات الوقائية</span>
-            <span className="block text-[11.5px] text-ink-2">
-              {needsAction === 0 ? "لا شيء يحتاج إجراءً الآن" : `${formatNum(needsAction)} تحتاج إجراءً قبل موعدها`}
-            </span>
+            <span className="block text-[13.5px] font-semibold">{highlight.title}</span>
+            <span className="block text-[11.5px] text-ink-2">{highlight.subtitle}</span>
           </span>
           <Icon name="arr" className="w-4 h-4 text-ink-3 flex-none" />
         </Link>
