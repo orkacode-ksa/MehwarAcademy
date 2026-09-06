@@ -33,6 +33,8 @@ export const createCourseSchema = z
     code: z.string().trim().min(2).max(20),
     nameAr: z.string().trim().min(2).max(150),
     creditHours: z.coerce.number().int().min(1).max(12),
+    /** مقرر ذو معمل — يفتح خطوة المعمل في مسار التجهيز. */
+    hasLab: z.boolean().default(false),
   })
   .strict();
 
@@ -57,7 +59,6 @@ export const createTopicSchema = z
   .object({
     courseId: cuidSchema,
     title: z.string().trim().min(2).max(200),
-    orderIndex: z.coerce.number().int().min(0).max(1000),
     learningOutcomes: z.array(z.string().trim().max(500)).max(20).default([]),
   })
   .strict();

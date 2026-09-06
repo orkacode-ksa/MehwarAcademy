@@ -16,6 +16,7 @@ export const academicRouter = Router({ mergeParams: true });
 const teacherOnly = requireRole("TEACHER", "OWNER", "ADMIN");
 
 academicRouter.get("/years", asyncHandler(controller.listYears));
+academicRouter.get("/terms", asyncHandler(controller.listTerms));
 
 academicRouter.get(
   "/years/:academicYearId/semesters",

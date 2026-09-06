@@ -3,7 +3,8 @@ import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { CoursePage } from "./pages/CoursePage.js";
-import { CoursesIndexPage } from "./pages/CoursesIndexPage.js";
+import { CoursesPage } from "./pages/faculty/CoursesPage.js";
+import { CourseSetupPage } from "./pages/faculty/CourseSetupPage.js";
 import { StudentCoursePage } from "./pages/StudentCoursePage.js";
 import { StudentCoursesIndexPage } from "./pages/StudentCoursesIndexPage.js";
 import { NAV, ROLE_LABEL, type Role } from "./nav/nav.js";
@@ -55,7 +56,8 @@ export function App() {
               )),
           )}
 
-          <Route path="courses" element={<CoursesIndexPage />} />
+          <Route path="courses" element={<CoursesPage />} />
+          <Route path="course/:id/setup" element={<CourseSetupPage />} />
           <Route path="course/:id" element={<CoursePage />} />
           <Route path="course/:id/:tab" element={<CoursePage />} />
           <Route path="exambuild" element={<PlaceholderPage kicker="أستاذ" title="إنشاء اختبار" icon="file" stage={4} />} />

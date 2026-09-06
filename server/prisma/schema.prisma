@@ -458,16 +458,25 @@ model Holiday {
 }
 
 model Course {
-  id          String    @id @default(cuid())
-  tenantId    String
-  workspaceId String
-  semesterId  String
-  code        String
-  nameAr      String
-  creditHours Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id                     String    @id @default(cuid())
+  tenantId               String
+  workspaceId            String
+  semesterId             String
+  code                   String
+  nameAr                 String
+  creditHours            Int
+  /// مقرر ذو معمل: يفتح خطوة المعمل (دليل · شرائح · تقرير · نشاط · اختبار عملي).
+  hasLab                 Boolean   @default(false)
+  /// توزيع الدرجات لهذا المقرر — يُنسخ من لائحة الجامعة عند الإنشاء ثم يُحرَّر.
+  /// نسخة لا إشارة: تعديل الجامعة لائحتها لا يجوز أن يغيّر أوزان مقرر جارٍ رصده.
+  gradeScheme            Json      @default("[]")
+  /// متى **أقرّ الأستاذ** التوزيع.
+  /// النسخ من اللائحة نقطة انطلاق لا إنجاز: بدون هذا الحقل كانت خطوة الدرجات تظهر
+  /// مكتملة لحظة إنشاء المقرر، فيمرّ الأستاذ على أوزان لم يراجعها قط.
+  gradeSchemeConfirmedAt DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
 
   workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   semester       Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)

@@ -28,10 +28,20 @@ export async function requireWorkspaceMembership(req: Request, _res: Response, n
     const paramWorkspaceId = req.params.workspaceId;
     if (!paramWorkspaceId) throw AppError.badRequest("معرّف مساحة العمل مطلوب");
 
-    const membership = await prisma.workspaceMember.findFirst({
-      where: { workspaceId: paramWorkspaceId, userId: req.auth.userId },
-      select: { workspaceId: true },
-    });
+    // `me` = مساحة المستخدم نفسه. لعضو هيئة التدريس مساحة واحدة، فإجباره على حمل معرّفها
+    // في كل مسار يعني نداءً إضافيًا قبل كل شاشة بلا فائدة. والحلّ يبقى آمنًا لأن المعرّف
+    // يُحسم من العضوية لا من المسار — كما هو الحال في الفرع الآخر تمامًا.
+    const membership =
+      paramWorkspaceId === "me"
+        ? await prisma.workspaceMember.findFirst({
+            where: { userId: req.auth.userId },
+            orderBy: { createdAt: "asc" },
+            select: { workspaceId: true },
+          })
+        : await prisma.workspaceMember.findFirst({
+            where: { workspaceId: paramWorkspaceId, userId: req.auth.userId },
+            select: { workspaceId: true },
+          });
 
     if (!membership) {
       // 404 لا 403 — وجود المساحة نفسها معلومة (الدستور §22)

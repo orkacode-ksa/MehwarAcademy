@@ -16,7 +16,9 @@ export const teachingRouter = Router({ mergeParams: true });
 
 const teacherOnly = requireRole("TEACHER", "OWNER", "ADMIN");
 
+teachingRouter.get("/courses/:courseId/topics", asyncHandler(controller.listTopics));
 teachingRouter.post("/topics", teacherOnly, validate({ body: createTopicSchema }), asyncHandler(controller.createTopic));
+teachingRouter.delete("/topics/:topicId", teacherOnly, asyncHandler(controller.removeTopic));
 
 teachingRouter.post(
   "/attendance",

@@ -7,6 +7,15 @@ function ws(req: Request): string {
   return req.workspaceId;
 }
 
+export async function listTopics(req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.listTopics(ws(req), req.params.courseId as string) });
+}
+
+export async function removeTopic(req: Request, res: Response): Promise<void> {
+  await service.removeTopic(ws(req), req.params.topicId as string);
+  res.status(204).send();
+}
+
 export async function createTopic(req: Request, res: Response): Promise<void> {
   res.status(201).json({ success: true, data: await service.createTopic(ws(req), req.body) });
 }

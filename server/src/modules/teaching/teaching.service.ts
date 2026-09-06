@@ -19,9 +19,36 @@ async function assertCourseInWorkspace(workspaceId: string, courseId: string): P
   if (!course) throw AppError.notFound("المقرر غير موجود");
 }
 
+export async function listTopics(workspaceId: string, courseId: string) {
+  await assertCourseInWorkspace(workspaceId, courseId);
+  return prisma.topic.findMany({
+    where: { courseId, workspaceId, deletedAt: null },
+    orderBy: { orderIndex: "asc" },
+    select: { id: true, title: true, orderIndex: true, learningOutcomes: true },
+  });
+}
+
+/** حذف ناعم لموضوع — الفهرس يُحرَّر كثيرًا أثناء التجهيز، ولا يجوز أن يكون الخطأ نهائيًا. */
+export async function removeTopic(workspaceId: string, topicId: string) {
+  const { count } = await prisma.topic.updateMany({
+    where: { id: topicId, workspaceId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  if (count === 0) throw AppError.notFound("الموضوع غير موجود");
+}
+
 export async function createTopic(workspaceId: string, input: CreateTopicInput) {
   await assertCourseInWorkspace(workspaceId, input.courseId);
-  return prisma.topic.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
+  // الترتيب يُحسب لا يُطلَب: إدخال رقم ترتيب يدويًا خطوة إضافية بلا فائدة، وأول
+  // مصدر لتضارب الأرقام. الموضوع الجديد يذهب لآخر الفهرس.
+  const last = await prisma.topic.findFirst({
+    where: { courseId: input.courseId, deletedAt: null },
+    orderBy: { orderIndex: "desc" },
+    select: { orderIndex: true },
+  });
+  return prisma.topic.create({
+    data: { ...input, orderIndex: (last?.orderIndex ?? -1) + 1, workspaceId, tenantId: requireTenantId() },
+  });
 }
 
 export async function recordAttendance(workspaceId: string, input: RecordAttendanceInput) {

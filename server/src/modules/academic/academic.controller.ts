@@ -12,6 +12,10 @@ export async function listYears(_req: Request, res: Response): Promise<void> {
   res.json({ success: true, data: await service.listAcademicYears() });
 }
 
+export async function listTerms(_req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.listTerms() });
+}
+
 export async function listSemesters(req: Request, res: Response): Promise<void> {
   res.json({ success: true, data: await service.listSemesters(req.params.academicYearId as string) });
 }
