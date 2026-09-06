@@ -2,7 +2,7 @@ import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import request from "supertest";
 import crypto from "node:crypto";
 import { createApp } from "../app.js";
-import { prismaBase } from "../lib/prisma.js";
+import { prismaBase, withExplicitTenantTx } from "../lib/prisma.js";
 
 /**
  * إثبات عزل الصفوف بين مساحات العمل (الدستور الأمني §0.7 و§4):
@@ -41,27 +41,41 @@ describe("عزل مساحات العمل (tenant isolation)", () => {
   // اختبار كان يصطدم بالحدّ ويفشل بـ 429 لسبب لا علاقة له بالعزل.
   let teacherA: Teacher;
   let teacherB: Teacher;
+  let termA: string;
+
+  /**
+   * التقويم صار من صلاحيات المالك، فلا يستطيع الأستاذ إنشاء سنة ولا فصل عبر مساراته.
+   * نُهيّئه هنا مباشرةً كما يفعل المالك — والغرض من الاختبار عزل المقررات لا إنشاء التقويم.
+   */
+  async function seedTerm(tenantId: string): Promise<string> {
+    return withExplicitTenantTx(tenantId, async (tx) => {
+      const year = await tx.academicYear.create({
+        data: { tenantId, label: "1447هـ", startDate: new Date("2025-09-01"), endDate: new Date("2026-06-01") },
+      });
+      const term = await tx.semester.create({
+        data: {
+          tenantId,
+          academicYearId: year.id,
+          label: "الأول",
+          startDate: new Date("2025-09-01"),
+          endDate: new Date("2025-12-30"),
+        },
+      });
+      return term.id;
+    });
+  }
 
   beforeAll(async () => {
     teacherA = await registerTeacher();
     teacherB = await registerTeacher();
+    termA = await seedTerm(teacherA.tenantId);
   });
 
   it("لا يستطيع أستاذ الوصول لمقرر يخص مساحة عمل أستاذ آخر عبر مساره الخاص", async () => {
 
-    const yearRes = await teacherA.agent
-      .post(`/api/workspaces/${teacherA.workspaceId}/academic/years`)
-      .send({ label: "1447هـ", startDate: "2025-09-01", endDate: "2026-06-01" });
-    expect(yearRes.status).toBe(201);
-
-    const semesterRes = await teacherA.agent
-      .post(`/api/workspaces/${teacherA.workspaceId}/academic/semesters`)
-      .send({ academicYearId: yearRes.body.data.id, label: "الأول", startDate: "2025-09-01", endDate: "2025-12-30" });
-    expect(semesterRes.status).toBe(201);
-
     const courseRes = await teacherA.agent
       .post(`/api/workspaces/${teacherA.workspaceId}/academic/courses`)
-      .send({ semesterId: semesterRes.body.data.id, code: "CS101", nameAr: "مقدمة في البرمجة", creditHours: 3 });
+      .send({ semesterId: termA, code: "CS101", nameAr: "مقدمة في البرمجة", creditHours: 3 });
     expect(courseRes.status).toBe(201);
     const courseId = courseRes.body.data.id as string;
 
@@ -83,11 +97,17 @@ describe("عزل مساحات العمل (tenant isolation)", () => {
   });
 
   it("قاعدة البيانات نفسها ترفض قراءة صف مستأجر آخر — حتى باستعلام خام", async () => {
-    const yearRes = await teacherA.agent
-      .post(`/api/workspaces/${teacherA.workspaceId}/academic/years`)
-      .send({ label: "1448هـ", startDate: "2026-09-01", endDate: "2027-06-01" });
-    expect(yearRes.status).toBe(201);
-    const yearId = yearRes.body.data.id as string;
+    const yearId = await withExplicitTenantTx(teacherA.tenantId, async (tx) => {
+      const y = await tx.academicYear.create({
+        data: {
+          tenantId: teacherA.tenantId,
+          label: "1448هـ",
+          startDate: new Date("2026-09-01"),
+          endDate: new Date("2027-06-01"),
+        },
+      });
+      return y.id;
+    });
 
     // استعلام خام بلا شرط مستأجر إطلاقًا — الحالة التي يتجاوز فيها المطوّر كل طبقات
     // التطبيق. RLS وحدها هي ما يمنع هنا.
@@ -109,8 +129,8 @@ describe("عزل مساحات العمل (tenant isolation)", () => {
       prismaBase.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.tenant_id', ${teacherA.tenantId}, true)`;
         await tx.$executeRaw`
-          INSERT INTO academic_years (id, "tenantId", "workspaceId", label, "startDate", "endDate", "createdAt")
-          VALUES ('rls-probe', ${teacherB.tenantId}, ${teacherB.workspaceId}, 'حقن', NOW(), NOW(), NOW())`;
+          INSERT INTO academic_years (id, "tenantId", label, "startDate", "endDate", "createdAt")
+          VALUES ('rls-probe', ${teacherB.tenantId}, 'حقن', NOW(), NOW(), NOW())`;
       }),
     ).rejects.toThrow(/row-level security/i);
   });
@@ -121,12 +141,14 @@ afterAll(async () => {
     // تنظيف بالعميل الخام: لا سياق مستأجر خارج الطلب، والعميل المُوسَّع يفشل مغلقًا عمدًا
     await prismaBase.refreshToken.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prismaBase.workspaceMember.deleteMany({ where: { userId: { in: createdUserIds } } });
-    const workspaces = await prismaBase.workspace.findMany({ where: { ownerId: { in: createdUserIds } }, select: { id: true } });
+    const workspaces = await prismaBase.workspace.findMany({ where: { ownerId: { in: createdUserIds } }, select: { id: true, tenantId: true } });
     const workspaceIds = workspaces.map((w) => w.id);
     if (workspaceIds.length > 0) {
       await prismaBase.course.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-      await prismaBase.semester.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-      await prismaBase.academicYear.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
+      // السنة والفصل صارا على مستوى المستأجر لا مساحة العمل، فيُنظَّفان بمستأجري الاختبار
+      const tenantIds = [...new Set(workspaces.map((w) => w.tenantId))];
+      await prismaBase.semester.deleteMany({ where: { tenantId: { in: tenantIds } } });
+      await prismaBase.academicYear.deleteMany({ where: { tenantId: { in: tenantIds } } });
       await prismaBase.subscription.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
       await prismaBase.workspace.deleteMany({ where: { id: { in: workspaceIds } } });
     }

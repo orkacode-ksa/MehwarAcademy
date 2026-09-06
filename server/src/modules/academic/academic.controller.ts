@@ -7,20 +7,13 @@ function ws(req: Request): string {
   return req.workspaceId;
 }
 
-export async function listYears(req: Request, res: Response): Promise<void> {
-  res.json({ success: true, data: await service.listAcademicYears(ws(req)) });
-}
-
-export async function createYear(req: Request, res: Response): Promise<void> {
-  res.status(201).json({ success: true, data: await service.createAcademicYear(ws(req), req.body) });
+// التقويم للقراءة فقط هنا: إنشاؤه من صلاحيات المالك (owner.routes.ts).
+export async function listYears(_req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.listAcademicYears() });
 }
 
 export async function listSemesters(req: Request, res: Response): Promise<void> {
-  res.json({ success: true, data: await service.listSemesters(ws(req), req.params.academicYearId as string) });
-}
-
-export async function createSemester(req: Request, res: Response): Promise<void> {
-  res.status(201).json({ success: true, data: await service.createSemester(ws(req), req.body) });
+  res.json({ success: true, data: await service.listSemesters(req.params.academicYearId as string) });
 }
 
 export async function listCourses(req: Request, res: Response): Promise<void> {

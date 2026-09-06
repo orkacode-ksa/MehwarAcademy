@@ -2,6 +2,12 @@ import { prisma } from "./prisma.js";
 
 interface AuditInput {
   userId?: string;
+  /**
+   * الجامعة التي وقع عليها الحدث — قد تختلف عن مستأجر الفاعل.
+   * عمليات المالك تقع على جامعات ليست مستأجره، فبلا هذا الحقل يصير السجل بلا معنى:
+   * «غُيّرت لائحة» دون معرفة لائحة مَن.
+   */
+  tenantId?: string;
   workspaceId?: string;
   action: string;
   entityType: string;
@@ -17,6 +23,7 @@ export async function recordAudit(input: AuditInput): Promise<void> {
   await prisma.auditLog.create({
     data: {
       userId: input.userId,
+      tenantId: input.tenantId,
       workspaceId: input.workspaceId,
       action: input.action,
       entityType: input.entityType,

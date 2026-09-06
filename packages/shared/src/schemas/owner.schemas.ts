@@ -1,0 +1,104 @@
+import { z } from "zod";
+
+/**
+ * مخططات شاشات المالك — الجامعة ولائحتها وتقويمها.
+ *
+ * اللائحة تُخزَّن Json عمدًا (انظر `Regulation` في المخطط): بنودها تختلف بين الجامعات
+ * اختلافًا لا يُحصى بأعمدة. لكن **الشكل مُتحقَّق منه هنا** — «Json» لا تعني «أي شيء»،
+ * فبيان لائحة مكسور يُنتج شاشات مكسورة عند كل أستاذ في الجامعة.
+ */
+
+export const institutionCreateSchema = z.object({
+  name: z.string().min(2).max(120),
+  slug: z
+    .string()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z0-9-]+$/, "أحرف إنجليزية صغيرة وأرقام وشرطات فقط"),
+});
+export type InstitutionCreateInput = z.infer<typeof institutionCreateSchema>;
+
+/** بند مطلوب في ملف المقرر — `key` ثابت لا يتغيّر، و`label` هو ما يراه الأستاذ. */
+export const courseFileItemSchema = z.object({
+  key: z.string().min(1).max(40),
+  label: z.string().min(1).max(80),
+  required: z.boolean().default(true),
+});
+
+/** مكوّن من مكوّنات الدرجة. مجموع الأوزان يجب أن يساوي ١٠٠ بالضبط. */
+export const gradeComponentSchema = z.object({
+  key: z.string().min(1).max(40),
+  label: z.string().min(1).max(60),
+  weight: z.number().int().min(0).max(100),
+});
+
+export const letterGradeSchema = z.object({
+  letter: z.string().min(1).max(4),
+  min: z.number().min(0).max(100),
+});
+
+export const absencePolicySchema = z.object({
+  /** نسبة الغياب التي يُنبَّه عندها الطالب */
+  warnPercent: z.number().int().min(1).max(100),
+  /** نسبة الحرمان */
+  banPercent: z.number().int().min(1).max(100),
+});
+
+export const regulationSchema = z
+  .object({
+    courseFileItems: z.array(courseFileItemSchema).max(40),
+    gradeScheme: z.array(gradeComponentSchema).min(1).max(12),
+    letterGrades: z.array(letterGradeSchema).max(15),
+    absencePolicy: absencePolicySchema,
+    terminology: z.record(z.string().max(40)).default({}),
+  })
+  .refine((r) => r.gradeScheme.reduce((sum, c) => sum + c.weight, 0) === 100, {
+    message: "مجموع أوزان الدرجات يجب أن يساوي ١٠٠",
+    path: ["gradeScheme"],
+  })
+  .refine((r) => r.absencePolicy.warnPercent < r.absencePolicy.banPercent, {
+    message: "نسبة التنبيه يجب أن تكون أقل من نسبة الحرمان",
+    path: ["absencePolicy"],
+  })
+  .refine((r) => new Set(r.courseFileItems.map((i) => i.key)).size === r.courseFileItems.length, {
+    message: "مفاتيح بنود ملف المقرر مكرّرة",
+    path: ["courseFileItems"],
+  });
+export type RegulationInput = z.infer<typeof regulationSchema>;
+
+const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD");
+
+export const academicYearCreateSchema = z
+  .object({
+    label: z.string().min(2).max(40),
+    startDate: dateString,
+    endDate: dateString,
+  })
+  .refine((y) => y.startDate < y.endDate, { message: "تاريخ النهاية قبل البداية", path: ["endDate"] });
+export type AcademicYearCreateInput = z.infer<typeof academicYearCreateSchema>;
+
+export const TERM_STATUSES = ["PREP", "ACTIVE", "GRADING", "CLOSED", "ARCHIVED"] as const;
+export type TermStatus = (typeof TERM_STATUSES)[number];
+
+export const termCreateSchema = z
+  .object({
+    academicYearId: z.string().min(1),
+    label: z.string().min(2).max(40),
+    startDate: dateString,
+    endDate: dateString,
+    gradeLockAt: dateString.optional(),
+  })
+  .refine((t) => t.startDate < t.endDate, { message: "تاريخ النهاية قبل البداية", path: ["endDate"] });
+export type TermCreateInput = z.infer<typeof termCreateSchema>;
+
+export const termStatusSchema = z.object({ status: z.enum(TERM_STATUSES) });
+
+export const holidayCreateSchema = z
+  .object({
+    label: z.string().min(2).max(60),
+    startDate: dateString,
+    endDate: dateString,
+    kind: z.enum(["HOLIDAY", "EXAMS"]).default("HOLIDAY"),
+  })
+  .refine((h) => h.startDate <= h.endDate, { message: "تاريخ النهاية قبل البداية", path: ["endDate"] });
+export type HolidayCreateInput = z.infer<typeof holidayCreateSchema>;

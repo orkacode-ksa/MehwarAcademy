@@ -55,9 +55,43 @@ model Tenant {
   users         User[]
   workspaces    Workspace[]
   subscriptions Subscription[]
+  Regulation    Regulation?
+  AcademicYear  AcademicYear[]
 
   @@index([status])
   @@map("tenants")
+}
+
+/// لائحة الجامعة — مصدر كل ما يراه الأستاذ من «مطلوب».
+///
+/// **القرار الحاكم:** المنصة لا تفرض معيارًا. مؤشرات الالتزام وبنود ملف المقرر في
+/// الإصدار الأول كانت لوائح جامعة أم القرى معروضة كأنها قانون المنصة — فأي جامعة أخرى
+/// تجدها غريبة، وأي تعديل في لوائح أم القرى نفسها كان يحتاج إصدارًا برمجيًا.
+/// الآن: المالك يعرّف، والمنصة تنفّذ.
+///
+/// الحقول Json عمدًا: بنود اللائحة تختلف بين الجامعات اختلافًا لا يُحصى بأعمدة، وتغييرها
+/// يجب أن يكون تحرير صف لا هجرة قاعدة بيانات.
+model Regulation {
+  id       String @id @default(cuid())
+  tenantId String @unique
+
+  /// بنود ملف المقرر المطلوبة: [{ key, label, required }]
+  courseFileItems Json @default("[]")
+  /// توزيع الدرجات الافتراضي: [{ key, label, weight }]
+  gradeScheme     Json @default("[]")
+  /// سلّم التقديرات: [{ letter, min }]
+  letterGrades    Json @default("[]")
+  /// سياسة الغياب: { warnPercent, banPercent }
+  absencePolicy   Json @default("{}")
+  /// تسميات تحلّ محل الافتراضية في الواجهة: { course: "مقرر", section: "شعبة", ... }
+  terminology     Json @default("{}")
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("regulations")
 }
 
 /// القسم الأكاديمي — نطاق رئيس القسم.
@@ -215,7 +249,8 @@ model Workspace {
   owner      User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
   members    WorkspaceMember[]
 
-  academicYears  AcademicYear[]
+  // لا academicYears هنا: السنة والفصل صارا على مستوى الجامعة. إبقاء العلاقة العكسية
+  // يجعل Prisma يُعيد عمود workspaceId تلقائيًا — وقد فعل، فكشفه الاختبار لا المراجعة.
   courses        Course[]
   subscription   Subscription?
   qualityItems   QualityFileItem[]
@@ -354,42 +389,72 @@ model WebhookEvent {
 
 // ───────────────────────── الهيكل الأكاديمي ─────────────────────────
 
+/// السنة الأكاديمية — يُنشئها المالك للجامعة كلها، لا كل أستاذ لنفسه.
+/// كانت مربوطة بمساحة عمل الأستاذ، فكان كل أستاذ يخترع تقويمه: تصحيح بنيوي لا تجميلي.
 model AcademicYear {
-  id          String    @id @default(cuid())
-  tenantId    String
-  workspaceId String
-  label       String
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime  @default(now())
-  deletedAt   DateTime?
+  id        String    @id @default(cuid())
+  tenantId  String
+  label     String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   semesters Semester[]
 
-  @@index([workspaceId])
+  @@unique([tenantId, label])
   @@index([tenantId])
   @@map("academic_years")
 }
 
+/// حالة الفصل — تحكم ما يستطيع الأستاذ فعله، فلا حاجة لمنعه بالكلام:
+/// PREP يجهّز · ACTIVE يدرّس ويحضّر · GRADING يرصد · CLOSED مُقفل · ARCHIVED للقراءة.
+enum TermStatus {
+  PREP
+  ACTIVE
+  GRADING
+  CLOSED
+  ARCHIVED
+}
+
 model Semester {
-  id             String    @id @default(cuid())
+  id             String     @id @default(cuid())
   tenantId       String
-  workspaceId    String
   academicYearId String
   label          String
   startDate      DateTime
   endDate        DateTime
-  createdAt      DateTime  @default(now())
+  status         TermStatus @default(PREP)
+  /// بعد هذا التاريخ يُقفل الرصد آليًا — لا يعتمد على انتباه أحد.
+  gradeLockAt    DateTime?
+  createdAt      DateTime   @default(now())
   deletedAt      DateTime?
 
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   courses      Course[]
+  holidays     Holiday[]
 
-  @@index([workspaceId])
   @@index([academicYearId])
-  @@index([tenantId])
+  @@index([tenantId, status])
   @@map("semesters")
+}
+
+/// إجازة أو فترة اختبارات — تُطرح من أيام الدراسة وتُستثنى من حسابات الغياب.
+model Holiday {
+  id         String   @id @default(cuid())
+  tenantId   String
+  semesterId String
+  label      String
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  kind       String   @default("HOLIDAY")
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([semesterId])
+  @@map("holidays")
 }
 
 model Course {

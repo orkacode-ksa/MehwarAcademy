@@ -1,7 +1,5 @@
 import { Router } from "express";
 import {
-  createAcademicYearSchema,
-  createSemesterSchema,
   createCourseSchema,
   createSectionSchema,
   enrollStudentSchema,
@@ -18,14 +16,12 @@ export const academicRouter = Router({ mergeParams: true });
 const teacherOnly = requireRole("TEACHER", "OWNER", "ADMIN");
 
 academicRouter.get("/years", asyncHandler(controller.listYears));
-academicRouter.post("/years", teacherOnly, validate({ body: createAcademicYearSchema }), asyncHandler(controller.createYear));
 
 academicRouter.get(
   "/years/:academicYearId/semesters",
   validate({ params: z.object({ academicYearId: cuidSchema }).passthrough() }),
   asyncHandler(controller.listSemesters),
 );
-academicRouter.post("/semesters", teacherOnly, validate({ body: createSemesterSchema }), asyncHandler(controller.createSemester));
 
 academicRouter.get("/courses", asyncHandler(controller.listCourses));
 academicRouter.get(

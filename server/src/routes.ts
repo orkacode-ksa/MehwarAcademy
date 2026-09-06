@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ownerRouter } from "./modules/owner/owner.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { workspacesRouter } from "./modules/workspaces/workspaces.routes.js";
 import { filesRouter } from "./modules/files/files.routes.js";
@@ -8,6 +9,7 @@ import { documentsRouter } from "./modules/documents/documents.routes.js";
 export const router = Router();
 
 router.use("/auth", authRouter);
+router.use("/owner", ownerRouter);
 router.use("/workspaces", workspacesRouter);
 router.use("/files", filesRouter);
 router.use("/billing", billingRouter);

@@ -7,6 +7,8 @@
  * لمجرّد أن أحدًا نسي.
  */
 export const TENANT_SCOPED_MODELS = [
+  "Regulation",
+  "Holiday",
   "Department",
   "Workspace",
   "WorkspaceMember",

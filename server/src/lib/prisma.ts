@@ -106,6 +106,30 @@ export async function withTenantTx<T>(fn: (tx: TenantTx, tenantId: string) => Pr
 }
 
 /**
+ * وحدة عمل داخل مستأجر **يُسمّى صراحةً** بدل أن يُقرأ من جلسة المستخدم.
+ *
+ * ⚠️ باب خلفي مقصود ومحصور: مالك المنصة يدير جامعات ليست مستأجره هو، فجلسته تحمل
+ * مستأجر المنصة لا الجامعة التي يحرّرها. بلا هذا الباب تفشل كل عملية إدارة على جامعة.
+ *
+ * **شروط استخدامه — كلها إلزامية:**
+ * 1. المسار محروس بـ `requireRole("OWNER")`.
+ * 2. `tenantId` يأتي من معامل مسار، ويُتحقّق من وجود الجامعة قبل الكتابة.
+ * 3. العملية تُسجَّل في سجل التدقيق باسم الفاعل والجامعة الهدف.
+ *
+ * لا يُستدعى من أي مسار لعضو هيئة تدريس أو طالب أو رئيس قسم — هناك `withTenantTx`
+ * التي تقرأ المستأجر من الجلسة ولا يمكن توجيهها.
+ */
+export async function withExplicitTenantTx<T>(
+  tenantId: string,
+  fn: (tx: TenantTx) => Promise<T>,
+): Promise<T> {
+  return base.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+    return fn(tx);
+  });
+}
+
+/**
  * العميل الخام — بلا حقن ولا RLS.
  *
  * يُستخدم **فقط** على الجداول خارج العزل (`UNSCOPED_MODELS` في `tenantScope.ts`): المصادقة

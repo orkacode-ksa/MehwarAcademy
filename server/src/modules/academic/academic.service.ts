@@ -1,6 +1,4 @@
 import type {
-  createAcademicYearSchema,
-  createSemesterSchema,
   createCourseSchema,
   createSectionSchema,
   enrollStudentSchema,
@@ -13,32 +11,28 @@ import { hashPassword } from "../../lib/password.js";
 import { randomToken } from "../../lib/crypto.js";
 import { recordAudit } from "../../lib/auditLog.js";
 
-type CreateYearInput = z.infer<typeof createAcademicYearSchema>;
-type CreateSemesterInput = z.infer<typeof createSemesterSchema>;
 type CreateCourseInput = z.infer<typeof createCourseSchema>;
 type CreateSectionInput = z.infer<typeof createSectionSchema>;
 type EnrollStudentInput = z.infer<typeof enrollStudentSchema>;
 
-export async function listAcademicYears(workspaceId: string) {
-  return prisma.academicYear.findMany({ where: { workspaceId, deletedAt: null }, orderBy: { startDate: "desc" }, take: 50 });
+/**
+ * التقويم **للقراءة فقط** عند عضو هيئة التدريس.
+ *
+ * كان كل أستاذ يُنشئ سنته وفصوله في مساحته، فكان لكل أستاذ تقويم مختلف داخل الجامعة
+ * الواحدة — وهو ما يجعل «محاضرة اليوم» و«قفل الرصد» و«تجاهل الإجازات» مستحيلة.
+ * الآن المالك يُنشئ التقويم للجامعة، والأستاذ يختار منه (owner.service.ts).
+ * والشرط `workspaceId` سقط لأن السنة والفصل صارا على مستوى المستأجر، ويكفيهما حقنه.
+ */
+export async function listAcademicYears() {
+  return prisma.academicYear.findMany({ where: { deletedAt: null }, orderBy: { startDate: "desc" }, take: 50 });
 }
 
-export async function createAcademicYear(workspaceId: string, input: CreateYearInput) {
-  return prisma.academicYear.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
-}
-
-export async function listSemesters(workspaceId: string, academicYearId: string) {
+export async function listSemesters(academicYearId: string) {
   return prisma.semester.findMany({
-    where: { workspaceId, academicYearId, deletedAt: null },
+    where: { academicYearId, deletedAt: null },
     orderBy: { startDate: "desc" },
     take: 50,
   });
-}
-
-export async function createSemester(workspaceId: string, input: CreateSemesterInput) {
-  const year = await prisma.academicYear.findFirst({ where: { id: input.academicYearId, workspaceId, deletedAt: null } });
-  if (!year) throw AppError.notFound("السنة الدراسية غير موجودة");
-  return prisma.semester.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 }
 
 export async function listCourses(workspaceId: string, semesterId?: string) {
@@ -63,7 +57,7 @@ export async function getCourse(workspaceId: string, courseId: string) {
 }
 
 export async function createCourse(workspaceId: string, input: CreateCourseInput) {
-  const semester = await prisma.semester.findFirst({ where: { id: input.semesterId, workspaceId, deletedAt: null } });
+  const semester = await prisma.semester.findFirst({ where: { id: input.semesterId, deletedAt: null } });
   if (!semester) throw AppError.notFound("الفصل الدراسي غير موجود");
 
   const course = await prisma.course.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
