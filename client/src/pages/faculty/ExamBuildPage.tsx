@@ -208,7 +208,7 @@ export function ExamBuildPage() {
                 <div key={i} className="mb-2.5">
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-mono text-ink-3">CLO {i + 1}</span>
-                    <b className="num">{marks} درجات</b>
+                    <b><span className="num">{marks}</span> درجات</b>
                   </div>
                   <Bar value={target ? (marks / target) * 100 : 0} height={4} />
                 </div>

@@ -74,7 +74,7 @@ export function RulesPage() {
               <div className="grid gap-[7px] text-xs">
                 <div className="flex justify-between">
                   <span>بنود مستوفاة</span>
-                  <b className="num text-teal">{`${MET_RULES_COUNT} من ${autoCount}`}</b>
+                  <b className="text-teal"><span className="num">{MET_RULES_COUNT}</span> من <span className="num">{autoCount}</span></b>
                 </div>
                 <div className="flex justify-between">
                   <span>تنبيهات مفتوحة</span>

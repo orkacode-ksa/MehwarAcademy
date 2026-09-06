@@ -68,7 +68,7 @@ export function StudentQuizPage() {
           <Icon name="clock" className="w-4 h-4" />
           <b className={`num ${expired ? "" : "text-crim"}`}>{label}</b>
         </span>
-        <span className="num text-[12px] text-ink-2">{`${session.answeredCount} من ${total}`}</span>
+        <span className="text-[12px] text-ink-2"><span className="num">{session.answeredCount}</span> من <span className="num">{total}</span></span>
       </div>
 
       <PageHeader
@@ -128,7 +128,7 @@ export function StudentQuizPage() {
               <span className="text-ink-2">تقدّمك</span>
               {/* «من» لا «/»: الشرطة المائلة بين عددين في سياق عربي تُعاد ترتيبها
                   بصريًا فتُقرأ «8 / 0» بدل «0 من 8» */}
-              <b className="num">{`${session.answeredCount} من ${total}`}</b>
+              <b><span className="num">{session.answeredCount}</span> من <span className="num">{total}</span></b>
             </div>
             <Bar value={(session.answeredCount / total) * 100} />
             <Button variant="primary" className="w-full mt-4" onClick={() => setConfirming(true)}>

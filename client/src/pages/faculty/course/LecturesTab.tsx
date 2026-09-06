@@ -79,7 +79,7 @@ export function LecturesTab({ course }: { course: MockCourse }) {
           </p>
           <div className="flex justify-between mt-3.5 pt-3 border-t border-line-2 text-xs">
             <span className="text-ink-2">يُخصم من رصيدك</span>
-            <b className="num text-teal">{formatNum(PRODUCTION.videoMinutes)} دقيقة</b>
+            <b className="text-teal"><span className="num">{formatNum(PRODUCTION.videoMinutes)}</span> دقيقة</b>
           </div>
         </Surface>
 
@@ -90,7 +90,7 @@ export function LecturesTab({ course }: { course: MockCourse }) {
           </p>
           <div className="flex justify-between mt-3.5 pt-3 border-t border-line-2 text-xs">
             <span className="text-ink-2">يُخصم من رصيدك</span>
-            <b className="num text-teal">{formatNum(PRODUCTION.podcastMinutes)} دقائق</b>
+            <b className="text-teal"><span className="num">{formatNum(PRODUCTION.podcastMinutes)}</span> دقائق</b>
           </div>
         </Surface>
 

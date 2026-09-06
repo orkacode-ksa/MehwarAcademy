@@ -1,11 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
-import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { CoursePage } from "./pages/CoursePage.js";
 import { StudentCoursePage } from "./pages/StudentCoursePage.js";
-import { NAV, ROLE_LABEL, type Role } from "./nav/nav.js";
-import type { IconName } from "./icons/Icon.js";
+import { NAV, type Role } from "./nav/nav.js";
 import { ShowcasePage } from "./pages/ShowcasePage.js";
 import { LandingPage } from "./pages/LandingPage.js";
 import { SignupPage } from "./pages/SignupPage.js";
@@ -28,9 +26,16 @@ import { StudentGradesPage } from "./pages/student/GradesPage.js";
 import { StudentDatesPage } from "./pages/student/DatesPage.js";
 import { StudentBookPage } from "./pages/student/BookPage.js";
 import { StudentQuizPage } from "./pages/student/QuizPage.js";
-
-/** المرحلة التي يُبنى فيها محتوى كل مجموعة شاشات، وفق «ترتيب التنفيذ» في برومت إعادة البناء */
-const ROLE_STAGE: Record<Role, number> = { faculty: 4, student: 5, dept: 6, admin: 6 };
+import { DeptHomePage } from "./pages/dept/HomePage.js";
+import { DeptMembersPage } from "./pages/dept/MembersPage.js";
+import { DeptQualityPage } from "./pages/dept/QualityPage.js";
+import { DeptResultsPage } from "./pages/dept/ResultsPage.js";
+import { AdminBizPage } from "./pages/admin/BizPage.js";
+import { AdminCalendarPage } from "./pages/admin/CalendarPage.js";
+import { AdminUsersPage } from "./pages/admin/UsersPage.js";
+import { AdminSubsPage } from "./pages/admin/SubsPage.js";
+import { AdminAiPage } from "./pages/admin/AiPage.js";
+import { AdminOpsPage } from "./pages/admin/OpsPage.js";
 
 /** شاشات عضو هيئة التدريس العشر — بُنيت في المرحلة 4، فلا تمر على الصفحة البديلة */
 const FACULTY_BUILT: Record<string, JSX.Element> = {
@@ -55,6 +60,28 @@ const STUDENT_BUILT: Record<string, JSX.Element> = {
   sbook: <StudentBookPage />,
 };
 
+/** شاشة لا تُبلغ إلا عند خطأ في التوجيه — كل شاشات الأدوار الأربعة مبنية */
+function ScreenNotFound() {
+  return <Navigate to="/" replace />;
+}
+
+/** شاشات رئيس القسم ومالك المنصة — بُنيت في المرحلة 6 */
+const DEPT_BUILT: Record<string, JSX.Element> = {
+  dhome: <DeptHomePage />,
+  dmembers: <DeptMembersPage />,
+  dquality: <DeptQualityPage />,
+  dresults: <DeptResultsPage />,
+};
+
+const ADMIN_BUILT: Record<string, JSX.Element> = {
+  biz: <AdminBizPage />,
+  cal: <AdminCalendarPage />,
+  users: <AdminUsersPage />,
+  subs: <AdminSubsPage />,
+  ai: <AdminAiPage />,
+  ops: <AdminOpsPage />,
+};
+
 /**
  * التوجيه: كل شاشة من الـ29 لها مسار حقيقي. المبنيّ فعلًا يُعرض، وما لم يحن دوره
  * يظهر بصفحة بديلة تذكر مرحلته. الهبوط والتسجيل والدخول خارج هيكل المنصة.
@@ -77,9 +104,7 @@ export function App() {
                 key={item.key}
                 path={item.key}
                 element={
-                  FACULTY_BUILT[item.key] ?? STUDENT_BUILT[item.key] ?? (
-                    <PlaceholderPage kicker={ROLE_LABEL[role]} title={item.label} icon={item.icon as IconName} stage={ROLE_STAGE[role]} />
-                  )
+                  FACULTY_BUILT[item.key] ?? STUDENT_BUILT[item.key] ?? DEPT_BUILT[item.key] ?? ADMIN_BUILT[item.key] ?? <ScreenNotFound />
                 }
               />
             )),
