@@ -6,7 +6,8 @@ import type {
   enrollStudentSchema,
 } from "@mihwar/shared";
 import type { z } from "zod";
-import { prisma } from "../../lib/prisma.js";
+import { prisma, prismaBase } from "../../lib/prisma.js";
+import { requireTenantId } from "../../lib/tenantContext.js";
 import { AppError } from "../../lib/AppError.js";
 import { hashPassword } from "../../lib/password.js";
 import { randomToken } from "../../lib/crypto.js";
@@ -23,7 +24,7 @@ export async function listAcademicYears(workspaceId: string) {
 }
 
 export async function createAcademicYear(workspaceId: string, input: CreateYearInput) {
-  return prisma.academicYear.create({ data: { ...input, workspaceId } });
+  return prisma.academicYear.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 }
 
 export async function listSemesters(workspaceId: string, academicYearId: string) {
@@ -37,7 +38,7 @@ export async function listSemesters(workspaceId: string, academicYearId: string)
 export async function createSemester(workspaceId: string, input: CreateSemesterInput) {
   const year = await prisma.academicYear.findFirst({ where: { id: input.academicYearId, workspaceId, deletedAt: null } });
   if (!year) throw AppError.notFound("السنة الدراسية غير موجودة");
-  return prisma.semester.create({ data: { ...input, workspaceId } });
+  return prisma.semester.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 }
 
 export async function listCourses(workspaceId: string, semesterId?: string) {
@@ -65,7 +66,7 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
   const semester = await prisma.semester.findFirst({ where: { id: input.semesterId, workspaceId, deletedAt: null } });
   if (!semester) throw AppError.notFound("الفصل الدراسي غير موجود");
 
-  const course = await prisma.course.create({ data: { ...input, workspaceId } });
+  const course = await prisma.course.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 
   const QUALITY_ITEM_KEYS = [
     "COURSE_SPECIFICATION",
@@ -82,7 +83,7 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
   ] as const;
 
   await prisma.qualityFileItem.createMany({
-    data: QUALITY_ITEM_KEYS.map((itemKey) => ({ workspaceId, courseId: course.id, itemKey })),
+    data: QUALITY_ITEM_KEYS.map((itemKey) => ({ workspaceId, courseId: course.id, itemKey, tenantId: requireTenantId() })),
   });
 
   return course;
@@ -91,7 +92,7 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
 export async function createSection(workspaceId: string, input: CreateSectionInput) {
   const course = await prisma.course.findFirst({ where: { id: input.courseId, workspaceId, deletedAt: null } });
   if (!course) throw AppError.notFound("المقرر غير موجود");
-  return prisma.section.create({ data: { ...input, workspaceId } });
+  return prisma.section.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 }
 
 export async function listSectionRoster(workspaceId: string, sectionId: string) {
@@ -108,15 +109,20 @@ export async function enrollStudent(workspaceId: string, actorId: string, input:
   const section = await prisma.section.findFirst({ where: { id: input.sectionId, workspaceId, deletedAt: null } });
   if (!section) throw AppError.notFound("الشعبة غير موجودة");
 
-  let student = await prisma.user.findUnique({ where: { email: input.studentEmail } });
+  // البريد فريد **داخل المستأجر**: البحث بمفتاح مركّب يمنع ربط طالب من مؤسسة أخرى بشعبة هنا
+  const tenantId = requireTenantId();
+  let student = await prismaBase.user.findUnique({
+    where: { tenantId_email: { tenantId, email: input.studentEmail } },
+  });
   let tempPassword: string | null = null;
   if (!student) {
     // ⚠️ لا مزوّد بريد حقيقي بعد (EmailProvider في الوضع الوهمي) — كلمة المرور المؤقتة
     // تُرجَع في استجابة API ليشاركها الأستاذ يدويًا. عند ربط بريد حقيقي تُستبدل هذه
     // بدعوة عبر رابط تعيين كلمة مرور، ولا تُرجَع كلمة المرور في الاستجابة إطلاقًا.
     tempPassword = randomToken(8);
-    student = await prisma.user.create({
+    student = await prismaBase.user.create({
       data: {
+        tenantId,
         email: input.studentEmail,
         fullName: input.studentFullName,
         role: "STUDENT",
@@ -132,6 +138,7 @@ export async function enrollStudent(workspaceId: string, actorId: string, input:
 
   const enrollment = await prisma.enrollment.create({
     data: {
+      tenantId,
       workspaceId,
       sectionId: input.sectionId,
       studentId: student.id,

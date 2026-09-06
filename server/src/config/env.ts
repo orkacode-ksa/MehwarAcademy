@@ -25,6 +25,16 @@ const envSchema = z.object({
 
   // مزوّدات خارجية — اختيارية؛ غيابها يفعّل الوضع الوهمي (Mock Adapter)
   GEMINI_API_KEY: z.string().optional(),
+
+  /**
+   * جدول توجيه النماذج — انظر `config/aiModels.ts`. القيم الافتراضية نقطة انطلاق
+   * صالحة اليوم، لكن **التبديل يتم بمتغيّر بيئة لا بتعديل شيفرة** عند تقاعد نموذج
+   * أو تغيّر تسعيره. لا تضع اسم نموذج في أي مكان آخر.
+   */
+  AI_BASE_URL: z.string().url().default("https://generativelanguage.googleapis.com/v1beta"),
+  AI_MODEL_CHAT: z.string().min(1).default("gemini-3.1-flash-lite"),
+  AI_MODEL_HEAVY: z.string().min(1).default("gemini-3.8-flash"),
+  AI_MODEL_TTS: z.string().min(1).default("gemini-3.5-flash-tts"),
   STORAGE_ENDPOINT: z.string().optional(),
   STORAGE_ACCESS_KEY: z.string().optional(),
   STORAGE_SECRET_KEY: z.string().optional(),

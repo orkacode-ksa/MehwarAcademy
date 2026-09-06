@@ -5,7 +5,8 @@ import type {
   setGradeSchema,
 } from "@mihwar/shared";
 import type { z } from "zod";
-import { prisma } from "../../lib/prisma.js";
+import { prisma, withTenantTx } from "../../lib/prisma.js";
+import { requireTenantId } from "../../lib/tenantContext.js";
 import { AppError } from "../../lib/AppError.js";
 
 type CreateTopicInput = z.infer<typeof createTopicSchema>;
@@ -20,7 +21,7 @@ async function assertCourseInWorkspace(workspaceId: string, courseId: string): P
 
 export async function createTopic(workspaceId: string, input: CreateTopicInput) {
   await assertCourseInWorkspace(workspaceId, input.courseId);
-  return prisma.topic.create({ data: { ...input, workspaceId } });
+  return prisma.topic.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 }
 
 export async function recordAttendance(workspaceId: string, input: RecordAttendanceInput) {
@@ -35,15 +36,22 @@ export async function recordAttendance(workspaceId: string, input: RecordAttenda
   const validIds = new Set(validEnrollments.map((e) => e.id));
   const safeEntries = input.entries.filter((e) => validIds.has(e.enrollmentId));
 
-  await prisma.$transaction(
-    safeEntries.map((entry) =>
-      prisma.attendance.upsert({
+  await withTenantTx(async (tx, tenantId) => {
+    for (const entry of safeEntries) {
+      await tx.attendance.upsert({
         where: { enrollmentId_date: { enrollmentId: entry.enrollmentId, date: input.date } },
-        create: { workspaceId, sectionId: input.sectionId, enrollmentId: entry.enrollmentId, date: input.date, status: entry.status },
+        create: {
+          tenantId,
+          workspaceId,
+          sectionId: input.sectionId,
+          enrollmentId: entry.enrollmentId,
+          date: input.date,
+          status: entry.status,
+        },
         update: { status: entry.status },
-      }),
-    ),
-  );
+      });
+    }
+  });
 
   return { recorded: safeEntries.length };
 }
@@ -61,7 +69,7 @@ export async function getSectionAttendance(workspaceId: string, sectionId: strin
 
 export async function createAssessment(workspaceId: string, input: CreateAssessmentInput) {
   await assertCourseInWorkspace(workspaceId, input.courseId);
-  return prisma.assessment.create({ data: { ...input, workspaceId } });
+  return prisma.assessment.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
 }
 
 export async function listAssessments(workspaceId: string, courseId: string) {
@@ -81,15 +89,21 @@ export async function setGrades(workspaceId: string, input: SetGradeInput) {
   const validIds = new Set(validEnrollments.map((e) => e.id));
   const safeEntries = input.entries.filter((e) => validIds.has(e.enrollmentId));
 
-  await prisma.$transaction(
-    safeEntries.map((entry) =>
-      prisma.grade.upsert({
+  await withTenantTx(async (tx, tenantId) => {
+    for (const entry of safeEntries) {
+      await tx.grade.upsert({
         where: { assessmentId_enrollmentId: { assessmentId: input.assessmentId, enrollmentId: entry.enrollmentId } },
-        create: { workspaceId, assessmentId: input.assessmentId, enrollmentId: entry.enrollmentId, score: entry.score },
+        create: {
+          tenantId,
+          workspaceId,
+          assessmentId: input.assessmentId,
+          enrollmentId: entry.enrollmentId,
+          score: entry.score,
+        },
         update: { score: entry.score },
-      }),
-    ),
-  );
+      });
+    }
+  });
 
   return { updated: safeEntries.length };
 }

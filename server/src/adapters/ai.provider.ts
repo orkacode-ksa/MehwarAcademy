@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { AI_BASE_URL, AI_MODELS } from "../config/aiModels.js";
 import { logger } from "../lib/logger.js";
 
 export interface LectureScriptResult {
@@ -72,7 +73,6 @@ class MockAIProvider implements AIProvider {
  */
 class GeminiAIProvider implements AIProvider {
   readonly mode = "gemini" as const;
-  private readonly model = "gemini-3-flash";
 
   async generateLectureScript(input: {
     topicTitle: string;
@@ -121,7 +121,7 @@ class GeminiAIProvider implements AIProvider {
     const timeout = setTimeout(() => controller.abort(), 20_000);
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `${AI_BASE_URL}/models/${AI_MODELS.heavy}:generateContent?key=${env.GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

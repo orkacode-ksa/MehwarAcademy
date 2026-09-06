@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { requireTenantId } from "../../lib/tenantContext.js";
 import { AppError } from "../../lib/AppError.js";
 import { getAIProvider } from "../../adapters/ai.provider.js";
 import { getTTSProvider } from "../../adapters/tts.provider.js";
@@ -22,8 +23,11 @@ export async function generateFullLecture(
   });
   if (!topic) throw AppError.notFound("الموضوع غير موجود");
 
+  const tenantId = requireTenantId();
+
   const job = await prisma.generationJob.create({
     data: {
+      tenantId,
       workspaceId,
       courseId: input.courseId,
       createdById: actorId,
@@ -36,7 +40,7 @@ export async function generateFullLecture(
   const ai = getAIProvider();
   const tts = getTTSProvider();
 
-  const scriptStep = await prisma.jobStep.create({ data: { jobId: job.id, stepKey: "LECTURE_SCRIPT", status: "RUNNING", startedAt: new Date() } });
+  const scriptStep = await prisma.jobStep.create({ data: { tenantId, jobId: job.id, stepKey: "LECTURE_SCRIPT", status: "RUNNING", startedAt: new Date() } });
   const script = await ai.generateLectureScript({
     topicTitle: topic.title,
     learningOutcomes: topic.learningOutcomes,
@@ -49,7 +53,7 @@ export async function generateFullLecture(
     data: { status: "SUCCEEDED", outputText: scriptText, finishedAt: new Date(), costRiyals: 0.035 },
   });
 
-  const narrationStep = await prisma.jobStep.create({ data: { jobId: job.id, stepKey: "NARRATION_AUDIO", status: "RUNNING", startedAt: new Date() } });
+  const narrationStep = await prisma.jobStep.create({ data: { tenantId, jobId: job.id, stepKey: "NARRATION_AUDIO", status: "RUNNING", startedAt: new Date() } });
   const narration = await tts.synthesize(scriptText.slice(0, 4000));
   const narrationCost = Math.round((narration.durationSeconds / 60) * COST_PER_MINUTE_RIYALS * 1000) / 1000;
   await prisma.jobStep.update({
@@ -61,6 +65,7 @@ export async function generateFullLecture(
 
   const lecture = await prisma.lecture.create({
     data: {
+      tenantId,
       workspaceId,
       topicId: topic.id,
       title: script.title,

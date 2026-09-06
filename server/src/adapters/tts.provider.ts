@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { AI_BASE_URL, AI_MODELS } from "../config/aiModels.js";
 import { logger } from "../lib/logger.js";
 
 export interface TTSResult {
@@ -51,14 +52,13 @@ function buildSilentWav(durationSeconds: number): Buffer {
  */
 class GeminiTTSProvider implements TTSProvider {
   readonly mode = "gemini" as const;
-  private readonly model = "gemini-2.5-flash-preview-tts";
 
   async synthesize(text: string, voice = "Kore"): Promise<TTSResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${env.GEMINI_API_KEY}`,
+        `${AI_BASE_URL}/models/${AI_MODELS.tts}:generateContent?key=${env.GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

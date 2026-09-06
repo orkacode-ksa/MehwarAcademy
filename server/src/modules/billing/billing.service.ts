@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { requireTenantId } from "../../lib/tenantContext.js";
 import { AppError } from "../../lib/AppError.js";
 import { getPaymentProvider } from "../../adapters/payment.provider.js";
 import { env } from "../../config/env.js";
@@ -39,7 +40,7 @@ export async function startCheckout(workspaceId: string, planCode: "MIHWAR" | "M
   const vat = Math.round((totalAmount - baseAmount) * 100) / 100;
 
   const invoice = await prisma.invoice.create({
-    data: { subscriptionId: subscription.id, workspaceId, number: invoiceNumber, amountRiyals: baseAmount, vatRiyals: vat, status: "DRAFT" },
+    data: { tenantId: requireTenantId(), subscriptionId: subscription.id, workspaceId, number: invoiceNumber, amountRiyals: baseAmount, vatRiyals: vat, status: "DRAFT" },
   });
 
   const idempotencyKey = randomToken(16);
@@ -52,7 +53,7 @@ export async function startCheckout(workspaceId: string, planCode: "MIHWAR" | "M
   });
 
   await prisma.payment.create({
-    data: { invoiceId: invoice.id, provider: provider.mode, providerReference: intent.providerReference, idempotencyKey, status: "PENDING", amountRiyals: totalAmount },
+    data: { tenantId: requireTenantId(), invoiceId: invoice.id, provider: provider.mode, providerReference: intent.providerReference, idempotencyKey, status: "PENDING", amountRiyals: totalAmount },
   });
 
   await recordAudit({ userId: actorId, workspaceId, action: "CHECKOUT_STARTED", entityType: "Invoice", entityId: invoice.id });

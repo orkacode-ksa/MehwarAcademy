@@ -2,6 +2,8 @@ import type { UserRole } from "@mihwar/shared";
 
 export interface AuthContext {
   userId: string;
+  /** حدّ العزل، من التوكن الموقّع وحده. */
+  tenantId: string;
   role: UserRole;
   tokenVersion: number;
   jti: string;

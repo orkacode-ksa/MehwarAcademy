@@ -1,5 +1,12 @@
 // مِحوَر — مخطط قاعدة البيانات
-// كل كيان مرتبط بمساحة عمل (tenant) يحمل workspaceId مفهرسًا، ويُستخدم في كل where صراحة (عزل صفوف).
+//
+// مستويان للعزل، لا يُخلط بينهما:
+//   Tenant    = المؤسسة المستأجِرة (جامعة/كلية). حدّ الأمان الحقيقي، ويُفرض بجدارين:
+//               امتداد Prisma في التطبيق + سياسات RLS في Postgres.
+//   Workspace = مساحة عمل عضو هيئة التدريس داخل المستأجر. حدّ تنظيمي لا أمني.
+//
+// كل جدول في مستوى بيانات المستأجر يحمل `tenantId` مفهرسًا — مُكرَّرًا عمدًا (denormalized)
+// حتى تكون سياسة RLS مقارنة عمود واحد بلا joins. انظر docs/roadmap.md §١.٢.
 
 generator client {
   provider = "prisma-client-js"
@@ -8,6 +15,66 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── المستأجر (المؤسسة) ─────────────────────────
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+/// المؤسسة المستأجِرة. حسابات المنصة نفسها (دور OWNER) تنتمي لمستأجر النظام
+/// `PLATFORM_TENANT_SLUG` — فيبقى `tenantId` غير قابل للعدم في كل مكان، وتبقى
+/// سياسات RLS موحّدة الشكل بلا حالة خاصة.
+model Tenant {
+  id     String       @id @default(cuid())
+  /// مُحتفظ به من اليوم الأول: النطاق موحّد الآن، فيصير النطاق الفرعي لاحقًا إعدادًا لا هجرة.
+  slug   String       @unique
+  name   String
+  status TenantStatus @default(TRIAL)
+
+  /// توجيه مزوّد الذكاء لكل مستأجر — جامعة ترفض مزوّدًا تُشغَّل على غيره بلا إعادة بناء.
+  aiProvider         String?
+  /// سقف الإنفاق الشهري. عند بلوغه: تدهور آمن للموجّه الحتمي، لا انقطاع.
+  aiMonthlyBudgetUsd Decimal @default(25) @db.Decimal(8, 2)
+
+  /// استحقاقات الميزات (الاستيديو · المساعد · البودكاست · التصدير المؤسسي).
+  entitlements Json @default("{}")
+
+  brandColor       String?
+  brandLogoAssetId String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  departments   Department[]
+  users         User[]
+  workspaces    Workspace[]
+  subscriptions Subscription[]
+
+  @@index([status])
+  @@map("tenants")
+}
+
+/// القسم الأكاديمي — نطاق رئيس القسم.
+model Department {
+  id        String    @id @default(cuid())
+  tenantId  String
+  code      String
+  nameAr    String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workspaces Workspace[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("departments")
 }
 
 // ───────────────────────── الهوية والوصول ─────────────────────────
@@ -21,15 +88,19 @@ enum UserRole {
 
 model User {
   id              String    @id @default(cuid())
-  email           String    @unique
-  phone           String?   @unique
+  tenantId        String
+  /// فريد **داخل المستأجر** لا عالميًا: أستاذ متعاون مع جامعتين حساب في كلٍّ منهما.
+  /// أثره على الدخول: البريد وحده لا يحسم الحساب — انظر `auth.service.ts`، فإن طابق
+  /// أكثر من مستأجر واحد يُسأل المستخدم عن مؤسسته بدل التخمين.
+  email           String
+  phone           String?
   passwordHash    String
   fullName        String
   role            UserRole
   tokenVersion    Int       @default(0)
   emailVerifiedAt DateTime?
 
-  totpEnabled  Boolean @default(false)
+  totpEnabled  Boolean  @default(false)
   totpSecret   String? // AES-256-GCM مشفّر، صيغة v1:iv:authTag:ciphertext
   totpRecovery String[] @default([]) // hashes لرموز الاسترداد
 
@@ -38,18 +109,22 @@ model User {
 
   foundingMember Boolean @default(false)
 
-  createdAt DateTime  @updatedAt @default(now())
+  createdAt DateTime  @default(now()) @updatedAt
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  refreshTokens       RefreshToken[]
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens        RefreshToken[]
   workspaceMemberships WorkspaceMember[]
-  ownedWorkspaces      Workspace[]        @relation("WorkspaceOwner")
+  ownedWorkspaces      Workspace[]          @relation("WorkspaceOwner")
   auditLogs            AuditLog[]
   enrollments          Enrollment[]
   passwordResetTokens  PasswordResetToken[]
 
-  @@index([role])
+  @@unique([tenantId, email])
+  @@unique([tenantId, phone])
+  @@index([tenantId, role])
+  @@index([email])
   @@map("users")
 }
 
@@ -86,20 +161,23 @@ model PasswordResetToken {
 
 // append-only: تُفرض بـ trigger في هجرة SQL يمنع UPDATE/DELETE على الجدول
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
+  id          String   @id @default(cuid())
+  /// اختياري عمدًا: أحداث مستوى المنصة (تسجيل دخول فاشل قبل حسم المستأجر) لا مستأجر لها.
+  tenantId    String?
+  userId      String?
   workspaceId String?
-  action     String
-  entityType String
-  entityId   String?
-  before     Json?
-  after      Json?
-  ip         String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
+  action      String
+  entityType  String
+  entityId    String?
+  before      Json?
+  after       Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([tenantId])
   @@index([workspaceId])
   @@index([userId])
   @@index([createdAt])
@@ -122,29 +200,36 @@ enum PlanCode {
 }
 
 model Workspace {
-  id        String    @id @default(cuid())
-  name      String
-  planCode  PlanCode  @default(MIHWAR)
-  ownerId   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id           String    @id @default(cuid())
+  tenantId     String
+  departmentId String?
+  name         String
+  planCode     PlanCode  @default(MIHWAR)
+  ownerId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 
-  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
-  members WorkspaceMember[]
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  owner      User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members    WorkspaceMember[]
 
-  academicYears AcademicYear[]
-  courses       Course[]
-  subscription  Subscription?
-  qualityItems  QualityFileItem[]
+  academicYears  AcademicYear[]
+  courses        Course[]
+  subscription   Subscription?
+  qualityItems   QualityFileItem[]
   generationJobs GenerationJob[]
 
+  @@index([tenantId])
+  @@index([departmentId])
   @@index([ownerId])
   @@map("workspaces")
 }
 
 model WorkspaceMember {
   id          String        @id @default(cuid())
+  tenantId    String
   workspaceId String
   userId      String
   role        WorkspaceRole @default(TEACHER)
@@ -155,6 +240,7 @@ model WorkspaceMember {
 
   @@unique([workspaceId, userId])
   @@index([userId])
+  @@index([tenantId])
   @@map("workspace_members")
 }
 
@@ -177,23 +263,26 @@ enum BillingCycle {
 }
 
 model Subscription {
-  id                 String             @id @default(cuid())
-  workspaceId        String             @unique
-  planCode           PlanCode
-  status             SubscriptionStatus @default(TRIALING)
-  billingCycle       BillingCycle       @default(MONTHLY)
-  trialEndsAt        DateTime?
-  currentPeriodEnd   DateTime?
-  graceEndsAt        DateTime?
-  readOnlyEndsAt     DateTime?
-  frozenEndsAt       DateTime?
-  productionMinutesBalance Int          @default(0)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                       String             @id @default(cuid())
+  tenantId                 String
+  workspaceId              String             @unique
+  planCode                 PlanCode
+  status                   SubscriptionStatus @default(TRIALING)
+  billingCycle             BillingCycle       @default(MONTHLY)
+  trialEndsAt              DateTime?
+  currentPeriodEnd         DateTime?
+  graceEndsAt              DateTime?
+  readOnlyEndsAt           DateTime?
+  frozenEndsAt             DateTime?
+  productionMinutesBalance Int                @default(0)
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   invoices  Invoice[]
+  Tenant    Tenant    @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
   @@map("subscriptions")
 }
 
@@ -207,6 +296,7 @@ enum InvoiceStatus {
 
 model Invoice {
   id             String        @id @default(cuid())
+  tenantId       String
   subscriptionId String
   workspaceId    String
   number         String        @unique
@@ -221,6 +311,7 @@ model Invoice {
   payments     Payment[]
 
   @@index([workspaceId])
+  @@index([tenantId])
   @@map("invoices")
 }
 
@@ -232,28 +323,30 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id                 String        @id @default(cuid())
-  invoiceId          String
-  provider           String
-  providerReference  String?
-  idempotencyKey     String        @unique
-  status             PaymentStatus @default(PENDING)
-  amountRiyals       Decimal       @db.Decimal(10, 2)
-  createdAt          DateTime      @default(now())
+  id                String        @id @default(cuid())
+  tenantId          String
+  invoiceId         String
+  provider          String
+  providerReference String?
+  idempotencyKey    String        @unique
+  status            PaymentStatus @default(PENDING)
+  amountRiyals      Decimal       @db.Decimal(10, 2)
+  createdAt         DateTime      @default(now())
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
   @@map("payments")
 }
 
 // حدث webhook خام قبل المعالجة — لمنع المعالجة المزدوجة وللتدقيق
 model WebhookEvent {
-  id         String   @id @default(cuid())
-  provider   String
-  eventId    String
-  rawPayload Json
+  id          String    @id @default(cuid())
+  provider    String
+  eventId     String
+  rawPayload  Json
   processedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@unique([provider, eventId])
   @@map("webhook_events")
@@ -263,6 +356,7 @@ model WebhookEvent {
 
 model AcademicYear {
   id          String    @id @default(cuid())
+  tenantId    String
   workspaceId String
   label       String
   startDate   DateTime
@@ -274,11 +368,13 @@ model AcademicYear {
   semesters Semester[]
 
   @@index([workspaceId])
+  @@index([tenantId])
   @@map("academic_years")
 }
 
 model Semester {
   id             String    @id @default(cuid())
+  tenantId       String
   workspaceId    String
   academicYearId String
   label          String
@@ -292,36 +388,40 @@ model Semester {
 
   @@index([workspaceId])
   @@index([academicYearId])
+  @@index([tenantId])
   @@map("semesters")
 }
 
 model Course {
-  id            String    @id @default(cuid())
-  workspaceId   String
-  semesterId    String
-  code          String
-  nameAr        String
-  creditHours   Int
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  id          String    @id @default(cuid())
+  tenantId    String
+  workspaceId String
+  semesterId  String
+  code        String
+  nameAr      String
+  creditHours Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  semester     Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  sections     Section[]
-  topics       Topic[]
-  assessments  Assessment[]
-  qualityItems QualityFileItem[]
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  semester       Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  sections       Section[]
+  topics         Topic[]
+  assessments    Assessment[]
+  qualityItems   QualityFileItem[]
   generationJobs GenerationJob[]
 
   @@unique([workspaceId, semesterId, code])
   @@index([workspaceId])
   @@index([semesterId])
+  @@index([tenantId])
   @@map("courses")
 }
 
 model Section {
   id          String    @id @default(cuid())
+  tenantId    String
   workspaceId String
   courseId    String
   label       String
@@ -336,17 +436,19 @@ model Section {
   @@unique([courseId, label])
   @@index([workspaceId])
   @@index([courseId])
+  @@index([tenantId])
   @@map("sections")
 }
 
 model Enrollment {
-  id                  String    @id @default(cuid())
-  workspaceId         String
-  sectionId           String
-  studentId           String
-  universityIdNumber  String
-  createdAt           DateTime  @default(now())
-  deletedAt           DateTime?
+  id                 String    @id @default(cuid())
+  tenantId           String
+  workspaceId        String
+  sectionId          String
+  studentId          String
+  universityIdNumber String
+  createdAt          DateTime  @default(now())
+  deletedAt          DateTime?
 
   section    Section      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   student    User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -356,11 +458,13 @@ model Enrollment {
   @@unique([sectionId, studentId])
   @@index([workspaceId])
   @@index([studentId])
+  @@index([tenantId])
   @@map("enrollments")
 }
 
 model Topic {
   id               String    @id @default(cuid())
+  tenantId         String
   workspaceId      String
   courseId         String
   title            String
@@ -374,6 +478,7 @@ model Topic {
 
   @@index([workspaceId])
   @@index([courseId, orderIndex])
+  @@index([tenantId])
   @@map("topics")
 }
 
@@ -386,6 +491,7 @@ enum ContentStatus {
 
 model Lecture {
   id             String        @id @default(cuid())
+  tenantId       String
   workspaceId    String
   topicId        String
   title          String
@@ -404,6 +510,7 @@ model Lecture {
 
   @@index([workspaceId])
   @@index([topicId])
+  @@index([tenantId])
   @@map("lectures")
 }
 
@@ -416,6 +523,7 @@ enum AttendanceStatus {
 
 model Attendance {
   id           String           @id @default(cuid())
+  tenantId     String
   workspaceId  String
   sectionId    String
   enrollmentId String
@@ -429,6 +537,7 @@ model Attendance {
   @@unique([enrollmentId, date])
   @@index([workspaceId])
   @@index([sectionId, date])
+  @@index([tenantId])
   @@map("attendance_records")
 }
 
@@ -443,6 +552,7 @@ enum AssessmentType {
 
 model Assessment {
   id            String         @id @default(cuid())
+  tenantId      String
   workspaceId   String
   courseId      String
   title         String
@@ -457,11 +567,13 @@ model Assessment {
 
   @@index([workspaceId])
   @@index([courseId])
+  @@index([tenantId])
   @@map("assessments")
 }
 
 model Grade {
   id           String   @id @default(cuid())
+  tenantId     String
   workspaceId  String
   assessmentId String
   enrollmentId String
@@ -474,6 +586,7 @@ model Grade {
 
   @@unique([assessmentId, enrollmentId])
   @@index([workspaceId])
+  @@index([tenantId])
   @@map("grades")
 }
 
@@ -495,6 +608,7 @@ enum QualityItemKey {
 
 model QualityFileItem {
   id          String         @id @default(cuid())
+  tenantId    String
   workspaceId String
   courseId    String
   itemKey     QualityItemKey
@@ -507,6 +621,7 @@ model QualityFileItem {
 
   @@unique([courseId, itemKey])
   @@index([workspaceId])
+  @@index([tenantId])
   @@map("quality_file_items")
 }
 
@@ -533,18 +648,19 @@ enum JobStatus {
 }
 
 model GenerationJob {
-  id                String            @id @default(cuid())
-  workspaceId       String
-  courseId          String
-  createdById       String
-  type              GenerationJobType
-  status            JobStatus         @default(PENDING)
-  estimatedMinutes  Int               @default(0)
-  estimatedCostRiyals Decimal         @db.Decimal(8, 2) @default(0)
-  actualCostRiyals  Decimal           @db.Decimal(8, 2) @default(0)
-  batchMode         Boolean           @default(true)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                  String            @id @default(cuid())
+  tenantId            String
+  workspaceId         String
+  courseId            String
+  createdById         String
+  type                GenerationJobType
+  status              JobStatus         @default(PENDING)
+  estimatedMinutes    Int               @default(0)
+  estimatedCostRiyals Decimal           @default(0) @db.Decimal(8, 2)
+  actualCostRiyals    Decimal           @default(0) @db.Decimal(8, 2)
+  batchMode           Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -552,40 +668,45 @@ model GenerationJob {
 
   @@index([workspaceId])
   @@index([courseId])
+  @@index([tenantId])
   @@map("generation_jobs")
 }
 
 model JobStep {
-  id           String    @id @default(cuid())
-  jobId        String
-  stepKey      String
-  status       JobStatus @default(PENDING)
-  costRiyals   Decimal   @db.Decimal(8, 2) @default(0)
+  id            String    @id @default(cuid())
+  tenantId      String
+  jobId         String
+  stepKey       String
+  status        JobStatus @default(PENDING)
+  costRiyals    Decimal   @default(0) @db.Decimal(8, 2)
   outputAssetId String?
-  outputText   String?
-  errorMessage String?
-  startedAt    DateTime?
-  finishedAt   DateTime?
+  outputText    String?
+  errorMessage  String?
+  startedAt     DateTime?
+  finishedAt    DateTime?
 
   job GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
+  @@index([tenantId])
   @@map("job_steps")
 }
 
 // ───────────────────────── الملفات (ميتاداتا فقط — المحتوى في التخزين الكائني) ─────────────────────────
 
 model FileAsset {
-  id            String    @id @default(cuid())
-  workspaceId   String
-  objectKey     String    @unique
-  originalName  String
-  mimeType      String
-  sizeBytes     Int
-  uploadedById  String
-  createdAt     DateTime  @default(now())
-  deletedAt     DateTime?
+  id           String    @id @default(cuid())
+  tenantId     String
+  workspaceId  String
+  objectKey    String    @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
 
   @@index([workspaceId])
+  @@index([tenantId])
   @@map("file_assets")
 }

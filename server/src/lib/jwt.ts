@@ -6,6 +6,8 @@ import { ACCESS_TOKEN_TTL_SECONDS } from "../config/constants.js";
 
 export interface AccessTokenPayload {
   userId: string;
+  /** حدّ العزل. يُقرأ منه وحده — لا من body ولا query ولا params (انظر lib/tenantContext.ts). */
+  tenantId: string;
   role: UserRole;
   tv: number;
   jti: string;

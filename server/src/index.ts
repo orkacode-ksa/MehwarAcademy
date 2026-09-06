@@ -3,12 +3,17 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { prisma } from "./lib/prisma.js";
+import { assertRlsEffective } from "./lib/rlsGuard.js";
 import { redis } from "./lib/redis.js";
 import { closePdfEngine } from "./lib/pdf.js";
 
 installArabicZodErrorMap();
 
 const app = createApp();
+
+// يُفحص قبل قبول أي طلب: عزل المستأجرين يعتمد على RLS، وRLS تُتجاوَز صامتة بدور خارق.
+// الفشل هنا مقصود — خادم يعمل بلا عزل أسوأ من خادم لا يعمل.
+await assertRlsEffective();
 
 const server = app.listen(env.PORT, () => {
   logger.info(`مِحوَر: الخادم يعمل على المنفذ ${env.PORT} — بيئة ${env.NODE_ENV}`);

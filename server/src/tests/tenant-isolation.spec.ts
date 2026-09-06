@@ -1,8 +1,8 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import request from "supertest";
 import crypto from "node:crypto";
 import { createApp } from "../app.js";
-import { prisma } from "../lib/prisma.js";
+import { prismaBase } from "../lib/prisma.js";
 
 /**
  * إثبات عزل الصفوف بين مساحات العمل (الدستور الأمني §0.7 و§4):
@@ -13,7 +13,7 @@ import { prisma } from "../lib/prisma.js";
 const app = createApp();
 const createdUserIds: string[] = [];
 
-async function registerTeacher(): Promise<{ agent: ReturnType<typeof request.agent>; workspaceId: string; userId: string }> {
+async function registerTeacher(): Promise<{ agent: ReturnType<typeof request.agent>; workspaceId: string; userId: string; tenantId: string }> {
   const agent = request.agent(app);
   const email = `teacher-${crypto.randomUUID()}@mihwar.test`;
   const res = await agent.post("/api/auth/register").send({
@@ -28,15 +28,26 @@ async function registerTeacher(): Promise<{ agent: ReturnType<typeof request.age
   expect(me.status).toBe(200);
   const userId = me.body.data.id as string;
   const workspaceId = me.body.data.workspaceMemberships[0].workspaceId as string;
+  const tenantId = me.body.data.tenantId as string;
   createdUserIds.push(userId);
 
-  return { agent, workspaceId, userId };
+  return { agent, workspaceId, userId, tenantId };
 }
 
+type Teacher = Awaited<ReturnType<typeof registerTeacher>>;
+
 describe("عزل مساحات العمل (tenant isolation)", () => {
+  // أستاذان يُسجَّلان مرة واحدة: التسجيل محدود المعدّل (٥ محاولات) فتسجيل زوج جديد لكل
+  // اختبار كان يصطدم بالحدّ ويفشل بـ 429 لسبب لا علاقة له بالعزل.
+  let teacherA: Teacher;
+  let teacherB: Teacher;
+
+  beforeAll(async () => {
+    teacherA = await registerTeacher();
+    teacherB = await registerTeacher();
+  });
+
   it("لا يستطيع أستاذ الوصول لمقرر يخص مساحة عمل أستاذ آخر عبر مساره الخاص", async () => {
-    const teacherA = await registerTeacher();
-    const teacherB = await registerTeacher();
 
     const yearRes = await teacherA.agent
       .post(`/api/workspaces/${teacherA.workspaceId}/academic/years`)
@@ -66,25 +77,62 @@ describe("عزل مساحات العمل (tenant isolation)", () => {
     const ownerRes = await teacherA.agent.get(`/api/workspaces/${teacherA.workspaceId}/academic/courses/${courseId}`);
     expect(ownerRes.status).toBe(200);
     expect(ownerRes.body.data.id).toBe(courseId);
+
+    // ٤) كل تسجيل ذاتي مستأجر مستقل — وإلا فما سبق عزل مساحات لا عزل مؤسسات
+    expect(teacherA.tenantId).not.toBe(teacherB.tenantId);
+  });
+
+  it("قاعدة البيانات نفسها ترفض قراءة صف مستأجر آخر — حتى باستعلام خام", async () => {
+    const yearRes = await teacherA.agent
+      .post(`/api/workspaces/${teacherA.workspaceId}/academic/years`)
+      .send({ label: "1448هـ", startDate: "2026-09-01", endDate: "2027-06-01" });
+    expect(yearRes.status).toBe(201);
+    const yearId = yearRes.body.data.id as string;
+
+    // استعلام خام بلا شرط مستأجر إطلاقًا — الحالة التي يتجاوز فيها المطوّر كل طبقات
+    // التطبيق. RLS وحدها هي ما يمنع هنا.
+    const asB = await prismaBase.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${teacherB.tenantId}, true)`;
+      return tx.$queryRaw<{ id: string }[]>`SELECT id FROM academic_years WHERE id = ${yearId}`;
+    });
+    expect(asB).toEqual([]);
+
+    const asA = await prismaBase.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${teacherA.tenantId}, true)`;
+      return tx.$queryRaw<{ id: string }[]>`SELECT id FROM academic_years WHERE id = ${yearId}`;
+    });
+    expect(asA).toHaveLength(1);
+  });
+
+  it("الكتابة في مستأجر آخر مرفوضة من قاعدة البيانات لا من التطبيق", async () => {
+    await expect(
+      prismaBase.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.tenant_id', ${teacherA.tenantId}, true)`;
+        await tx.$executeRaw`
+          INSERT INTO academic_years (id, "tenantId", "workspaceId", label, "startDate", "endDate", "createdAt")
+          VALUES ('rls-probe', ${teacherB.tenantId}, ${teacherB.workspaceId}, 'حقن', NOW(), NOW(), NOW())`;
+      }),
+    ).rejects.toThrow(/row-level security/i);
   });
 });
 
 afterAll(async () => {
   if (createdUserIds.length > 0) {
-    await prisma.refreshToken.deleteMany({ where: { userId: { in: createdUserIds } } });
-    await prisma.workspaceMember.deleteMany({ where: { userId: { in: createdUserIds } } });
-    const workspaces = await prisma.workspace.findMany({ where: { ownerId: { in: createdUserIds } }, select: { id: true } });
+    // تنظيف بالعميل الخام: لا سياق مستأجر خارج الطلب، والعميل المُوسَّع يفشل مغلقًا عمدًا
+    await prismaBase.refreshToken.deleteMany({ where: { userId: { in: createdUserIds } } });
+    await prismaBase.workspaceMember.deleteMany({ where: { userId: { in: createdUserIds } } });
+    const workspaces = await prismaBase.workspace.findMany({ where: { ownerId: { in: createdUserIds } }, select: { id: true } });
     const workspaceIds = workspaces.map((w) => w.id);
     if (workspaceIds.length > 0) {
-      await prisma.course.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-      await prisma.semester.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-      await prisma.academicYear.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-      await prisma.subscription.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-      await prisma.workspace.deleteMany({ where: { id: { in: workspaceIds } } });
+      await prismaBase.course.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
+      await prismaBase.semester.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
+      await prismaBase.academicYear.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
+      await prismaBase.subscription.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
+      await prismaBase.workspace.deleteMany({ where: { id: { in: workspaceIds } } });
     }
     // سجل التدقيق append-only (trigger يمنع الحذف/التعديل) — لذلك نُصفّي المستخدمين حذفًا ناعمًا
     // لا حذفًا فعليًا: الحذف الفعلي يستدعي ON DELETE SET NULL على audit_logs.userId فيصطدم بالـ trigger.
-    await prisma.user.updateMany({ where: { id: { in: createdUserIds } }, data: { deletedAt: new Date() } });
+    await prismaBase.user.updateMany({ where: { id: { in: createdUserIds } }, data: { deletedAt: new Date() } });
   }
-  await prisma.$disconnect();
+  await prismaBase.$disconnect();
 });

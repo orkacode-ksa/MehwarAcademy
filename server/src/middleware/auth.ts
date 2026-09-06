@@ -2,7 +2,8 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "../lib/jwt.js";
 import { AppError } from "../lib/AppError.js";
 import { cacheGet, cacheSet } from "../lib/redis.js";
-import { prisma } from "../lib/prisma.js";
+import { prismaBase } from "../lib/prisma.js";
+import { runWithTenant } from "../lib/tenantContext.js";
 import { TOKEN_VERSION_CACHE_TTL_SECONDS } from "../config/constants.js";
 import { logger } from "../lib/logger.js";
 import { ACCESS_COOKIE_NAME } from "../lib/cookies.js";
@@ -12,7 +13,7 @@ async function getCurrentTokenVersion(userId: string): Promise<number | null> {
   const cached = await cacheGet(cacheKey);
   if (cached !== null) return Number(cached);
 
-  const user = await prisma.user.findFirst({ where: { id: userId, deletedAt: null }, select: { tokenVersion: true } });
+  const user = await prismaBase.user.findFirst({ where: { id: userId, deletedAt: null }, select: { tokenVersion: true } });
   if (!user) return null;
   await cacheSet(cacheKey, String(user.tokenVersion), TOKEN_VERSION_CACHE_TTL_SECONDS);
   return user.tokenVersion;
@@ -39,8 +40,17 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
       throw AppError.unauthorized("انتهت صلاحية الجلسة، الرجاء تسجيل الدخول من جديد");
     }
 
-    req.auth = { userId: payload.userId, role: payload.role, tokenVersion: payload.tv, jti: payload.jti };
-    next();
+    req.auth = {
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      role: payload.role,
+      tokenVersion: payload.tv,
+      jti: payload.jti,
+    };
+
+    // يُفتح سياق المستأجر هنا مرة واحدة ويغطّي بقية سلسلة المعالجة. كل استعلام على جدول
+    // تابع للمستأجر يقرأ منه — ولا يوجد مسار آخر لضبطه.
+    runWithTenant({ tenantId: payload.tenantId, userId: payload.userId }, next);
   } catch (err) {
     if (err instanceof AppError) {
       next(err);
