@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
 import { MOBILE_PRIMARY_COUNT, NAV, type Role } from "../../nav/nav.js";
 
@@ -10,10 +10,11 @@ interface BottomNavProps {
 
 /**
  * شريط التنقّل السفلي للجوال — أُعيد تصميمه بالكامل: مؤشّر بيضاوي حول الأيقونة النشطة
- * بدل مربّع أخضر مصمت يبتلع الخانة، وأهداف لمس ٥٦px، وتسميات أوضح، وخلفية زجاجية
+ * بدل مربّع أخضر مصمت يبتلع الخانة، وأهداف لمس 56px، وتسميات أوضح، وخلفية زجاجية
  * تحترم منطقة الأمان السفلية.
  */
 export function BottomNav({ role, onOpenMore, moreActive }: BottomNavProps) {
+  const { pathname } = useLocation();
   const primary = NAV[role].slice(0, MOBILE_PRIMARY_COUNT);
 
   const itemCls = "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 select-none";
@@ -29,7 +30,15 @@ export function BottomNav({ role, onOpenMore, moreActive }: BottomNavProps) {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {primary.map((item) => (
-        <NavLink key={item.key} to={`/${item.key}`} className={itemCls}>
+        <NavLink
+          key={item.key}
+          to={`/${item.key}`}
+          className={itemCls}
+          // الرابط إلى الشاشة التي أنت فيها لا يُنقّلك، فليُعدك إلى أعلاها
+          onClick={() => {
+            if (pathname === `/${item.key}`) window.scrollTo(0, 0);
+          }}
+        >
           {({ isActive }) => (
             <>
               <span className={pill(isActive)}>

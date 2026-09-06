@@ -75,7 +75,7 @@ export function AppShell() {
       </a>
       <Rail role={role} />
       <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
-      <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} onLogout={() => navigate("/login")} />
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
       <NotificationPanel
         open={notifOpen}
