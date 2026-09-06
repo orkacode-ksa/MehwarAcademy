@@ -1,68 +1,111 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { registerSchema, type RegisterInput } from "@mihwar/shared";
 import { AuthLayout } from "../components/auth/AuthLayout.js";
-import { Field } from "../components/auth/Field.js";
-import { PasswordField } from "../components/auth/PasswordField.js";
-import { Button } from "../components/ui/Button.js";
+import { WizDots } from "../components/auth/WizDots.js";
+import { SignupRoleStep, type SignupRole } from "../components/auth/SignupRoleStep.js";
+import { SignupFacultyDetailsStep, type FacultyDetails } from "../components/auth/SignupFacultyDetailsStep.js";
+import { SignupStudentJoinStep, type StudentJoinDetails } from "../components/auth/SignupStudentJoinStep.js";
+import { SignupFinishStep } from "../components/auth/SignupFinishStep.js";
+import { Icon } from "../icons/Icon.js";
+import { ROLE_HOME } from "../nav/nav.js";
 import { useToast } from "../state/ToastContext.js";
 
+type Step = 1 | 2 | 3;
+
 /**
- * إنشاء الحساب. ثلاثة حقول في خطوة واحدة.
- *
- * كان معالجًا من ثلاث خطوات أولها اختيار الدور. بدور واحد لم يبقَ ما يُختار، والخطوتان
- * الباقيتان كانتا تجمعان حقولًا (رتبة · قسم · جامعة) لا يستعملها المنتج في شيء.
+ * معالج التسجيل بثلاث خطوات — منقول من `signup()` في البروتوتايب مع فارقين جوهريين:
+ * ١) حقول فارغة حقيقية بدل بيانات شخص وهمي معبَّأة مسبقًا (كانت خطأ عرض في البروتوتايب،
+ *    نموذج تسجيل حقيقي لا يجوز أن يوحي بأن بيانات شخص آخر أُدخلت للمستخدم).
+ * ٢) حقل كلمة مرور فعلي — البروتوتايب لم يتضمن كلمة مرور إطلاقاً في نموذج التسجيل،
+ *    وهذا خلل وظيفي (لا يمكن إنشاء حساب فعلي بلا كلمة مرور)، لا تفصيلاً تصميميًا.
+ * لا رابط خلفي حقيقي بعد (`POST /auth/register` يُوصَل في المرحلة ٧) — مسجَّل في
+ * docs/api-gaps.md مع فجوة حقول الرتبة/القسم/الجامعة غير الموجودة في registerSchema بعد.
  */
 export function SignupPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<RegisterInput>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { role: "TEACHER" },
-  });
+  const [step, setStep] = useState<Step>(1);
+  const [role, setRole] = useState<SignupRole | null>(null);
+  const [facultyData, setFacultyData] = useState<Partial<FacultyDetails>>({});
+  const [studentData, setStudentData] = useState<Partial<StudentJoinDetails>>({});
 
-  function onSubmit() {
-    // TODO(ربط): POST /api/auth/register
-    showToast("تم إنشاء الحساب — الربط بالخادم لاحقًا");
-    navigate("/courses");
+  function enterPlatform() {
+    showToast("تم إنشاء الحساب — الربط الفعلي بالخادم يُوصَل في المرحلة ٧");
+    navigate(`/${ROLE_HOME[role ?? "faculty"]}`);
   }
 
   return (
-    <AuthLayout>
-      <h1 className="text-[22px] font-semibold mb-6">حساب جديد</h1>
+    <AuthLayout
+      left={
+        <>
+          <WizDots step={step} total={3} />
+          {step === 1 && (
+            <SignupRoleStep
+              initial={role}
+              onNext={(r) => {
+                setRole(r);
+                setStep(2);
+              }}
+            />
+          )}
+          {step === 2 && role === "faculty" && (
+            <SignupFacultyDetailsStep
+              initial={facultyData}
+              onBack={() => setStep(1)}
+              onNext={(data) => {
+                setFacultyData(data);
+                setStep(3);
+              }}
+            />
+          )}
+          {step === 2 && role === "student" && (
+            <SignupStudentJoinStep
+              initial={studentData}
+              onBack={() => setStep(1)}
+              onNext={(data) => {
+                setStudentData(data);
+                setStep(3);
+              }}
+            />
+          )}
+          {step === 3 && role && <SignupFinishStep role={role} onEnter={enterPlatform} />}
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Field label="الاسم" autoComplete="name" error={errors.fullName?.message} {...register("fullName")} />
-        <Field
-          label="البريد الإلكتروني"
-          type="email"
-          autoComplete="email"
-          error={errors.email?.message}
-          {...register("email")}
-        />
-        <PasswordField
-          label="كلمة المرور"
-          autoComplete="new-password"
-          error={errors.password?.message}
-          {...register("password")}
-        />
-
-        <Button type="submit" variant="primary" size="lg" className="w-full mt-3" disabled={isSubmitting}>
-          إنشاء الحساب
-        </Button>
-      </form>
-
-      <p className="mt-5 text-center text-[12.5px] text-ink3-text">
-        لديك حساب؟{" "}
-        <button type="button" className="text-deep font-semibold" onClick={() => navigate("/login")}>
-          سجّل الدخول
-        </button>
-      </p>
-    </AuthLayout>
+          <p className="text-xs text-ink-3 mt-5 text-center">
+            لديك حساب؟{" "}
+            <button type="button" className="text-deep font-semibold" onClick={() => navigate("/login")}>
+              سجّل الدخول
+            </button>
+          </p>
+        </>
+      }
+      right={
+        <>
+          <div className="text-xs opacity-70 font-semibold tracking-[.09em] mb-4">لماذا مِحوَر</div>
+          <h2 className="text-[29px] font-semibold leading-[1.4]">ثمانية من أحد عشر عنصراً في ملف الجودة تُبنى وحدها</h2>
+          <div className="grid gap-[15px] mt-[30px]">
+            {[
+              ["الاختبارات ونماذج إجاباتها", "من وحدة التقييم مباشرة"],
+              ["الأعلى والأدنى والمتوسط", "محسوبة من كشف الدرجات"],
+              ["نماذج من أعمال الطلبة", "انتقاء آلي مرتفع ومتوسط ومنخفض"],
+              ["توصيف المقرر", "مربوط بما رفعته في المسار الأكاديمي"],
+            ].map(([t, s]) => (
+              <div key={t} className="flex gap-3 items-start">
+                <span className="w-[26px] h-[26px] rounded-lg bg-teal/[.28] grid place-items-center flex-none mt-0.5">
+                  <Icon name="chk" className="w-[13px] h-[13px]" />
+                </span>
+                <div>
+                  <div className="font-semibold text-sm">{t}</div>
+                  <div className="text-xs opacity-[.72] mt-px">{s}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-[34px] pt-[22px] border-t border-white/[.16] text-[13px] opacity-[.78] leading-[1.8]">
+            «كنت أقضي أسبوعاً كاملاً آخر كل فصل في تجميع ملفات المقررات. الآن أضغط زراً واحداً.»
+            <div className="mt-2.5 text-xs opacity-[.65]">— من مقابلات تصميم المنتج</div>
+          </div>
+        </>
+      }
+    />
   );
 }

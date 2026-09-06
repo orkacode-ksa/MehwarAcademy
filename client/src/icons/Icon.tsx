@@ -13,7 +13,6 @@ import {
   CreditCard,
   Download,
   Ellipsis,
-  X,
   FileText,
   FlaskConical,
   GraduationCap,
@@ -84,8 +83,7 @@ export type IconName =
   | "sparks"
   | "user"
   | "megaphone"
-  | "more"
-  | "close";
+  | "more";
 
 const MAP: Record<Exclude<IconName, "logo">, LucideIcon> = {
   grid: LayoutGrid,
@@ -125,7 +123,6 @@ const MAP: Record<Exclude<IconName, "logo">, LucideIcon> = {
   user: User,
   megaphone: Megaphone,
   more: Ellipsis,
-  close: X,
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

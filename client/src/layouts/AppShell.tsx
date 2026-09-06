@@ -1,58 +1,95 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { Icon } from "../icons/Icon.js";
-import { ConfirmDialog } from "../components/ui/ConfirmDialog.js";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Rail } from "../components/shell/Rail.js";
+import { BottomNav } from "../components/shell/BottomNav.js";
+import { MoreSheet } from "../components/shell/MoreSheet.js";
+import { Topbar } from "../components/shell/Topbar.js";
+import { SearchPalette } from "../components/shell/SearchPalette.js";
+import { NotificationPanel } from "../components/shell/NotificationPanel.js";
+import { roleOf } from "../nav/nav.js";
+import { jumpPath, type JumpTarget } from "../nav/jump.js";
+import { NOTIFICATIONS as INITIAL_NOTIFICATIONS } from "../mock/notifications.js";
+import { useToast } from "../state/ToastContext.js";
 
 /**
- * الهيكل — الإصدار الثاني.
- *
- * لا شريط جانبي، ولا شريط سفلي، ولا لوحة «المزيد»، ولا بحث موحّد، ولا مركز إشعارات.
- * بست شاشات لا يوجد ما يُتنقَّل بينه: الشعار يعود لمقرراتي، والباقي بالنقر والرجوع.
- * كل عنصر تنقّل حُذف هنا كان في الإصدار الأول شيئًا يجب على المستخدم أن يتعلّمه أولًا.
+ * هيكل المنصة الداخلي: الشريط + الشريط العلوي + لوحة الجوال «المزيد» + البحث الموحّد +
+ * مركز الإشعارات، ملفوفًا حول محتوى كل شاشة (Outlet). منقول من `rail()`/`topbar()`
+ * ومستمعات `click`/`keydown` في نهاية سكربت البروتوتايب.
  */
 export function AppShell() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [logoutOpen, setLogoutOpen] = useState(false);
+  const { showToast } = useToast();
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+
+  const screenKey = location.pathname.split("/")[1] || "home";
+  const role = roleOf(screenKey);
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
+  useEffect(() => {
+    setMoreOpen(false);
+    setSearchOpen(false);
+    setNotifOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setNotifOpen(false);
+        setMoreOpen(false);
+        return;
+      }
+      const isTyping = /INPUT|TEXTAREA/.test((e.target as HTMLElement).tagName);
+      if ((e.key === "/" || ((e.metaKey || e.ctrlKey) && e.key === "k")) && !isTyping) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function handleJump(target: JumpTarget) {
+    if (target.type === "toast") {
+      showToast(target.message);
+      return;
+    }
+    const path = jumpPath(target);
+    if (path) navigate(path);
+  }
+
+  function markAllRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    showToast("عُلِّمت كل الإشعارات كمقروءة");
+  }
 
   return (
-    <div dir="rtl" className="min-h-[100svh] bg-canvas text-ink">
-      <header className="sticky top-0 z-40 bg-canvas/[.88] backdrop-blur-lg border-b border-line">
-        <div className="max-w-[880px] mx-auto px-5 py-3.5 flex items-center justify-between">
-          <Link to="/courses" className="flex items-center gap-2.5 font-amiri font-bold text-[18px]">
-            <span className="w-[30px] h-[30px] rounded-[10px] bg-gradient-to-br from-deep to-deep3 grid place-items-center text-white">
-              <Icon name="logo" className="w-[17px] h-[17px]" />
-            </span>
-            مِحوَر
-          </Link>
-
-          {/* لا زرّ إعدادات حتى تُبنى شاشتها: زرّ يقود إلى لا شيء أسوأ من غيابه. */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setLogoutOpen(true)}
-              aria-label="تسجيل الخروج"
-              className="w-11 h-11 grid place-items-center rounded-[11px] text-ink2 hover:text-deep hover:bg-deep/[.06] transition-colors"
-            >
-              <Icon name="logout" className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-[880px] mx-auto px-5 py-7 pb-20">
-        <Outlet />
-      </main>
-
-      <ConfirmDialog
-        open={logoutOpen}
-        title="تسجيل الخروج"
-        body="سيُغلق حسابك على هذا الجهاز."
-        confirmLabel="خروج"
-        onConfirm={() => {
-          setLogoutOpen(false);
-          navigate("/");
-        }}
-        onCancel={() => setLogoutOpen(false)}
+    <div className="min-h-dvh bg-canvas text-ink">
+      <a href="#main" className="skip">
+        تخطَّ إلى المحتوى
+      </a>
+      <Rail role={role} />
+      <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
+      <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
+      <NotificationPanel
+        open={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        notifications={notifications}
+        onMarkAllRead={markAllRead}
+        onJump={handleJump}
       />
+      <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
+        <div className="max-w-[1260px] mx-auto" id="main">
+          <Topbar role={role} unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }
