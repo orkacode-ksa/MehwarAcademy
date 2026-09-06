@@ -9,6 +9,10 @@ import { NAV, ROLE_LABEL, type Role } from "./nav/nav.js";
 import type { IconName } from "./icons/Icon.js";
 import { ShowcasePage } from "./pages/ShowcasePage.js";
 import { LandingPage } from "./pages/LandingPage.js";
+import { GuidePage } from "./pages/GuidePage.js";
+import { InstitutionsPage } from "./pages/owner/InstitutionsPage.js";
+import { RegulationPage } from "./pages/owner/RegulationPage.js";
+import { CalendarPage } from "./pages/owner/CalendarPage.js";
 import { SignupPage } from "./pages/SignupPage.js";
 import { LoginPage } from "./pages/LoginPage.js";
 
@@ -20,6 +24,9 @@ const ROLE_STAGE: Record<Role, number> = { faculty: 4, student: 5, dept: 6, admi
  * يُبنَ بعد)، ملفوفة بهيكل المنصة (AppShell). الهبوط والتسجيل والدخول تُبنى في المرحلة ٣
  * فتظهر الآن كصفحات بديلة خارج الهيكل (بلا شريط جانبي، تمامًا كما في البروتوتايب).
  */
+/** مفاتيح الشاشات التي لها مسار حقيقي أدناه. */
+const BUILT_SCREENS = new Set(["courses", "institutions"]);
+
 export function App() {
   return (
     <BrowserRouter>
@@ -27,13 +34,15 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/guide" element={<GuidePage />} />
         {/* صفحة مرجعية غير ملاحية: عرض مكوّنات المرحلة ١ (لا تظهر في أي تنقّل) */}
         <Route path="/showcase" element={<ShowcasePage />} />
 
         <Route element={<AppShell />}>
           {(Object.keys(NAV) as Role[]).flatMap((role) =>
             NAV[role]
-              .filter((item) => item.key !== "courses")
+              // الشاشات المبنيّة فعلاً تُستثنى من حلقة الصفحات البديلة — وإلا سبقتها في الترتيب فحجبتها
+              .filter((item) => !BUILT_SCREENS.has(item.key))
               .map((item) => (
                 <Route
                   key={item.key}
@@ -47,6 +56,11 @@ export function App() {
           <Route path="course/:id" element={<CoursePage />} />
           <Route path="course/:id/:tab" element={<CoursePage />} />
           <Route path="exambuild" element={<PlaceholderPage kicker="أستاذ" title="إنشاء اختبار" icon="file" stage={4} />} />
+
+          {/* شاشات المالك — الخطوة ٠: الجامعة ولائحتها وتقويمها (docs/work-cycle.md §٤) */}
+          <Route path="institutions" element={<InstitutionsPage />} />
+          <Route path="institutions/:tenantId" element={<RegulationPage />} />
+          <Route path="institutions/:tenantId/calendar" element={<CalendarPage />} />
 
           <Route path="scourses" element={<StudentCoursesIndexPage />} />
           <Route path="scourse/:id" element={<StudentCoursePage />} />

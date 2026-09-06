@@ -36,6 +36,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { key: "dresults", icon: "tbl", label: "النتائج" },
   ],
   admin: [
+    { key: "institutions", icon: "grid", label: "الجامعات" },
     { key: "biz", icon: "chart", label: "الأعمال" },
     { key: "cal", icon: "cal", label: "التقويم" },
     { key: "users", icon: "users", label: "المستخدمون" },
@@ -52,7 +53,7 @@ export const ROLE_HOME: Record<Role, string> = {
   faculty: "home",
   student: "shome",
   dept: "dhome",
-  admin: "biz",
+  admin: "institutions",
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -67,7 +68,7 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
   faculty: ["course", "exambuild"],
   student: ["scourse"],
   dept: [],
-  admin: [],
+  admin: ["institutions"],
 };
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {

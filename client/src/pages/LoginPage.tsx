@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { loginSchema, type LoginInput } from "@mihwar/shared";
 import { AuthLayout } from "../components/auth/AuthLayout.js";
 import { Field } from "../components/auth/Field.js";
@@ -8,7 +9,7 @@ import { PasswordField } from "../components/auth/PasswordField.js";
 import { Button } from "../components/ui/Button.js";
 import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME, ROLE_LABEL, type Role } from "../nav/nav.js";
-import { useToast } from "../state/ToastContext.js";
+import { api, ApiError } from "../api/client.js";
 
 const PREVIEW_ROLES: { role: Role; icon: "book" | "cap" | "chart" | "gear" }[] = [
   { role: "faculty", icon: "book" },
@@ -25,18 +26,34 @@ const PREVIEW_ROLES: { role: Role; icon: "book" | "cap" | "chart" | "gear" }[] =
  * أزرار معاينة الأدوار أدناه أداة داخلية للمراجعة فقط، كما يذكر نص البروتوتايب نفسه
  * ("ادخل بدور آخر للمعاينة") — يجب أن تُزال أو تُحمى خلف صلاحية إدارية قبل الإنتاج.
  */
+/** دور الخادم → دور الواجهة. OWNER وADMIN كلاهما لوحة المالك. */
+const ROLE_BY_SERVER: Record<string, Role> = {
+  OWNER: "admin",
+  ADMIN: "admin",
+  TEACHER: "faculty",
+  STUDENT: "student",
+};
+
 export function LoginPage() {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
-  function onSubmit() {
-    showToast("تم التحقّق — الدخول الفعلي يُوصَل بالخادم في المرحلة ٧");
-    navigate(`/${ROLE_HOME.faculty}`);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // دخول حقيقي: الكوكي يُضبط من الخادم، والوجهة تتبع دور الحساب لا افتراضًا ثابتًا.
+  async function onSubmit(values: LoginInput) {
+    setAuthError(null);
+    try {
+      await api.post("/auth/login", values);
+      const me = await api.get<{ role: string }>("/auth/me");
+      navigate(`/${ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`);
+    } catch (err) {
+      setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال بالخادم");
+    }
   }
 
   return (
@@ -49,6 +66,7 @@ export function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <Field label="البريد الإلكتروني" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
             <PasswordField label="كلمة المرور" placeholder="••••••••" error={errors.password?.message} {...register("password")} />
+            {authError && <p className="text-[12px] text-crim mb-2">{authError}</p>}
             <Button type="submit" variant="primary" size="lg" className="w-full mt-1.5" disabled={isSubmitting}>
               دخول <Icon name="arr" className="w-4 h-4" />
             </Button>
