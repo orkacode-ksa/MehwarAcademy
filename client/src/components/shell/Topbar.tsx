@@ -1,10 +1,9 @@
 import { Icon } from "../../icons/Icon.js";
 import { SystemStrip } from "./SystemStrip.js";
-import { greetingFor, SESSION_USER } from "../../mock/session.js";
-import type { Role } from "../../nav/nav.js";
+import { greetingFor } from "../../mock/session.js";
+import { initialOf, useSession } from "../../hooks/useSession.js";
 
 interface TopbarProps {
-  role: Role;
   unreadCount: number;
   onSearchOpen: () => void;
   onNotifOpen: () => void;
@@ -19,17 +18,28 @@ const iconBtn =
  * ٢) سطر ترحيب باسم المستخدم، وفي مقابله أدوات الحساب (بحث · إشعارات · الحساب).
  * حُذف مبدّل الأدوار من داخل الحساب عمدًا — مكانه شاشة الدخول وحدها.
  */
-export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarProps) {
-  const user = SESSION_USER[role];
+export function Topbar({ unreadCount, onSearchOpen, onNotifOpen }: TopbarProps) {
+  const { user } = useSession();
+  const name = user?.fullName ?? "";
 
   return (
     <div className="mb-5">
       <SystemStrip />
 
       <div className="flex items-center gap-3 mt-3.5">
+        {/* الصورة الرمزية بجانب الاسم مباشرة: كانت في الطرف المقابل فلا تُقرأ كأنها له. */}
+        <span
+          aria-hidden
+          className="w-10 h-10 rounded-full flex-none grid place-items-center text-white font-semibold text-[13px] bg-gradient-to-br from-deep to-deep3 shadow-s1"
+        >
+          {name ? initialOf(name) : ""}
+        </span>
+
         <div className="min-w-0 flex-1">
           <div className="text-[11.5px] text-ink-3">{greetingFor()}</div>
-          <div className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">{user.displayName}</div>
+          <div className="text-[17px] sm:text-[19px] font-semibold truncate leading-snug">
+            {name || "\u00A0"}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-none">
@@ -44,9 +54,6 @@ export function Topbar({ role, unreadCount, onSearchOpen, onNotifOpen }: TopbarP
             )}
           </button>
 
-          <button type="button" aria-label="الحساب" title={user.fullName} className="w-10 h-10 rounded-full flex-none grid place-items-center text-white font-semibold text-[13px] bg-gradient-to-br from-deep to-deep3 shadow-s1">
-            {user.displayName.replace(/^د\.\s*/, "").charAt(0)}
-          </button>
         </div>
       </div>
     </div>

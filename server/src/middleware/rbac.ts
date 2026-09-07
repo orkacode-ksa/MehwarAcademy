@@ -44,6 +44,16 @@ export async function requireWorkspaceMembership(req: Request, _res: Response, n
           });
 
     if (!membership) {
+      // مساحة عمل مفقودة لعضو هيئة تدريس ليست حالة «غير موجود» بل خلل في حسابه:
+      // كل أستاذ تُنشأ له مساحة عند التسجيل، وحساب قديم أو تسجيل انقطع قد يفقدها.
+      // إرجاع 404 هنا كان يترك المستخدم أمام «المورد غير موجود» بلا ما يفعله — بلاغ
+      // من المالك. فتُنشأ المساحة الناقصة بدل إغلاق الباب.
+      if (paramWorkspaceId === "me" && req.auth.role === "TEACHER") {
+        const created = await healWorkspace(req.auth.userId, req.auth.tenantId);
+        req.workspaceId = created;
+        next();
+        return;
+      }
       // 404 لا 403 — وجود المساحة نفسها معلومة (الدستور §22)
       throw AppError.notFound();
     }
@@ -53,4 +63,29 @@ export async function requireWorkspaceMembership(req: Request, _res: Response, n
   } catch (err) {
     next(err);
   }
+}
+
+
+/**
+ * يُنشئ مساحة العمل الناقصة لعضو هيئة تدريس.
+ *
+ * لا يُستدعى في التشغيل الطبيعي — التسجيل يُنشئها. وجوده لأن الحساب الذي يفقدها يصير
+ * عاجزًا عن كل شيء بلا رسالة مفيدة، وهو ثمن باهظ لحالة نادرة.
+ */
+async function healWorkspace(userId: string, tenantId: string): Promise<string> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { fullName: true },
+  });
+
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+    const workspace = await tx.workspace.create({
+      data: { tenantId, name: `مساحة ${user.fullName}`, ownerId: userId, planCode: "MIHWAR" },
+    });
+    await tx.workspaceMember.create({
+      data: { tenantId, workspaceId: workspace.id, userId, role: "OWNER" },
+    });
+    return workspace.id;
+  });
 }
