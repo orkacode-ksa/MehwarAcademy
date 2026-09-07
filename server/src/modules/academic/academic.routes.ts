@@ -4,6 +4,8 @@ import {
   createSectionSchema,
   enrollStudentSchema,
   cuidSchema,
+  confirmGradeSchemeSchema,
+  importRosterSchema,
 } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
@@ -17,6 +19,14 @@ const teacherOnly = requireRole("TEACHER", "OWNER", "ADMIN");
 
 academicRouter.get("/years", asyncHandler(controller.listYears));
 academicRouter.get("/terms", asyncHandler(controller.listTerms));
+academicRouter.get("/courses/:courseId/sections", asyncHandler(controller.listSections));
+academicRouter.post("/roster/import", teacherOnly, validate({ body: importRosterSchema }), asyncHandler(controller.importRoster));
+academicRouter.put(
+  "/courses/:courseId/grade-scheme",
+  teacherOnly,
+  validate({ body: confirmGradeSchemeSchema }),
+  asyncHandler(controller.confirmGradeScheme),
+);
 
 academicRouter.get(
   "/years/:academicYearId/semesters",

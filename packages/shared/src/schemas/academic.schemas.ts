@@ -103,3 +103,45 @@ export const setGradeSchema = z
       .max(500),
   })
   .strict();
+
+/**
+ * استيراد كشف الطلاب دفعةً واحدة.
+ *
+ * يُرسَل صفوفًا مُحلَّلة لا ملفًا: التحليل يجري في المتصفّح فيرى الأستاذ الصفوف قبل
+ * حفظها ويصحّح ما شذّ منها. رفع ملف يُحفَظ مباشرة يعني اكتشاف الخطأ بعد وقوعه.
+ */
+export const rosterRowSchema = z.object({
+  universityIdNumber: z.string().trim().min(3).max(20),
+  fullName: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().optional(),
+});
+export type RosterRow = z.infer<typeof rosterRowSchema>;
+
+export const importRosterSchema = z
+  .object({
+    sectionId: cuidSchema,
+    rows: z.array(rosterRowSchema).min(1).max(500),
+  })
+  .strict();
+export type ImportRosterInput = z.infer<typeof importRosterSchema>;
+
+/** إقرار توزيع الدرجات للمقرر — مجموع الأوزان ١٠٠ بالضبط، كما في لائحة الجامعة. */
+export const confirmGradeSchemeSchema = z
+  .object({
+    gradeScheme: z
+      .array(
+        z.object({
+          key: z.string().min(1).max(40),
+          label: z.string().min(1).max(60),
+          weight: z.number().int().min(0).max(100),
+        }),
+      )
+      .min(1)
+      .max(12),
+  })
+  .strict()
+  .refine((v) => v.gradeScheme.reduce((sum, c) => sum + c.weight, 0) === 100, {
+    message: "مجموع الأوزان يجب أن يساوي ١٠٠",
+    path: ["gradeScheme"],
+  });
+export type ConfirmGradeSchemeInput = z.infer<typeof confirmGradeSchemeSchema>;

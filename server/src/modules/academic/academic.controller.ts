@@ -45,3 +45,18 @@ export async function enrollStudent(req: Request, res: Response): Promise<void> 
   if (!req.auth) throw AppError.unauthorized();
   res.status(201).json({ success: true, data: await service.enrollStudent(ws(req), req.auth.userId, req.body) });
 }
+
+export async function listSections(req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.listSections(ws(req), req.params.courseId as string) });
+}
+
+export async function importRoster(req: Request, res: Response): Promise<void> {
+  res.status(201).json({ success: true, data: await service.importRoster(ws(req), req.body) });
+}
+
+export async function confirmGradeScheme(req: Request, res: Response): Promise<void> {
+  res.json({
+    success: true,
+    data: await service.confirmGradeScheme(ws(req), req.params.courseId as string, req.body),
+  });
+}

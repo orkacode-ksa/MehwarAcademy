@@ -4,16 +4,22 @@ import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
+import { RosterImport } from "../../components/faculty/RosterImport.js";
+import { confirmGradeSchemeSchema } from "@mihwar/shared";
 import { Icon } from "../../icons/Icon.js";
 import { formatNum } from "../../lib/numerals.js";
 
 interface Topic { id: string; title: string; orderIndex: number; learningOutcomes: string[] }
 interface SetupStep { key: string; label: string; done: boolean }
+interface Section { id: string; label: string; capacity: number; _count: { enrollments: number } }
+interface GradeComponent { key: string; label: string; weight: number }
 interface Course {
   id: string;
   code: string;
   nameAr: string;
   hasLab: boolean;
+  gradeScheme: GradeComponent[];
+  gradeSchemeConfirmedAt: string | null;
   setup: { done: number; total: number; next: { key: string; label: string } | null; steps: SetupStep[] };
 }
 
@@ -118,11 +124,8 @@ export function CourseSetupPage() {
         </ol>
       </section>
 
-      {course.setup.next && course.setup.next.key !== "INDEX" && (
-        <p className="mt-5 text-[13px] text-ink-2">
-          التالي بعد الفهرس: <b className="font-semibold">{course.setup.next.label}</b>
-        </p>
-      )}
+      <SectionsStep courseId={course.id} onChanged={reload} />
+      <GradesStep course={course} onChanged={reload} />
     </>
   );
 }
@@ -170,5 +173,152 @@ function AddTopic({ courseId, onAdded }: { courseId: string; onAdded: () => void
       </div>
       {err && <p className="text-[12px] text-crim mt-2">{err}</p>}
     </div>
+  );
+}
+
+
+/** ③ الشُّعب — إنشاء شعبة ورفع كشفها. */
+function SectionsStep({ courseId, onChanged }: { courseId: string; onChanged: () => void }) {
+  const { data: sections, reload } = useApi<Section[]>(
+    `/workspaces/me/academic/courses/${courseId}/sections`,
+  );
+  const [label, setLabel] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  async function addSection() {
+    if (label.trim().length < 1) return setErr("اكتب رقم الشعبة");
+    setErr(null);
+    try {
+      await api.post("/workspaces/me/academic/sections", {
+        courseId,
+        label: label.trim(),
+        capacity: 40,
+      });
+      setLabel("");
+      reload();
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "تعذّرت الإضافة");
+    }
+  }
+
+  return (
+    <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+      <h2 className="font-semibold text-[15px]">الشُّعب والطلاب</h2>
+      <p className="text-[12.5px] text-ink-3 mt-1 mb-3.5">
+        أضف شعبة ثم ارفع كشف طلابها — يُقرأ الملف هنا وتراجع الصفوف قبل الحفظ.
+      </p>
+
+      <div className="flex gap-2">
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void addSection()}
+          placeholder="رقم الشعبة"
+          className="flex-1 min-w-0 border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px]"
+        />
+        <Button variant="secondary" onClick={() => void addSection()}>
+          <Icon name="plus" /> أضف شعبة
+        </Button>
+      </div>
+      {err && <p className="text-[12px] text-crim mt-2">{err}</p>}
+
+      <div className="mt-4 grid gap-3">
+        {sections?.map((sec) => (
+          <div key={sec.id} className="border border-line2 rounded-[12px] p-3.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium text-[14px]">شعبة {sec.label}</span>
+              <span className="text-[12.5px] text-ink-3">
+                {formatNum(sec._count.enrollments)} طالباً
+              </span>
+            </div>
+            <RosterImport
+              sectionId={sec.id}
+              onImported={() => {
+                reload();
+                onChanged();
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * ④ الدرجات — تعديل التوزيع **وإقراره**.
+ * الأوزان منسوخة من لائحة الجامعة، لكن الخطوة لا تكتمل حتى يضغط الأستاذ «أقرّ التوزيع»:
+ * وجود قيمة لم يرها أحد ليس إنجازًا.
+ */
+function GradesStep({ course, onChanged }: { course: Course; onChanged: () => void }) {
+  const [scheme, setScheme] = useState<GradeComponent[]>(course.gradeScheme ?? []);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const total = scheme.reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
+
+  async function confirm() {
+    const parsed = confirmGradeSchemeSchema.safeParse({ gradeScheme: scheme });
+    if (!parsed.success) return setErr(parsed.error.issues[0]?.message ?? "بيانات غير صالحة");
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.put(`/workspaces/me/academic/courses/${course.id}/grade-scheme`, parsed.data);
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "تعذّر الحفظ");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-semibold text-[15px]">توزيع الدرجات</h2>
+        <span className={`text-[12.5px] font-medium ${total === 100 ? "text-teal" : "text-crim"}`}>
+          المجموع {formatNum(total)}٪
+        </span>
+      </div>
+      <p className="text-[12.5px] text-ink-3 mt-1 mb-3.5">
+        {course.gradeSchemeConfirmedAt
+          ? "مُقَرّ — يمكنك تعديله وإعادة الإقرار."
+          : "منسوخ من لائحة جامعتك. راجعه ثم أقِرّه."}
+      </p>
+
+      <div className="grid gap-2">
+        {scheme.map((c, i) => (
+          <div key={c.key} className="flex items-center gap-2">
+            <input
+              value={c.label}
+              onChange={(e) => {
+                const next = [...scheme];
+                next[i] = { ...c, label: e.target.value };
+                setScheme(next);
+              }}
+              className="flex-1 min-w-0 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+            />
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={c.weight}
+              onChange={(e) => {
+                const next = [...scheme];
+                next[i] = { ...c, weight: Number(e.target.value) };
+                setScheme(next);
+              }}
+              className="w-20 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px] flex-none"
+            />
+          </div>
+        ))}
+      </div>
+
+      {err && <p className="text-[12px] text-crim mt-2.5">{err}</p>}
+
+      <Button variant="primary" className="mt-3.5" onClick={() => void confirm()} disabled={busy}>
+        <Icon name="chk" /> {course.gradeSchemeConfirmedAt ? "احفظ التعديل" : "أقِرّ التوزيع"}
+      </Button>
+    </section>
   );
 }

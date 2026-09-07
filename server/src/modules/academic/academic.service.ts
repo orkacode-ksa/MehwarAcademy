@@ -1,4 +1,6 @@
 import type {
+  ConfirmGradeSchemeInput,
+  ImportRosterInput,
   createCourseSchema,
   createSectionSchema,
   enrollStudentSchema,
@@ -226,4 +228,100 @@ export async function enrollStudent(workspaceId: string, actorId: string, input:
   });
 
   return { ...enrollment, tempPassword };
+}
+
+
+/**
+ * استيراد كشف الطلاب دفعةً واحدة.
+ *
+ * ثلاث قواعد فرضتها طبيعة كشوف الجامعات:
+ * ١) **الرقم الجامعي هو المفتاح**، لا البريد: كثير من الكشوف بلا بريد إطلاقًا، وحساب
+ *    الطالب يُنشأ ببريد مشتقّ ثابت حتى يُدعى لاحقًا بحسابه الحقيقي.
+ * ٢) **إعادة الاستيراد لا تُكرّر**: الأستاذ يرفع الكشف مرة ثم يرفع نسخة محدَّثة بعد
+ *    الحذف والإضافة. المسجَّل سابقًا يُترك، والجديد يُضاف.
+ * ٣) **تقرير بالنتيجة لا صمت**: كم أُضيف وكم كان موجودًا — وإلا لم يعرف ماذا حدث.
+ */
+export async function importRoster(workspaceId: string, input: ImportRosterInput) {
+  const section = await prisma.section.findFirst({
+    where: { id: input.sectionId, workspaceId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!section) throw AppError.notFound("الشعبة غير موجودة");
+
+  const tenantId = requireTenantId();
+  let added = 0;
+  let existing = 0;
+
+  for (const row of input.rows) {
+    const email = row.email ?? `s${row.universityIdNumber}@students.local`;
+
+    let student = await prismaBase.user.findUnique({
+      where: { tenantId_email: { tenantId, email } },
+      select: { id: true, role: true },
+    });
+
+    if (!student) {
+      student = await prismaBase.user.create({
+        data: {
+          tenantId,
+          email,
+          fullName: row.fullName,
+          role: "STUDENT",
+          // كلمة مرور عشوائية غير قابلة للاستخدام: الطالب يدخل بدعوة تُرسَل لاحقًا،
+          // ولا تُنشأ له كلمة مرور مؤقتة تُتداول في رسائل.
+          passwordHash: await hashPassword(randomToken(24)),
+        },
+        select: { id: true, role: true },
+      });
+    }
+
+    const already = await prisma.enrollment.findFirst({
+      where: { sectionId: section.id, studentId: student.id },
+      select: { id: true },
+    });
+    if (already) {
+      existing += 1;
+      continue;
+    }
+
+    await prisma.enrollment.create({
+      data: {
+        tenantId,
+        workspaceId,
+        sectionId: section.id,
+        studentId: student.id,
+        universityIdNumber: row.universityIdNumber,
+      },
+    });
+    added += 1;
+  }
+
+  return { added, existing, total: input.rows.length };
+}
+
+/**
+ * إقرار توزيع الدرجات — الخطوة ④.
+ * وجود الأوزان لا يُكمل الخطوة؛ الإقرار هو ما يُكملها (انظر courseSetup.ts).
+ */
+export async function confirmGradeScheme(workspaceId: string, courseId: string, input: ConfirmGradeSchemeInput) {
+  const course = await prisma.course.findFirst({
+    where: { id: courseId, workspaceId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!course) throw AppError.notFound("المقرر غير موجود");
+
+  return prisma.course.update({
+    where: { id: course.id },
+    data: { gradeScheme: input.gradeScheme, gradeSchemeConfirmedAt: new Date() },
+    select: { id: true, gradeScheme: true, gradeSchemeConfirmedAt: true },
+  });
+}
+
+/** الشُّعب مع عدد المسجَّلين — يحتاجه الأستاذ ليعرف أي شعبة ما زالت فارغة. */
+export async function listSections(workspaceId: string, courseId: string) {
+  return prisma.section.findMany({
+    where: { courseId, workspaceId, deletedAt: null },
+    orderBy: { label: "asc" },
+    select: { id: true, label: true, capacity: true, _count: { select: { enrollments: true } } },
+  });
 }

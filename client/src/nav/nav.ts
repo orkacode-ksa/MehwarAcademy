@@ -50,7 +50,8 @@ export const NAV: Record<Role, NavItem[]> = {
 export const MOBILE_PRIMARY_COUNT = 4;
 
 export const ROLE_HOME: Record<Role, string> = {
-  faculty: "home",
+  // «مقرراتي» لا «اللوحة»: اللوحة صفحة بديلة، والأستاذ يدخل ليفتح مقرره.
+  faculty: "courses",
   student: "shome",
   dept: "dhome",
   admin: "institutions",

@@ -8,7 +8,7 @@ import { SignupStudentJoinStep, type StudentJoinDetails } from "../components/au
 import { SignupFinishStep } from "../components/auth/SignupFinishStep.js";
 import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME } from "../nav/nav.js";
-import { useToast } from "../state/ToastContext.js";
+import { api, ApiError } from "../api/client.js";
 
 type Step = 1 | 2 | 3;
 
@@ -23,15 +23,35 @@ type Step = 1 | 2 | 3;
  */
 export function SignupPage() {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const [step, setStep] = useState<Step>(1);
   const [role, setRole] = useState<SignupRole | null>(null);
   const [facultyData, setFacultyData] = useState<Partial<FacultyDetails>>({});
   const [studentData, setStudentData] = useState<Partial<StudentJoinDetails>>({});
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  function enterPlatform() {
-    showToast("تم إنشاء الحساب — الربط الفعلي بالخادم يُوصَل في المرحلة ٧");
-    navigate(`/${ROLE_HOME[role ?? "faculty"]}`);
+  /**
+   * إنشاء الحساب فعليًا على الخادم.
+   *
+   * كان هذا الزرّ ينتقل للوحة بلا استدعاء أي مسار: يظنّ المستخدم أن حسابه أُنشئ، ثم
+   * يُرفض دخوله لأنه لا وجود له — وهو ما وقع فعلًا مع أول مستخدم حقيقي.
+   */
+  async function enterPlatform() {
+    setAuthError(null);
+    const payload = {
+      fullName: facultyData.fullName ?? "",
+      email: facultyData.email ?? "",
+      password: facultyData.password ?? "",
+      role: role === "student" ? ("STUDENT" as const) : ("TEACHER" as const),
+    };
+    try {
+      await api.post("/auth/register", payload);
+      navigate(`/${ROLE_HOME[role ?? "faculty"]}`);
+    } catch (err) {
+      setAuthError(
+        err instanceof ApiError ? err.message : "تعذّر إنشاء الحساب — تحقّق من اتصالك",
+      );
+      setStep(2);
+    }
   }
 
   return (
@@ -68,7 +88,8 @@ export function SignupPage() {
               }}
             />
           )}
-          {step === 3 && role && <SignupFinishStep role={role} onEnter={enterPlatform} />}
+          {step === 3 && role && <SignupFinishStep role={role} onEnter={() => void enterPlatform()} />}
+          {authError && <p className="text-[12.5px] text-crim mt-3 text-center">{authError}</p>}
 
           <p className="text-xs text-ink-3 mt-5 text-center">
             لديك حساب؟{" "}
