@@ -118,46 +118,90 @@ function LessonPlayer({ src, deck }: { src: string; deck: Deck }) {
   );
 }
 
-/** Markdown الذي يكتبه المولّد (## عناوين · قوائم · **غامق**) — عناصر React لا HTML خام. */
+/** Markdown الذي يكتبه المولّد (عناوين · قوائم · جداول · **غامق**) — عناصر React لا HTML خام. */
 function Markdown({ text }: { text: string }) {
   const blocks = useMemo(() => {
     const out: ReactNode[] = [];
-    let list: string[] = [];
-    const flush = () => {
-      if (list.length) {
-        const items = list;
-        out.push(
-          <ul key={out.length} className="list-disc ps-5 grid gap-1">
-            {items.map((l, k) => (
-              <li key={k}>{inline(l)}</li>
-            ))}
-          </ul>,
-        );
-        list = [];
-      }
+    let list: { ordered: boolean; items: string[] } | null = null;
+    let table: string[][] = [];
+    const flushList = () => {
+      if (!list) return;
+      const { ordered, items } = list;
+      const Tag = ordered ? "ol" : "ul";
+      out.push(
+        <Tag key={out.length} className={`${ordered ? "list-decimal" : "list-disc"} ps-5 grid gap-1`}>
+          {items.map((l, k) => (
+            <li key={k}>{inline(l)}</li>
+          ))}
+        </Tag>,
+      );
+      list = null;
+    };
+    const flushTable = () => {
+      if (table.length === 0) return;
+      const [head, ...rows] = table;
+      out.push(
+        <div key={out.length} className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full text-[12.5px] border-collapse min-w-[420px]">
+            <thead>
+              <tr>
+                {head?.map((c, k) => (
+                  <th key={k} className="border border-line bg-deep/[.05] px-2 py-1.5 text-start font-semibold">
+                    {inline(c)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i}>
+                  {r.map((c, k) => (
+                    <td key={k} className="border border-line px-2 py-1.5 align-top">
+                      {inline(c)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      table = [];
     };
     for (const raw of text.split("\n")) {
       const line = raw.trim();
-      const bullet = /^([-*•]|\d+[.)])\s+(.*)$/.exec(line);
-      if (bullet) {
-        list.push(bullet[2] as string);
+      if (line.startsWith("|")) {
+        flushList();
+        const cells = line.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+        if (!cells.every((c) => /^:?-{2,}:?$/.test(c))) table.push(cells);
         continue;
       }
-      flush();
-      if (!line) continue;
-      const h = /^#{1,4}\s+(.*)$/.exec(line);
+      flushTable();
+      const bullet = /^[-*•]\s+(.*)$/.exec(line);
+      const num = /^\d+[.)]\s+(.*)$/.exec(line);
+      if (bullet || num) {
+        const ordered = !!num;
+        if (list && list.ordered !== ordered) flushList();
+        if (!list) list = { ordered, items: [] };
+        list.items.push(((bullet ?? num) as RegExpExecArray)[1] as string);
+        continue;
+      }
+      flushList();
+      if (!line || /^(-{3,}|\*{3,})$/.test(line)) continue;
+      const h = /^(#{1,4})\s+(.*)$/.exec(line);
       if (h)
         out.push(
-          <h4 key={out.length} className="font-semibold text-[14.5px] text-deep mt-2">
-            {inline(h[1] as string)}
+          <h4 key={out.length} className={`font-semibold text-deep ${(h[1] as string).length <= 2 ? "text-[15px] mt-3" : "text-[14px] mt-1.5"}`}>
+            {inline(h[2] as string)}
           </h4>,
         );
       else out.push(<p key={out.length}>{inline(line)}</p>);
     }
-    flush();
+    flushList();
+    flushTable();
     return out;
   }, [text]);
-  return <div className="text-[13.5px] text-ink-2 leading-7 grid gap-1.5">{blocks}</div>;
+  return <div className="text-[13.5px] text-ink-2 leading-7 grid gap-1.5 min-w-0">{blocks}</div>;
 }
 
 function inline(s: string): ReactNode {

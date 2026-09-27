@@ -24,7 +24,9 @@ import * as store from "../store/store.service.js";
 import * as bank from "../bank/bank.service.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { kindsAvailable } from "../generation/generation.service.js";
-import { writerOf } from "../generation/engine.js";
+import { writerReady } from "../generation/engine.js";
+import { getPlatformSettings, savePlatformSettings } from "../platform/settings.js";
+import { usageReport } from "../platform/aiBudget.js";
 import { googleConfigured } from "../integrations/google.service.js";
 import { env } from "../../config/env.js";
 
@@ -340,11 +342,32 @@ ownerRouter.get(
       success: true,
       data: {
         storage: getStorageProvider().mode,
-        writer: writerOf(),
+        ai: writerReady(),
         voice: kindsAvailable().AUDIO,
         google: googleConfigured(),
         redis: !!env.REDIS_URL,
       },
     });
+  }),
+);
+
+/** إعدادات المنصة: مدة التجربة · ميزانية المحرّك وأسعاره · حدود المساعد والمصادر · إقفال الفصل. */
+ownerRouter.get(
+  "/platform/settings",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await getPlatformSettings() });
+  }),
+);
+ownerRouter.put(
+  "/platform/settings",
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await savePlatformSettings(req.body) });
+  }),
+);
+/** تكلفة المحرّك هذا الشهر: الإجمالي مقابل السقف، وحسب الميزة، وأعلى المستهلكين. */
+ownerRouter.get(
+  "/platform/usage",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await usageReport() });
   }),
 );

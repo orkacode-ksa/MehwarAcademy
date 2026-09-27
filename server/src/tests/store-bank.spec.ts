@@ -8,6 +8,7 @@ import { prismaBase } from "../lib/prisma.js";
 import { env } from "../config/env.js";
 import { drainGeneration } from "../modules/generation/generation.service.js";
 import { resetExpensiveLimitForTests } from "../middleware/rateLimit.js";
+import { resetSettingsCache } from "../modules/platform/settings.js";
 
 /**
  * المتجر والبنك والملفات والتوليد والتقارير — عبر الواجهة البرمجية الحقيقية.
@@ -260,50 +261,113 @@ describe("بنك المقررات", () => {
   });
 });
 
-describe("التوليد داخل المنصة (Claude يكتب · Gemini يُنطق)", () => {
+/** ZIP مخزّن بلا ضغط — يكفي لبناء ملف Word صغير داخل الاختبار. */
+function storedZip(entries: Record<string, string>): Buffer {
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  for (const [name, text] of Object.entries(entries)) {
+    const data = Buffer.from(text, "utf8");
+    const n = Buffer.from(name, "utf8");
+    const l = Buffer.alloc(30);
+    l.writeUInt32LE(0x04034b50, 0);
+    l.writeUInt32LE(data.length, 18);
+    l.writeUInt32LE(data.length, 22);
+    l.writeUInt16LE(n.length, 26);
+    const c = Buffer.alloc(46);
+    c.writeUInt32LE(0x02014b50, 0);
+    c.writeUInt32LE(data.length, 20);
+    c.writeUInt32LE(data.length, 24);
+    c.writeUInt16LE(n.length, 28);
+    c.writeUInt32LE(offset, 42);
+    locals.push(l, n, data);
+    centrals.push(c, n);
+    offset += 30 + n.length + data.length;
+  }
+  const cd = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(Object.keys(entries).length, 8);
+  end.writeUInt16LE(Object.keys(entries).length, 10);
+  end.writeUInt32LE(cd.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, cd, end]);
+}
+
+describe("التوليد داخل المنصة — مصادر المقرر ومحرّك مِحوَر", () => {
   let server: http.Server;
-  const claudeCalls: { content: { type: string; text?: string }[] }[] = [];
+  const textCalls: { model: string; parts: { text?: string; inlineData?: { mimeType: string } }[]; json: boolean }[] = [];
   let ttsCalls = 0;
+  let failNext = 1; // أول نداء يعود «مزدحم» — لاختبار إعادة المحاولة
   let topicId: string;
   const saved = { ...env };
+  const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
   const reply = (res: http.ServerResponse, body: unknown) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(body));
+  const wav1s = () => {
+    const pcm = Buffer.alloc(48_000);
+    const h = Buffer.alloc(44);
+    h.write("RIFF", 0);
+    h.writeUInt32LE(36 + pcm.length, 4);
+    h.write("WAVEfmt ", 8);
+    h.writeUInt32LE(16, 16);
+    h.writeUInt16LE(1, 20);
+    h.writeUInt16LE(1, 22);
+    h.writeUInt32LE(24_000, 24);
+    h.writeUInt32LE(48_000, 28);
+    h.writeUInt16LE(2, 32);
+    h.writeUInt16LE(16, 34);
+    h.write("data", 36);
+    h.writeUInt32LE(pcm.length, 40);
+    return Buffer.concat([h, pcm]).toString("base64");
+  };
   beforeAll(async () => {
     server = http.createServer((req, res) => {
       let data = "";
       req.on("data", (c) => (data += c));
       req.on("end", () => {
+        expect(req.headers["x-goog-api-key"]).toBe("gemini-key");
+        expect(req.url).not.toContain("key=");
         const body = JSON.parse(data);
-        if (req.url?.startsWith("/v1/messages")) {
-          expect(req.headers["x-api-key"]).toBe("claude-key");
-          claudeCalls.push(body.messages[0]);
-          const prompt: string = body.messages[0].content.at(-1).text;
-          const text = prompt.includes('"turns"')
-            ? JSON.stringify({ turns: [{ speaker: "A", text: "مرحبًا، ما قانون نيوتن الأول؟" }, { speaker: "B", text: "الجسم يبقى على حاله ما لم تؤثّر فيه قوة." }] })
-            : prompt.includes('"narration"')
-              ? "```json\n" + JSON.stringify({ slides: [{ title: "القصور الذاتي", bullets: ["الجسم يقاوم التغيير"], narration: "نبدأ بالقصور الذاتي." }, { title: "القوة", bullets: ["ق = ك × ت"], narration: "ثم القوة." }] }) + "\n```"
-              : prompt.includes('"slides"')
-                ? JSON.stringify({ slides: [{ title: "القانون الأول", bullets: ["القصور الذاتي", "مثال السيارة"] }, { title: "الخلاصة", bullets: ["ثلاثة قوانين"] }] })
-                : "## مقدمة\nشرح القانون الأول.";
-          return reply(res, { content: [{ type: "text", text }] });
+        const model = /models\/([^:]+):/.exec(req.url ?? "")?.[1] ?? "";
+        if (failNext > 0) {
+          failNext--;
+          return res.writeHead(503).end("{}");
         }
-        ttsCalls++;
-        expect(body.generationConfig.responseModalities).toEqual(["AUDIO"]);
-        // ثانية واحدة من PCM بمعدّل 24kHz.
-        return reply(res, { candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/L16;codec=pcm;rate=24000", data: Buffer.alloc(48_000).toString("base64") } }] } }] });
+        if (body.generationConfig?.responseModalities) {
+          ttsCalls++;
+          const parts = body.contents[0].parts as { speechMetadata?: { speaker: string } }[];
+          if (body.generationConfig.speechConfig.multiSpeakerVoiceConfig) expect(parts.every((p) => p.speechMetadata?.speaker)).toBe(true);
+          return reply(res, {
+            candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/wav", data: wav1s() } }] } }],
+            usageMetadata: { promptTokenCount: 20, candidatesTokenCount: 100, candidatesTokensDetails: [{ modality: "AUDIO", tokenCount: 100 }] },
+          });
+        }
+        const parts = body.contents[0].parts;
+        const json = body.generationConfig?.responseMimeType === "application/json";
+        textCalls.push({ model, parts, json });
+        const prompt: string = parts.at(-1).text;
+        const text = prompt.includes('"turns"')
+          ? JSON.stringify({ turns: [{ speaker: "A", text: "مرحبًا، ما قانون نيوتن الأول؟" }, { speaker: "B", text: "الجسم يبقى على حاله ما لم تؤثّر فيه قوة." }] })
+          : prompt.includes('"narration"')
+            ? JSON.stringify({ slides: [{ title: "القصور الذاتي", bullets: ["الجسم يقاوم التغيير"], narration: "نبدأ بالقصور الذاتي." }, { title: "القوة", bullets: ["ق = ك × ت"], narration: "ثم القوة." }] })
+            : prompt.includes('"slides"')
+              ? JSON.stringify({ slides: [{ title: "القانون الأول", bullets: ["القصور الذاتي", "مثال السيارة"] }, { title: "الخلاصة", bullets: ["ثلاثة قوانين"] }] })
+              : "## الأهداف\nشرح القانون الأول.";
+        return reply(res, { candidates: [{ content: { parts: [{ text }] } }], usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 500 } });
       });
     });
     await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
     topicId = (await a.get(`${W}/teaching/courses/${aCourse}/topics`)).body.data[0].id;
     await resetExpensiveLimitForTests((await a.get("/api/auth/me")).body.data.id);
-    const up = await a.post("/api/files/me/upload?purpose=MATERIAL").set("Content-Type", "application/pdf").set("X-File-Name", "lecture.pdf").send(PDF);
-    await a.post(`${W}/teaching/materials`).send({ topicId, kind: "LINK", title: "محاضرتي", fileId: up.body.data.id });
   });
-  afterAll(() => {
+  afterAll(async () => {
     server.close();
-    Object.assign(env, { ANTHROPIC_API_KEY: saved.ANTHROPIC_API_KEY, GEMINI_API_KEY: saved.GEMINI_API_KEY, ANTHROPIC_BASE_URL: saved.ANTHROPIC_BASE_URL, AI_BASE_URL: saved.AI_BASE_URL });
+    Object.assign(env, { GEMINI_API_KEY: saved.GEMINI_API_KEY, AI_BASE_URL: saved.AI_BASE_URL });
+    await owner.put("/api/owner/platform/settings").send({});
   });
 
+  const G = "/api/integrations/generation/me";
   const bin = (url: string) =>
     a
       .get(url)
@@ -313,58 +377,75 @@ describe("التوليد داخل المنصة (Claude يكتب · Gemini يُن
         res.on("data", (d: Buffer) => chunks.push(d));
         res.on("end", () => cb(null, Buffer.concat(chunks)));
       });
-  const gen = async (kind: string) => {
-    const r = await a.post("/api/integrations/generation/me").send({ topicId, kind });
+  const request_ = (kind: string, extra: Record<string, unknown> = {}) => a.post(G).send({ courseId: aCourse, topicIds: [topicId], kind, ...extra });
+  const gen = async (kind: string, extra: Record<string, unknown> = {}) => {
+    const r = await request_(kind, extra);
     expect(r.status).toBe(202);
+    expect(r.body.data.started).toBe(1);
     await drainGeneration();
-    const jobs = (await a.get(`/api/integrations/generation/me/course/${aCourse}`)).body.data as { id: string; status: string; errorMessage: string | null }[];
-    const job = jobs.find((j) => j.id === r.body.data.id);
+    const jobs = (await a.get(`${G}/course/${aCourse}`)).body.data as { id: string; status: string; errorMessage: string | null; engine?: string }[];
+    const job = jobs.find((j) => j.id === r.body.data.jobIds[0]);
     expect(job?.errorMessage ?? null).toBeNull();
     expect(job?.status).toBe("SUCCEEDED");
-    const mats = (await a.get(`${W}/teaching/topics/${topicId}/materials`)).body.data as { title: string; kind: string; url: string | null; scriptText: string | null }[];
+    expect(job).not.toHaveProperty("engine"); // اسم النموذج للمالك وحده
+    const mats = (await a.get(`${W}/teaching/topics/${topicId}/materials`)).body.data as { id: string; title: string; kind: string; url: string | null; scriptText: string | null }[];
     return mats[mats.length - 1] as (typeof mats)[number];
   };
 
-  it("بلا مفاتيح: رسالة واضحة لا انهيار", async () => {
-    env.ANTHROPIC_API_KEY = undefined;
+  it("بلا مفتاح: رسالة واضحة لا انهيار ولا ذكر لأي مزوّد", async () => {
     env.GEMINI_API_KEY = undefined;
-    const r = await a.post("/api/integrations/generation/me").send({ topicId, kind: "TEXT" });
+    const r = await request_("TEXT");
     expect(r.status).toBe(400);
-    expect(r.body.error.message).toContain("لم يُفعَّل");
+    expect(r.body.error.message).toContain("غير متاح");
+    expect(JSON.stringify(r.body)).not.toMatch(/gemini|google|claude|notebooklm/i);
   });
 
-  it("Claude وحده: الشرح يعمل، والصوت يطلب تفعيله", async () => {
+  it("مصادر المقرر: Word يُستخرج نصّه وPDF يُحفظ — وغيرهما يُرفض", async () => {
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-    Object.assign(env, { ANTHROPIC_API_KEY: "claude-key", ANTHROPIC_BASE_URL: base, AI_BASE_URL: base });
-    const st = (await a.get("/api/integrations/generation/me/status")).body.data;
-    expect(st).toMatchObject({ enabled: true, writer: "claude", kinds: { TEXT: true, AUDIO: false } });
-    expect((await a.post("/api/integrations/generation/me").send({ topicId, kind: "AUDIO" })).status).toBe(400);
-
-    const m = await gen("TEXT");
-    expect(m).toMatchObject({ kind: "TEXT", title: "شرح: قوانين نيوتن" });
-    expect(m.scriptText).toContain("القانون الأول");
-    // الكاتب تلقّى مصادر الأستاذ: نصّه، وملف PDF الذي رفعه في الموضوع.
-    const call = claudeCalls.at(-1) as { content: { type: string; text?: string }[] };
-    expect(call.content.some((c) => c.type === "document")).toBe(true);
-    expect(call.content.at(-1)?.text).toContain("القانون الأول...");
+    Object.assign(env, { GEMINI_API_KEY: "gemini-key", AI_BASE_URL: base });
+    const docx = storedZip({ "word/document.xml": '<w:document><w:body><w:p><w:r><w:t>نص من ملف الأستاذ: القصور الذاتي &amp; الكتلة</w:t></w:r></w:p></w:body></w:document>' });
+    const S = `${G}/course/${aCourse}/sources`;
+    expect((await a.post(S).set("Content-Type", "image/png").set("X-File-Name", "x.png").send(PNG)).status).toBe(400);
+    expect((await a.post(S).set("Content-Type", DOCX).set("X-File-Name", encodeURIComponent("ملزمة.docx")).send(docx)).status).toBe(201);
+    expect((await a.post(`${S}?topicId=${topicId}`).set("Content-Type", "application/pdf").set("X-File-Name", "lecture.pdf").send(PDF)).status).toBe(201);
+    const list = (await a.get(S)).body.data as { title: string; readable: boolean }[];
+    expect(list.map((x) => x.title).sort()).toEqual(["lecture", "ملزمة"]);
+    expect(list.every((x) => x.readable)).toBe(true);
   });
 
-  it("الشرائح ملف PDF في مساحة الأستاذ", async () => {
-    const m = await gen("SLIDES");
-    expect(m.kind).toBe("SLIDES");
-    const f = await bin(m.url as string);
-    expect(f.headers["content-type"]).toContain("application/pdf");
-    expect(f.body.subarray(0, 4).toString()).toBe("%PDF");
-  }, 30_000);
+  it("الشرح: يُبنى على المصادر ووصف الأستاذ، ويصمد أمام الازدحام", async () => {
+    const m = await gen("TEXT", { instructions: "ركّز على أمثلة المركبات" });
+    expect(m).toMatchObject({ kind: "TEXT", title: "محاضرة: قوانين نيوتن" });
+    // نداء الكتابة (يحمل الملفات) — ويليه نداء التحكيم العلمي (بلا ملفات).
+    const call = textCalls.filter((c) => c.parts.some((p) => p.inlineData)).at(-1) as (typeof textCalls)[number];
+    const prompt = call.parts.at(-1)?.text ?? "";
+    expect(textCalls.at(-1)?.parts.at(-1)?.text).toContain("المسودة");
+    expect(prompt).toContain("القصور الذاتي & الكتلة"); // نص Word
+    expect(prompt).toContain("القانون الأول..."); // نص الأستاذ في الموضوع
+    expect(prompt).toContain("ركّز على أمثلة المركبات");
+    expect(call.parts.some((p) => p.inlineData?.mimeType === "application/pdf")).toBe(true);
+    expect(failNext).toBe(0); // الأول ردّ 503 وأُعيدت المحاولة
+  });
 
-  it("البودكاست حوار بصوتين ← WAV، ودرس الفيديو شرائح متزامنة مع السرد", async () => {
-    env.GEMINI_API_KEY = "gemini-key";
+  it("لا تكرار: الموجود يُتخطّى، ويُولَّد من جديد بعد حذفه فقط", async () => {
+    const again = await request_("TEXT");
+    expect(again.body.data).toMatchObject({ started: 0, skippedExisting: 1 });
+    const mats = (await a.get(`${W}/teaching/topics/${topicId}/materials`)).body.data as { id: string; kind: string; title: string }[];
+    const gen1 = mats.find((x) => x.title === "محاضرة: قوانين نيوتن") as { id: string };
+    await a.delete(`${W}/teaching/materials/${gen1.id}`);
+    const after = await request_("TEXT");
+    expect(after.body.data.started).toBe(1);
+    await drainGeneration();
+  });
+
+  it("العرض PDF · البودكاست بصوتين · الدرس المصوّر متزامن", async () => {
+    const slides = await gen("SLIDES");
+    expect((await bin(slides.url as string)).body.subarray(0, 4).toString()).toBe("%PDF");
+
     const audio = await gen("AUDIO");
-    expect(audio.kind).toBe("AUDIO");
     expect(audio.scriptText).toContain("الأستاذ:");
     const wav = await bin(audio.url as string);
     expect(wav.body.subarray(0, 4).toString()).toBe("RIFF");
-    // القفز في المشغّل يحتاج Range.
     const part = await a.get(audio.url as string).set("Range", "bytes=8-11").buffer(true).parse((res, cb) => {
       const c: Buffer[] = [];
       res.on("data", (d: Buffer) => c.push(d));
@@ -375,10 +456,25 @@ describe("التوليد داخل المنصة (Claude يكتب · Gemini يُن
 
     const before = ttsCalls;
     const video = await gen("VIDEO");
-    expect(ttsCalls - before).toBe(2); // سرد لكل شريحة
+    expect(ttsCalls - before).toBe(1); // الشرائح كلها في طلب صوت واحد
     const deck = JSON.parse(video.scriptText as string);
-    expect(deck.v).toBe(1);
-    expect(deck.slides.map((s: { start: number }) => s.start)).toEqual([0, 1.6]);
-    expect(deck.slides[0].title).toBe("القصور الذاتي");
+    // ثانية صوت واحدة مقسومة بنسبة طول نص كل شريحة: «نبدأ بالقصور الذاتي.» ثم «ثم القوة.»
+    expect(deck.slides[0].start).toBe(0);
+    expect(deck.slides[1].start).toBeGreaterThan(0.5);
+    expect(deck.slides[1].start).toBeLessThan(1);
+  }, 30_000);
+
+  it("التكلفة: كل نداء مسجّل، وبلوغ سقف الشهر يوقف التوليد برسالة محايدة", async () => {
+    const usage = (await owner.get("/api/owner/platform/usage")).body.data;
+    expect(usage.spentSar).toBeGreaterThan(0);
+    expect(usage.byFeature.find((f: { feature: string }) => f.feature === "GENERATION").calls).toBeGreaterThan(0);
+    expect((await a.get("/api/owner/platform/usage")).status).toBe(403);
+    await owner.put("/api/owner/platform/settings").send({ ai: { monthlyBudgetSar: 0 } });
+    resetSettingsCache();
+    await resetExpensiveLimitForTests((await a.get("/api/auth/me")).body.data.id);
+    const other = (await a.get(`${W}/teaching/courses/${aCourse}/topics`)).body.data as { id: string }[];
+    const r = await a.post(G).send({ courseId: aCourse, topicIds: other.map((t) => t.id), kind: "AUDIO" });
+    expect(r.status).toBe(400);
+    expect(r.body.error.message).toContain("متوقفة مؤقتًا");
   });
 });

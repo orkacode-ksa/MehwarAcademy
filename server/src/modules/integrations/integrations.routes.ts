@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, raw } from "express";
 import { requestGenerationSchema } from "@mihwar/shared";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireRole, requireWorkspaceMembership } from "../../middleware/rbac.js";
@@ -10,6 +10,7 @@ import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
 import * as google from "./google.service.js";
 import * as gen from "../generation/generation.service.js";
+import { MAX_UPLOAD_BYTES } from "../files/files.service.js";
 
 export const integrationsRouter = Router();
 
@@ -83,3 +84,45 @@ integrationsRouter.get(
   }),
 );
 
+
+// ── مصادر المقرر (يرفعها الأستاذ مرة، ويُولَّد منها لكل موضوع) ──
+integrationsRouter.get(
+  "/generation/:workspaceId/course/:courseId/sources",
+  requireAuth,
+  requireWorkspaceMembership,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await gen.listSources(req.workspaceId as string, req.params.courseId as string) });
+  }),
+);
+integrationsRouter.post(
+  "/generation/:workspaceId/course/:courseId/sources",
+  requireAuth,
+  requireRole("TEACHER"),
+  requireWorkspaceMembership,
+  expensiveRateLimit,
+  raw({ limit: MAX_UPLOAD_BYTES, type: () => true }),
+  asyncHandler(async (req, res) => {
+    if (!Buffer.isBuffer(req.body)) throw AppError.badRequest("لم يصل ملف");
+    const topicId = typeof req.query.topicId === "string" && req.query.topicId ? req.query.topicId : undefined;
+    const out = await gen.addSource({
+      workspaceId: req.workspaceId as string,
+      userId: uid(req),
+      courseId: req.params.courseId as string,
+      topicId,
+      fileName: decodeURIComponent(req.header("X-File-Name") ?? "source"),
+      mimeType: (req.header("Content-Type") ?? "").split(";")[0]?.trim() ?? "",
+      data: req.body,
+    });
+    res.status(201).json({ success: true, data: out });
+  }),
+);
+integrationsRouter.delete(
+  "/generation/:workspaceId/sources/:sourceId",
+  requireAuth,
+  requireRole("TEACHER"),
+  requireWorkspaceMembership,
+  asyncHandler(async (req, res) => {
+    await gen.removeSource(req.workspaceId as string, req.params.sourceId as string);
+    res.status(204).send();
+  }),
+);

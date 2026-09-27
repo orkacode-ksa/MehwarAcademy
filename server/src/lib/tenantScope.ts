@@ -33,6 +33,7 @@ export const TENANT_SCOPED_MODELS = [
   "FileAsset",
   "FileBlob",
   "FacultyActivity",
+  "SourceFile",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];
@@ -74,6 +75,8 @@ export const UNSCOPED_MODELS = [
   "BankCourseAuthor",
   // يُقرأ بمعرّف المستخدم من التوكن وحده، ويحمل رمزًا مشفّرًا لا يُرجَع لأي واجهة.
   "GoogleConnection",
+  // إعدادات المنصة يملكها المالك وحده، ولا تحمل مستأجرًا.
+  "PlatformSetting",
 ] as const;
 
 /**
@@ -92,4 +95,6 @@ export const TENANT_FIELD_BUT_UNSCOPED = [
   "Order",
   // حق الوصول لمقرر البنك: مستوى المنصة (الكتالوج مشترك) مقيّد بـ userId من التوكن.
   "BankCourseAccess",
+  // سجل تكلفة المحرّك: ميزانية الشهر تُجمع عبر كل الجامعات، ولا يقرؤه إلا المالك.
+  "AiUsage",
 ] as const;

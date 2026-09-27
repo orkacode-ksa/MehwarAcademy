@@ -34,15 +34,11 @@ const envSchema = z.object({
   AI_BASE_URL: z.string().url().default("https://generativelanguage.googleapis.com/v1beta"),
   AI_MODEL_CHAT: z.string().min(1).default("gemini-3.1-flash-lite"),
   AI_MODEL_HEAVY: z.string().min(1).default("gemini-3.8-flash"),
-  AI_MODEL_TTS: z.string().min(1).default("gemini-3.5-flash-tts"),
+  AI_MODEL_TTS: z.string().min(1).default("gemini-3.8-flash-tts"),
+  /** بدائل بالترتيب عند الازدحام (503) أو نفاد الحصة (429) — مفصولة بفواصل. */
+  AI_MODEL_HEAVY_FALLBACKS: z.string().default("gemini-3.5-flash,gemini-flash-latest,gemini-2.5-flash"),
+  AI_MODEL_TTS_FALLBACKS: z.string().default("gemini-2.5-flash-preview-tts"),
 
-  /**
-   * الكاتب في توليد المواد (الشرح · الشرائح · نص البودكاست · نص درس الفيديو): Claude إن وُجد
-   * مفتاحه — أدقّ عربيةً وأشدّ التزامًا بالمصادر المرفقة — وإلا Gemini. الصوت دائمًا Gemini TTS.
-   */
-  ANTHROPIC_API_KEY: z.string().optional(),
-  ANTHROPIC_BASE_URL: z.string().url().default("https://api.anthropic.com"),
-  AI_MODEL_WRITER: z.string().min(1).default("claude-sonnet-5"),
   STORAGE_ENDPOINT: z.string().optional(),
   STORAGE_ACCESS_KEY: z.string().optional(),
   STORAGE_SECRET_KEY: z.string().optional(),

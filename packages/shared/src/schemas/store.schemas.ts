@@ -103,6 +103,24 @@ export const BANK_STATUS_LABEL = {
 
 export const GENERATION_KINDS = { TEXT: "شرح نصي", SLIDES: "عرض تقديمي", AUDIO: "بودكاست صوتي", VIDEO: "درس مصوّر" } as const;
 export type GenerationKind = keyof typeof GENERATION_KINDS;
+/**
+ * طلب توليد: نوع واحد لموضوع أو أكثر من مقرر، مع وصف حرّ اختياري لما يريده الأستاذ.
+ * ما وُلِّد سابقًا لموضوعٍ لا يُعاد توليده — يُتخطّى، فلا يدفع أحد مرتين.
+ */
 export const requestGenerationSchema = z
-  .object({ topicId: z.string().min(1), kind: z.enum(["TEXT", "SLIDES", "AUDIO", "VIDEO"]) })
+  .object({
+    courseId: z.string().min(1),
+    topicIds: z.array(z.string().min(1)).min(1).max(80),
+    kind: z.enum(["TEXT", "SLIDES", "AUDIO", "VIDEO"]),
+    instructions: z.string().trim().max(1500).optional(),
+  })
   .strict();
+export type RequestGenerationInput = z.infer<typeof requestGenerationSchema>;
+
+/** ما يُقبل مصدرًا للتوليد. */
+export const SOURCE_MIME = {
+  "application/pdf": "PDF",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PowerPoint",
+  "text/plain": "نص",
+} as const;
