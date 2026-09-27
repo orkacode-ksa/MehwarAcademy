@@ -75,6 +75,11 @@ describe("جامعة جديدة من أساتذتها", () => {
     expect((await t1.get("/api/store/me/me")).body.data.usage.storageBytes).toBe(0);
   });
 
+  it("مساحة شخصية «نشطة» لا تظهر في القائمة العامة — القائمة بقرار المالك وحده", async () => {
+    const list = (await request(app).get("/api/university/list")).body.data as { name: string }[];
+    expect(list.some((u) => u.name === "المالك" || u.name === "د. أول")).toBe(false);
+  });
+
   it("المالك يرى الطلبات ويفتح الملف ويستخرج لائحة صالحة (والخاطئ من الاستخراج يُهمل)", async () => {
     const q = (await owner.get("/api/owner/submissions")).body.data as { tenantId: string; university: string; submissions: { id: string; note: string; by: { fullName: string } }[] }[];
     const mine = q.find((x) => x.tenantId === tenantId);

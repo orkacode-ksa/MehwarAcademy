@@ -15,6 +15,7 @@ interface Institution {
   name: string;
   status: string;
   joinCode: string | null;
+  listed: boolean;
   _count: { users: number; departments: number; AcademicYear: number };
   Regulation: { updatedAt: string } | null;
 }
@@ -107,6 +108,21 @@ export function InstitutionsPage() {
               <Link to={`/institutions/${inst.id}/users`}>
                 <Button size="sm" variant="secondary">المستخدمون</Button>
               </Link>
+              <Button
+                size="sm"
+                variant={inst.listed ? "secondary" : "primary"}
+                onClick={() =>
+                  void api
+                    .patch(`/owner/institutions/${inst.id}/listed`, { listed: !inst.listed })
+                    .then(() => {
+                      showToast(inst.listed ? "أُخفيت من قائمة التسجيل" : "تظهر الآن في قائمة التسجيل");
+                      reload();
+                    })
+                    .catch((e: unknown) => showToast(e instanceof ApiError ? e.message : "تعذّر التغيير"))
+                }
+              >
+                {inst.listed ? "أخفِها من قائمة التسجيل" : "أظهِرها في قائمة التسجيل"}
+              </Button>
             </div>
           </div>
         ))}

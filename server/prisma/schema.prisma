@@ -38,6 +38,8 @@ model Tenant {
   /// (لائحتها وتقويمها) بدل مستأجر شخصي فارغ.
   joinCode String?      @unique
   status   TenantStatus @default(TRIAL)
+  /// ظاهرة في قائمة «جامعتك» عند التسجيل — بقرار المالك وحده (إنشاء جامعة أو اعتمادها).
+  listed   Boolean      @default(false)
 
   /// توجيه مزوّد الذكاء لكل مستأجر — جامعة ترفض مزوّدًا تُشغَّل على غيره بلا إعادة بناء.
   aiProvider         String?

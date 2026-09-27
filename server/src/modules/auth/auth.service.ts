@@ -71,7 +71,7 @@ export async function registerUser(
   if (input.universityId) {
     if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة");
     // الجامعات المعتمدة وحدها (ACTIVE) تُختار من القائمة؛ غيرها يمرّ بالمراجعة أولًا.
-    institution = await prismaBase.tenant.findFirst({ where: { id: input.universityId, status: "ACTIVE", deletedAt: null }, select: { id: true } });
+    institution = await prismaBase.tenant.findFirst({ where: { id: input.universityId, listed: true, deletedAt: null }, select: { id: true } });
     if (!institution) throw AppError.badRequest("الجامعة غير متاحة — اخترها من القائمة أو اكتب اسمها");
   } else if (input.institutionCode) {
     if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة لا برمز الجامعة");

@@ -31,7 +31,7 @@ const ACCEPTED = new Set([
 /** للتسجيل: الجامعات المعتمدة فقط (اسم ومعرّف — لا شيء غيرهما). */
 export async function listedUniversities() {
   return prismaBase.tenant.findMany({
-    where: { status: "ACTIVE", deletedAt: null },
+    where: { listed: true, deletedAt: null },
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
@@ -41,7 +41,7 @@ export async function listedUniversities() {
 export async function myUniversity(userId: string) {
   const tenantId = requireTenantId();
   const [tenant, subs, reg, me] = await Promise.all([
-    prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, status: true } }),
+    prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, status: true, listed: true } }),
     prisma.universitySubmission.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -53,7 +53,7 @@ export async function myUniversity(userId: string) {
   return {
     // حسابات ما قبل «جامعتك» حملت مساحتها اسم الأستاذ — فلا يُعرض اسمه اسمًا لجامعته.
     name: tenant.name === me?.fullName ? null : tenant.name,
-    listed: tenant.status === "ACTIVE",
+    listed: tenant.listed,
     submissions: subs,
     hasFacultyViolations: ((reg?.facultyViolations as unknown[]) ?? []).length > 0,
   };
@@ -62,8 +62,8 @@ export async function myUniversity(userId: string) {
 /** تسمية جامعة الأستاذ ما دامت غير معتمدة (المعتمدة يسمّيها المالك وحده). */
 export async function renameMyUniversity(name: string) {
   const tenantId = requireTenantId();
-  const t = await prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { status: true } });
-  if (t.status === "ACTIVE") throw AppError.forbidden("اسم الجامعة المعتمدة تعدّله إدارة المنصة");
+  const t = await prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { listed: true } });
+  if (t.listed) throw AppError.forbidden("اسم الجامعة المعتمدة تعدّله إدارة المنصة");
   await prismaBase.tenant.update({ where: { id: tenantId }, data: { name } });
 }
 
@@ -105,7 +105,7 @@ export async function withdraw(userId: string, id: string) {
 
 /** كل ما ينتظر المراجعة عبر الجامعات، مجمّعًا بالجامعة. */
 export async function ownerQueue() {
-  const tenants = await prismaBase.tenant.findMany({ where: { deletedAt: null }, select: { id: true, name: true, status: true } });
+  const tenants = await prismaBase.tenant.findMany({ where: { deletedAt: null }, select: { id: true, name: true, listed: true } });
   const out = [];
   for (const t of tenants) {
     const subs = await withExplicitTenantTx(t.id, (tx) =>
@@ -120,7 +120,7 @@ export async function ownerQueue() {
     out.push({
       tenantId: t.id,
       university: t.name,
-      listed: t.status === "ACTIVE",
+      listed: t.listed,
       submissions: subs.map((s) => ({ ...s, by: users.find((u) => u.id === s.userId) ?? null })),
     });
   }
@@ -213,7 +213,7 @@ export async function ownerApprove(ownerId: string, tenantId: string, name?: str
   if (!t) throw AppError.notFound("الجامعة غير موجودة");
   await prismaBase.tenant.update({
     where: { id: tenantId },
-    data: { status: "ACTIVE", ...(name ? { name } : {}), ...(t.joinCode ? {} : { joinCode: newJoinCode(8) }) },
+    data: { status: "ACTIVE", listed: true, ...(name ? { name } : {}), ...(t.joinCode ? {} : { joinCode: newJoinCode(8) }) },
   });
   await withExplicitTenantTx(tenantId, (tx) => tx.universitySubmission.updateMany({ where: { status: "PENDING" }, data: { status: "APPLIED", reviewedAt: new Date() } }));
   // المقررات الجارية تأخذ بنود الملف وسياسة الغياب المعتمدة (المقفل لا يُمس — حارس الإقفال يمنعه أصلًا).

@@ -463,3 +463,12 @@ ownerRouter.post(
     res.json({ success: true, data: { ok: true } });
   }),
 );
+
+ownerRouter.patch(
+  "/institutions/:tenantId/listed",
+  validate({ body: z.object({ listed: z.boolean() }).strict() }),
+  asyncHandler(async (req, res) => {
+    await assertInstitution(req.params.tenantId as string);
+    res.json({ success: true, data: await service.setListed(req.params.tenantId as string, req.body.listed) });
+  }),
+);

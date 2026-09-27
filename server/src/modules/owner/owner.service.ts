@@ -117,6 +117,7 @@ export async function listInstitutions() {
       name: true,
       status: true,
       joinCode: true,
+      listed: true,
       createdAt: true,
       _count: { select: { users: true, departments: true, AcademicYear: true } },
       Regulation: { select: { updatedAt: true } },
@@ -131,7 +132,7 @@ export async function createInstitution(input: InstitutionCreateInput) {
 
   return prismaBase.$transaction(async (tx) => {
     const tenant = await tx.tenant.create({
-      data: { name: input.name, slug: input.slug, status: "ACTIVE", joinCode: newJoinCode(8) },
+      data: { name: input.name, slug: input.slug, status: "ACTIVE", listed: true, joinCode: newJoinCode(8) },
     });
     // اللائحة تُنشأ فورًا: جامعة بلا لائحة تعني أستاذًا لا يعرف ما المطلوب منه.
     // ضبط GUC داخل المعاملة نفسها لأن `regulations` تحت RLS.
@@ -302,4 +303,9 @@ export async function setDeptHead(tenantId: string, userId: string, isDeptHead: 
   if (!user) throw AppError.notFound("المستخدم غير موجود في هذه الجامعة");
   if (user.role !== "TEACHER") throw AppError.badRequest("رئيس القسم عضو هيئة تدريس");
   return prismaBase.user.update({ where: { id: user.id }, data: { isDeptHead }, select: { id: true, isDeptHead: true } });
+}
+
+/** إظهار الجامعة في قائمة التسجيل أو إخفاؤها — قرار المالك. */
+export async function setListed(tenantId: string, listed: boolean) {
+  return prismaBase.tenant.update({ where: { id: tenantId }, data: { listed }, select: { id: true, listed: true } });
 }
