@@ -18,7 +18,6 @@ const a = request.agent(app);
 const b = request.agent(app);
 const email = () => `n-${crypto.randomUUID()}@mihwar.test`;
 let aTenant = "";
-let aId = "";
 let saved: Awaited<ReturnType<typeof getPlatformSettings>>;
 
 beforeAll(async () => {
@@ -31,9 +30,8 @@ beforeAll(async () => {
   const ae = email();
   await a.post("/api/auth/register").send({ fullName: "أستاذة أ", email: ae, password: PW, role: "TEACHER", universityName: "جامعة الإشعارات" });
   await b.post("/api/auth/register").send({ fullName: "أستاذ ب", email: email(), password: PW, role: "TEACHER" });
-  const u = await prismaBase.user.findFirstOrThrow({ where: { email: ae }, select: { id: true, tenantId: true } });
+  const u = await prismaBase.user.findFirstOrThrow({ where: { email: ae }, select: { tenantId: true } });
   aTenant = u.tenantId;
-  aId = u.id;
 });
 afterAll(async () => {
   await savePlatformSettings(saved);
