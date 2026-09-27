@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerSchema, loginSchema } from "@mihwar/shared";
+import { registerSchema, loginSchema, joinSectionSchema } from "@mihwar/shared";
 import { validate } from "../../middleware/validate.js";
 import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
 import { requireAuth } from "../../middleware/auth.js";
@@ -13,6 +13,13 @@ authRouter.post(
   sensitiveRateLimit((req) => (req.body as { email?: string })?.email),
   validate({ body: registerSchema }),
   asyncHandler(controller.register),
+);
+
+authRouter.post(
+  "/join-section",
+  sensitiveRateLimit((req) => (req.body as { joinCode?: string })?.joinCode),
+  validate({ body: joinSectionSchema }),
+  asyncHandler(controller.joinSection),
 );
 
 authRouter.post(

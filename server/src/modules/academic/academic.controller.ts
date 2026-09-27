@@ -60,3 +60,15 @@ export async function confirmGradeScheme(req: Request, res: Response): Promise<v
     data: await service.confirmGradeScheme(ws(req), req.params.courseId as string, req.body),
   });
 }
+
+export async function getRegulation(_req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.getRegulationForTeacher() });
+}
+
+export async function saveSpec(req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.saveCourseSpec(ws(req), req.params.courseId as string, req.body) });
+}
+
+export async function setMeetings(req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.setSectionMeetings(ws(req), req.params.sectionId as string, req.body.meetings) });
+}

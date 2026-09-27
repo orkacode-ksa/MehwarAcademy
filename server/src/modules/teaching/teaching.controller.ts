@@ -20,10 +20,6 @@ export async function createTopic(req: Request, res: Response): Promise<void> {
   res.status(201).json({ success: true, data: await service.createTopic(ws(req), req.body) });
 }
 
-export async function recordAttendance(req: Request, res: Response): Promise<void> {
-  res.status(200).json({ success: true, data: await service.recordAttendance(ws(req), req.body) });
-}
-
 export async function getSectionAttendance(req: Request, res: Response): Promise<void> {
   const date = req.query.date as string | undefined;
   res.json({ success: true, data: await service.getSectionAttendance(ws(req), req.params.sectionId as string, date) });

@@ -8,6 +8,8 @@ import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { REFRESH_TOKEN_TTL_DAYS, TRIAL_DAYS, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES } from "../../config/constants.js";
 import { logger } from "../../lib/logger.js";
+import { newJoinCode } from "../../lib/joinCode.js";
+import { DEFAULT_REGULATION } from "../owner/owner.service.js";
 
 const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة";
 
@@ -62,17 +64,44 @@ export async function registerUser(
 
   const passwordHash = await hashPassword(input.password);
 
-  const user = await prismaBase.$transaction(async (tx: Parameters<Parameters<typeof prismaBase.$transaction>[0]>[0]) => {
-    // التسجيل الذاتي ينشئ مستأجرًا مستقلًا للمُسجِّل. `slug` محفوظ من اليوم الأول حتى
-    // يصير النطاق الفرعي لاحقًا إعدادًا لا هجرة قاعدة بيانات (roadmap §٧.٥).
-    const tenant = await tx.tenant.create({
-      data: { slug: `t-${randomToken(8).toLowerCase()}`, name: input.fullName, status: "TRIAL" },
+  // الانضمام لجامعة قائمة برمزها — `tenants` خارج RLS فالبحث بلا سياق مشروع.
+  let institution: { id: string } | null = null;
+  if (input.institutionCode) {
+    if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة لا برمز الجامعة");
+    institution = await prismaBase.tenant.findFirst({
+      where: { joinCode: input.institutionCode, deletedAt: null, status: { in: ["ACTIVE", "TRIAL"] } },
+      select: { id: true },
     });
+    if (!institution) throw AppError.badRequest("رمز الجامعة غير صحيح — اطلبه من إدارة المنصة");
+  }
 
-    // التسجيل هو الموضع الوحيد الذي يكتب في مستأجر لم يوجد قبل بدء الطلب، فلا سياق مصادقة
-    // يضبط `app.tenant_id`. نضبطه هنا داخل المعاملة نفسها وإلا رفضت RLS كل صف تال —
-    // وقد رفضته فعلًا عند أول تشغيل، وهو الجدار الثاني يعمل كما صُمِّم.
+  const user = await prismaBase.$transaction(async (tx: Parameters<Parameters<typeof prismaBase.$transaction>[0]>[0]) => {
+    // بلا رمز جامعة: مستأجر تجريبي شخصي. كان يُنشأ **فارغًا** — بلا لائحة ولا تقويم — فلا
+    // يجد الأستاذ فصلًا يُنشئ فيه مقرره، ولا يصل إلى أي شيء. الآن يُنشأ جاهزًا للعمل:
+    // لائحة افتراضية وفصل «جارٍ» من اليوم، يعدّلهما المالك لاحقًا إن انتقل لجامعة.
+    // `slug` محفوظ من اليوم الأول حتى يصير النطاق الفرعي إعدادًا لا هجرة (roadmap §٧.٥).
+    const tenant =
+      institution ??
+      (await tx.tenant.create({
+        data: { slug: `t-${randomToken(8).toLowerCase()}`, name: input.fullName, status: "TRIAL", joinCode: newJoinCode(8) },
+      }));
+
+    // التسجيل يكتب في مستأجر لم يُحسم في الجلسة بعد، فلا سياق مصادقة يضبط `app.tenant_id`.
+    // نضبطه هنا داخل المعاملة نفسها وإلا رفضت RLS كل صف تالٍ.
     await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenant.id}, true)`;
+
+    if (!institution) {
+      await tx.regulation.create({ data: { tenantId: tenant.id, ...DEFAULT_REGULATION } });
+      const start = new Date();
+      start.setUTCHours(0, 0, 0, 0);
+      const end = new Date(start.getTime() + 16 * 7 * 24 * 60 * 60 * 1000);
+      const year = await tx.academicYear.create({
+        data: { tenantId: tenant.id, label: `العام ${start.getUTCFullYear()}`, startDate: start, endDate: end },
+      });
+      await tx.semester.create({
+        data: { tenantId: tenant.id, academicYearId: year.id, label: "الفصل الحالي", startDate: start, endDate: end, status: "ACTIVE" },
+      });
+    }
 
     const created = await tx.user.create({
       data: {
@@ -252,4 +281,52 @@ export async function getMe(userId: string) {
   });
 
   return { ...user, workspaceMemberships };
+}
+
+
+/**
+ * انضمام الطالب لشعبته برمزها — أول دخول له.
+ *
+ * الأستاذ رفع الكشف فأُنشئ للطالب حساب مؤقت (بريد مشتقّ وكلمة مرور لا تُعرف). هنا يستلم
+ * الطالب ذلك الحساب نفسه: يطابق **الرقم الجامعي** سطرًا في كشف الشعبة، فيضع بريده وكلمة
+ * مروره. رقم ليس في الكشف يُرفض — الكشف بيد الأستاذ، ولا يضيف أحد نفسه إلى شعبة.
+ */
+export async function joinSection(
+  input: { joinCode: string; universityIdNumber: string; fullName: string; email: string; password: string },
+  ctx: { ip?: string; userAgent?: string },
+): Promise<IssuedTokens & { userId: string }> {
+  // `sections` تحت RLS والطالب بلا مستأجر بعد: دالة ضيّقة تُرجع مستأجر الرمز ومعرّف الشعبة فقط
+  // (هجرة 20260927000000). لا تعداد ولا أعمدة أخرى.
+  const [hit] = await prismaBase.$queryRaw<{ tenantId: string; sectionId: string }[]>`
+    SELECT "tenantId", "sectionId" FROM resolve_section_join_code(${input.joinCode})
+  `;
+  if (!hit) throw AppError.badRequest("رمز الشعبة غير صحيح — اطلبه من أستاذك");
+
+  const emailOwner = await prismaBase.user.findFirst({ where: { email: input.email, deletedAt: null }, select: { id: true } });
+
+  const userId = await prismaBase.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${hit.tenantId}, true)`;
+    const enrollment = await tx.enrollment.findFirst({
+      where: { tenantId: hit.tenantId, sectionId: hit.sectionId, universityIdNumber: input.universityIdNumber, deletedAt: null },
+      select: { studentId: true, student: { select: { email: true } } },
+    });
+    if (!enrollment) throw AppError.badRequest("رقمك الجامعي ليس في كشف هذه الشعبة — راجع أستاذك");
+
+    // الحساب المؤقت ببريد مشتقّ لم يُستلم بعد. إن استُلم (بريد حقيقي) فالطريق هو الدخول.
+    if (!enrollment.student.email.endsWith("@students.local")) {
+      throw AppError.conflict("هذا الحساب مُفعَّل من قبل — ادخل ببريدك وكلمة مرورك");
+    }
+    if (emailOwner && emailOwner.id !== enrollment.studentId) {
+      throw AppError.conflict("تعذّر إتمام التسجيل بهذه البيانات");
+    }
+    await tx.user.update({
+      where: { id: enrollment.studentId },
+      data: { email: input.email, fullName: input.fullName, passwordHash: await hashPassword(input.password) },
+    });
+    return enrollment.studentId;
+  });
+
+  await recordAudit({ userId, action: "STUDENT_JOINED_SECTION", entityType: "User", entityId: userId, ip: ctx.ip, userAgent: ctx.userAgent });
+  const tokens = await issueTokenPair(userId, "STUDENT", ctx.userAgent, ctx.ip);
+  return { ...tokens, userId };
 }

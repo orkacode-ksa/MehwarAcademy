@@ -74,22 +74,6 @@ export const ContentStatus = {
 } as const;
 export type ContentStatus = (typeof ContentStatus)[keyof typeof ContentStatus];
 
-/** عناصر ملف الجودة الأحد عشر */
-export const QualityItemKey = {
-  COURSE_SPECIFICATION: "COURSE_SPECIFICATION",
-  LEARNING_OUTCOMES_MAP: "LEARNING_OUTCOMES_MAP",
-  LECTURE_ARCHIVE: "LECTURE_ARCHIVE",
-  ASSESSMENT_PLAN: "ASSESSMENT_PLAN",
-  EXAM_SAMPLES: "EXAM_SAMPLES",
-  GRADE_DISTRIBUTION: "GRADE_DISTRIBUTION",
-  STUDENT_FEEDBACK: "STUDENT_FEEDBACK",
-  ATTENDANCE_RECORD: "ATTENDANCE_RECORD",
-  QUESTION_BANK: "QUESTION_BANK",
-  COURSE_REPORT: "COURSE_REPORT",
-  IMPROVEMENT_PLAN: "IMPROVEMENT_PLAN",
-} as const;
-export type QualityItemKey = (typeof QualityItemKey)[keyof typeof QualityItemKey];
-
 export const GenerationJobType = {
   FULL_LECTURE: "FULL_LECTURE",
   LECTURE_SCRIPT: "LECTURE_SCRIPT",

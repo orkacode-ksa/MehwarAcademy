@@ -32,3 +32,11 @@ qualityRouter.patch(
     res.json({ success: true, data: await service.updateQualityItem(ws(req), req.body) });
   }),
 );
+
+qualityRouter.get(
+  "/performance",
+  teacherOnly,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await service.getPerformance(ws(req)) });
+  }),
+);

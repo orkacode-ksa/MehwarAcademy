@@ -19,6 +19,8 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     role: z.enum(["TEACHER", "STUDENT"]),
+    /** رمز الجامعة من المالك — بدونه يُنشأ مستأجر تجريبي شخصي. */
+    institutionCode: z.string().trim().toUpperCase().max(12).optional(),
   })
   .strict();
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -6,6 +6,8 @@ import {
   cuidSchema,
   confirmGradeSchemeSchema,
   importRosterSchema,
+  courseSpecSchema,
+  setMeetingsSchema,
 } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
@@ -53,4 +55,18 @@ academicRouter.post(
   teacherOnly,
   validate({ body: enrollStudentSchema }),
   asyncHandler(controller.enrollStudent),
+);
+
+academicRouter.get("/regulation", asyncHandler(controller.getRegulation));
+academicRouter.put(
+  "/courses/:courseId/spec",
+  teacherOnly,
+  validate({ params: z.object({ courseId: cuidSchema }).passthrough(), body: courseSpecSchema }),
+  asyncHandler(controller.saveSpec),
+);
+academicRouter.put(
+  "/sections/:sectionId/meetings",
+  teacherOnly,
+  validate({ params: z.object({ sectionId: cuidSchema }).passthrough(), body: setMeetingsSchema }),
+  asyncHandler(controller.setMeetings),
 );

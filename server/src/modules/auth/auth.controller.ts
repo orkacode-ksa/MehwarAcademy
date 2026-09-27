@@ -11,6 +11,12 @@ export async function register(req: Request, res: Response): Promise<void> {
   res.status(201).json({ success: true, data: { userId: result.userId } });
 }
 
+export async function joinSection(req: Request, res: Response): Promise<void> {
+  const result = await authService.joinSection(req.body, { ip: resolveClientIp(req), userAgent: req.header("User-Agent") });
+  setAuthCookies(res, result.accessToken, result.refreshToken);
+  res.status(201).json({ success: true, data: { userId: result.userId } });
+}
+
 export async function login(req: Request, res: Response): Promise<void> {
   const result = await authService.loginUser(req.body, { ip: resolveClientIp(req), userAgent: req.header("User-Agent") });
   setAuthCookies(res, result.accessToken, result.refreshToken);

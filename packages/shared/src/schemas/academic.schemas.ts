@@ -43,6 +43,7 @@ export const createSectionSchema = z
     courseId: cuidSchema,
     label: z.string().trim().min(1).max(20),
     capacity: z.coerce.number().int().min(1).max(500),
+    meetings: z.array(z.lazy(() => meetingSchema)).max(10).optional(),
   })
   .strict();
 
@@ -85,7 +86,10 @@ export const createAssessmentSchema = z
     title: z.string().trim().min(2).max(150),
     type: z.nativeEnum(AssessmentType),
     maxScore: z.coerce.number().positive().max(1000),
-    weightPercent: z.coerce.number().positive().max(100),
+    weightPercent: z.coerce.number().min(0).max(100),
+    instructions: z.string().trim().max(50_000).optional(),
+    dueDate: z.coerce.date().optional(),
+    isLab: z.boolean().default(false),
   })
   .strict();
 
@@ -145,3 +149,138 @@ export const confirmGradeSchemeSchema = z
     path: ["gradeScheme"],
   });
 export type ConfirmGradeSchemeInput = z.infer<typeof confirmGradeSchemeSchema>;
+
+// ───────────────────────── توصيف المقرر ─────────────────────────
+
+/** مجالات مخرجات التعلّم — معارف · مهارات · قيم (النموذج المعتاد في توصيف المقررات). */
+export const OUTCOME_DOMAINS = { K: "المعارف والفهم", S: "المهارات", V: "القيم والاستقلالية والمسؤولية" } as const;
+export type OutcomeDomain = keyof typeof OUTCOME_DOMAINS;
+
+const shortText = z.string().trim().max(300).default("");
+const longText = z.string().trim().max(3000).default("");
+
+export const learningOutcomeSchema = z.object({
+  /** رمز المخرج — يُحسب في الواجهة (K1, S2 ...) ويُربط به الموضوع. */
+  code: z.string().trim().min(1).max(10),
+  domain: z.enum(["K", "S", "V"]),
+  text: z.string().trim().min(2).max(500),
+  teaching: shortText,
+  assessment: shortText,
+});
+export type LearningOutcome = z.infer<typeof learningOutcomeSchema>;
+
+/**
+ * توصيف المقرر. كل الحقول اختيارية عند الحفظ — الأستاذ يكتب على دفعات — لكن البند
+ * لا يُحتسب مكتملًا في ملف المقرر إلا بالحدّ الأدنى (`isSpecComplete`).
+ */
+export const courseSpecSchema = z
+  .object({
+    description: longText,
+    goal: longText,
+    courseType: z.enum(["", "REQUIRED", "ELECTIVE"]).default(""),
+    level: shortText,
+    prerequisites: shortText,
+    teachingMode: shortText,
+    contactHours: z
+      .object({
+        lecture: z.coerce.number().int().min(0).max(200).default(0),
+        lab: z.coerce.number().int().min(0).max(200).default(0),
+        tutorial: z.coerce.number().int().min(0).max(200).default(0),
+      })
+      .default({}),
+    outcomes: z.array(learningOutcomeSchema).max(40).default([]),
+    references: z
+      .object({ main: longText, supporting: longText, electronic: longText })
+      .default({}),
+    facilities: longText,
+    courseEvaluation: longText,
+    approvedBy: shortText,
+    approvedAt: shortText,
+  })
+  .strict();
+export type CourseSpec = z.infer<typeof courseSpecSchema>;
+
+/** الحدّ الأدنى لتوصيف يُعتدّ به: وصف · مخرج واحد على الأقل · مرجع أساسي. */
+export function isSpecComplete(spec: Partial<CourseSpec> | null | undefined): boolean {
+  if (!spec) return false;
+  return (
+    (spec.description ?? "").trim().length > 0 &&
+    (spec.outcomes ?? []).length > 0 &&
+    (spec.references?.main ?? "").trim().length > 0
+  );
+}
+
+// ───────────────────────── مواعيد الشعبة ─────────────────────────
+
+export const WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"] as const;
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "الوقت بصيغة 10:00");
+
+export const meetingSchema = z
+  .object({
+    day: z.number().int().min(0).max(6),
+    start: hhmm,
+    end: hhmm,
+    room: z.string().trim().max(40).optional(),
+  })
+  .refine((m) => m.start < m.end, { message: "وقت النهاية قبل البداية", path: ["end"] });
+export type Meeting = z.infer<typeof meetingSchema>;
+
+export const setMeetingsSchema = z.object({ meetings: z.array(meetingSchema).max(10) }).strict();
+
+// ───────────────────────── المواد ─────────────────────────
+
+export const MATERIAL_KINDS = { TEXT: "نص", SLIDES: "شرائح", AUDIO: "صوت", VIDEO: "فيديو", LINK: "رابط" } as const;
+export type MaterialKind = keyof typeof MATERIAL_KINDS;
+
+export const createMaterialSchema = z
+  .object({
+    topicId: cuidSchema,
+    kind: z.enum(["TEXT", "SLIDES", "AUDIO", "VIDEO", "LINK"]),
+    title: z.string().trim().min(2).max(200),
+    url: z.string().trim().url("رابط غير صالح").max(1000).optional(),
+    text: z.string().trim().max(50_000).optional(),
+  })
+  .strict()
+  .refine((m) => (m.kind === "TEXT" ? !!m.text : !!m.url), {
+    message: "أضف نص المادة أو رابطها",
+    path: ["url"],
+  });
+
+export const linkTopicOutcomesSchema = z.object({ learningOutcomes: z.array(z.string().max(10)).max(20) }).strict();
+
+// ───────────────────────── الحضور والمخالفات ─────────────────────────
+
+export const startSessionSchema = z.object({ sectionId: cuidSchema }).strict();
+
+export const createViolationSchema = z
+  .object({
+    enrollmentId: cuidSchema,
+    typeKey: z.string().min(1).max(40),
+    note: z.string().trim().max(500).optional(),
+  })
+  .strict();
+
+// ───────────────────────── التقييمات ─────────────────────────
+
+export const updateAssessmentSchema = z
+  .object({
+    title: z.string().trim().min(2).max(150).optional(),
+    instructions: z.string().trim().max(50_000).optional(),
+    maxScore: z.coerce.number().positive().max(1000).optional(),
+    weightPercent: z.coerce.number().min(0).max(100).optional(),
+    dueDate: z.coerce.date().nullable().optional(),
+  })
+  .strict();
+
+export const cloneCourseSchema = z.object({ semesterId: cuidSchema }).strict();
+
+export const joinSectionSchema = z
+  .object({
+    joinCode: z.string().trim().toUpperCase().min(4).max(12),
+    universityIdNumber: z.string().trim().min(3).max(20),
+    fullName: z.string().trim().min(2).max(120),
+    email: z.string().trim().toLowerCase().email().max(255),
+    password: z.string().min(10).max(128),
+  })
+  .strict();

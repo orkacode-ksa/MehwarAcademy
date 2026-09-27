@@ -1,4 +1,6 @@
 import type {
+  CourseSpec,
+  Meeting,
   ConfirmGradeSchemeInput,
   ImportRosterInput,
   createCourseSchema,
@@ -9,10 +11,13 @@ import type { z } from "zod";
 import { prisma, prismaBase } from "../../lib/prisma.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
 import { computeSetupProgress } from "./courseSetup.js";
+import { isSpecComplete } from "@mihwar/shared";
 import { AppError } from "../../lib/AppError.js";
 import { hashPassword } from "../../lib/password.js";
 import { randomToken } from "../../lib/crypto.js";
 import { recordAudit } from "../../lib/auditLog.js";
+import { editBlockReason } from "../rules/rules.js";
+import { newJoinCode } from "../../lib/joinCode.js";
 
 type CreateCourseInput = z.infer<typeof createCourseSchema>;
 type CreateSectionInput = z.infer<typeof createSectionSchema>;
@@ -65,7 +70,13 @@ export async function listCourses(workspaceId: string, semesterId?: string) {
     take: 50,
     include: {
       semester: { select: { id: true, label: true, status: true } },
-      _count: { select: { topics: true, sections: true, assessments: true } },
+      _count: {
+        select: {
+          topics: { where: { deletedAt: null } },
+          sections: { where: { deletedAt: null } },
+          assessments: { where: { deletedAt: null } },
+        },
+      },
     },
   });
 
@@ -92,6 +103,7 @@ export async function listCourses(workspaceId: string, semesterId?: string) {
   return courses.map((c) => ({
     ...c,
     setup: computeSetupProgress({
+      specComplete: isSpecComplete(c.spec as Partial<CourseSpec>),
       topics: c._count.topics,
       sections: c._count.sections,
       gradeScheme: c.gradeScheme,
@@ -122,7 +134,9 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
   // توزيع الدرجات يُنسخ من لائحة الجامعة عند الإنشاء — فيبدأ الأستاذ من قيم جامعته
   // لا من فراغ، ويظلّ قادرًا على تعديلها لمقرره. نسخة لا إشارة: تعديل اللائحة لاحقًا
   // لا يجوز أن يغيّر أوزان مقرر جارٍ رصده.
-  const regulation = await prisma.regulation.findFirst({ select: { gradeScheme: true } });
+  const regulation = await prisma.regulation.findFirst({
+    select: { gradeScheme: true, courseFileItems: true, absencePolicy: true },
+  });
 
   // رمز المقرر فريد داخل الفصل. بلا هذا الفحص كان تكرار الرمز يُنتج 500 و«حدث خطأ غير
   // متوقع» — وهي حالة يقع فيها الأستاذ فعلًا حين يعيد إضافة مقرر ظنّ أنه لم يُحفظ.
@@ -132,31 +146,18 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
   });
   if (clash) throw AppError.conflict("لديك مقرر بهذا الرمز في هذا الفصل");
 
+  // بنود ملف المقرر وسياسة الغياب تُنسخ كالتوزيع تمامًا — ملف مقرر جارٍ لا يتغيّر تحت يد
+  // صاحبه لأن الجامعة عدّلت لائحتها. (كانت البنود قائمة ثابتة في الشيفرة بمفاتيح لا تطابق
+  // اللائحة، فأي بند تضيفه جامعة لا يصل إلى أي مقرر.)
   const course = await prisma.course.create({
     data: {
       ...input,
       workspaceId,
       tenantId: requireTenantId(),
       gradeScheme: regulation?.gradeScheme ?? [],
+      fileItems: regulation?.courseFileItems ?? [],
+      absencePolicy: regulation?.absencePolicy ?? { warnPercent: 15, banPercent: 25 },
     },
-  });
-
-  const QUALITY_ITEM_KEYS = [
-    "COURSE_SPECIFICATION",
-    "LEARNING_OUTCOMES_MAP",
-    "LECTURE_ARCHIVE",
-    "ASSESSMENT_PLAN",
-    "EXAM_SAMPLES",
-    "GRADE_DISTRIBUTION",
-    "STUDENT_FEEDBACK",
-    "ATTENDANCE_RECORD",
-    "QUESTION_BANK",
-    "COURSE_REPORT",
-    "IMPROVEMENT_PLAN",
-  ] as const;
-
-  await prisma.qualityFileItem.createMany({
-    data: QUALITY_ITEM_KEYS.map((itemKey) => ({ workspaceId, courseId: course.id, itemKey, tenantId: requireTenantId() })),
   });
 
   return course;
@@ -165,7 +166,41 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
 export async function createSection(workspaceId: string, input: CreateSectionInput) {
   const course = await prisma.course.findFirst({ where: { id: input.courseId, workspaceId, deletedAt: null } });
   if (!course) throw AppError.notFound("المقرر غير موجود");
-  return prisma.section.create({ data: { ...input, workspaceId, tenantId: requireTenantId() } });
+  const clash = await prisma.section.findFirst({
+    where: { courseId: input.courseId, label: input.label, deletedAt: null },
+    select: { id: true },
+  });
+  if (clash) throw AppError.conflict("توجد شعبة بهذا الرقم في المقرر");
+  return prisma.section.create({
+    data: { ...input, meetings: input.meetings ?? [], joinCode: newJoinCode(), workspaceId, tenantId: requireTenantId() },
+  });
+}
+
+/** مواعيد الشعبة — منها تُعرف «محاضرة اليوم» ويُحسب مقام نسبة الغياب. */
+export async function setSectionMeetings(workspaceId: string, sectionId: string, meetings: Meeting[]) {
+  const section = await prisma.section.findFirst({ where: { id: sectionId, workspaceId, deletedAt: null }, select: { id: true } });
+  if (!section) throw AppError.notFound("الشعبة غير موجودة");
+  return prisma.section.update({ where: { id: section.id }, data: { meetings }, select: { id: true, meetings: true } });
+}
+
+/** توصيف المقرر — يُحفظ كاملًا في كل مرة (نموذج واحد، زرّ حفظ واحد). */
+export async function saveCourseSpec(workspaceId: string, courseId: string, spec: CourseSpec) {
+  const course = await prisma.course.findFirst({
+    where: { id: courseId, workspaceId, deletedAt: null },
+    select: { id: true, semester: { select: { status: true } } },
+  });
+  if (!course) throw AppError.notFound("المقرر غير موجود");
+  const blocked = editBlockReason(course.semester.status);
+  if (blocked) throw AppError.badRequest(blocked);
+  return prisma.course.update({ where: { id: course.id }, data: { spec }, select: { id: true, spec: true } });
+}
+
+/** ما يحتاجه الأستاذ من لائحة جامعته — للقراءة: أنواع المخالفات وسلّم التقديرات والمصطلحات. */
+export async function getRegulationForTeacher() {
+  const reg = await prisma.regulation.findFirst({
+    select: { violationTypes: true, letterGrades: true, terminology: true, absencePolicy: true },
+  });
+  return reg ?? { violationTypes: [], letterGrades: [], terminology: {}, absencePolicy: { warnPercent: 15, banPercent: 25 } };
 }
 
 export async function listSectionRoster(workspaceId: string, sectionId: string) {
@@ -322,6 +357,13 @@ export async function listSections(workspaceId: string, courseId: string) {
   return prisma.section.findMany({
     where: { courseId, workspaceId, deletedAt: null },
     orderBy: { label: "asc" },
-    select: { id: true, label: true, capacity: true, _count: { select: { enrollments: true } } },
+    select: {
+      id: true,
+      label: true,
+      capacity: true,
+      meetings: true,
+      joinCode: true,
+      _count: { select: { enrollments: { where: { deletedAt: null } } } },
+    },
   });
 }

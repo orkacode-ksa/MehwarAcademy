@@ -11,7 +11,7 @@ import type { Prisma } from "@prisma/client";
  */
 
 export const SETUP_STEPS = [
-  { key: "COURSE", label: "المقرر" },
+  { key: "COURSE", label: "التوصيف" },
   { key: "INDEX", label: "الفهرس" },
   { key: "SECTIONS", label: "الشُّعب" },
   { key: "GRADES", label: "الدرجات" },
@@ -32,6 +32,8 @@ export interface SetupProgress {
 }
 
 export interface SetupCounts {
+  /** التوصيف بحدّه الأدنى (وصف · مخرج · مرجع) — انظر `isSpecComplete`. */
+  specComplete: boolean;
   topics: number;
   sections: number;
   gradeScheme: Prisma.JsonValue;
@@ -48,8 +50,9 @@ export function computeSetupProgress(counts: SetupCounts): SetupProgress {
     counts.gradeScheme.length > 0;
 
   const completed: Record<SetupStepKey, boolean> = {
-    // المقرر موجود بمجرّد وجود صفّه — الخطوة الأولى تكتمل بالإنشاء نفسه.
-    COURSE: true,
+    // كانت تكتمل بإنشاء الصف نفسه، فكان «اكتمل ١ من ٦» يُعلن إنجازًا لم يحدث: المقرر
+    // بلا توصيف ليس مقررًا جاهزًا. التوصيف هو أساس ملف المقرر كله.
+    COURSE: counts.specComplete,
     INDEX: counts.topics > 0,
     SECTIONS: counts.sections > 0,
     GRADES: weightsSet,

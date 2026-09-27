@@ -1,6 +1,5 @@
 import type {
   createTopicSchema,
-  recordAttendanceSchema,
   createAssessmentSchema,
   setGradeSchema,
 } from "@mihwar/shared";
@@ -10,7 +9,6 @@ import { requireTenantId } from "../../lib/tenantContext.js";
 import { AppError } from "../../lib/AppError.js";
 
 type CreateTopicInput = z.infer<typeof createTopicSchema>;
-type RecordAttendanceInput = z.infer<typeof recordAttendanceSchema>;
 type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
 type SetGradeInput = z.infer<typeof setGradeSchema>;
 
@@ -49,38 +47,6 @@ export async function createTopic(workspaceId: string, input: CreateTopicInput) 
   return prisma.topic.create({
     data: { ...input, orderIndex: (last?.orderIndex ?? -1) + 1, workspaceId, tenantId: requireTenantId() },
   });
-}
-
-export async function recordAttendance(workspaceId: string, input: RecordAttendanceInput) {
-  const section = await prisma.section.findFirst({ where: { id: input.sectionId, workspaceId, deletedAt: null } });
-  if (!section) throw AppError.notFound("الشعبة غير موجودة");
-
-  const enrollmentIds = input.entries.map((e) => e.enrollmentId);
-  const validEnrollments = await prisma.enrollment.findMany({
-    where: { id: { in: enrollmentIds }, sectionId: input.sectionId, workspaceId, deletedAt: null },
-    select: { id: true },
-  });
-  const validIds = new Set(validEnrollments.map((e) => e.id));
-  const safeEntries = input.entries.filter((e) => validIds.has(e.enrollmentId));
-
-  await withTenantTx(async (tx, tenantId) => {
-    for (const entry of safeEntries) {
-      await tx.attendance.upsert({
-        where: { enrollmentId_date: { enrollmentId: entry.enrollmentId, date: input.date } },
-        create: {
-          tenantId,
-          workspaceId,
-          sectionId: input.sectionId,
-          enrollmentId: entry.enrollmentId,
-          date: input.date,
-          status: entry.status,
-        },
-        update: { status: entry.status },
-      });
-    }
-  });
-
-  return { recorded: safeEntries.length };
 }
 
 export async function getSectionAttendance(workspaceId: string, sectionId: string, date?: string) {

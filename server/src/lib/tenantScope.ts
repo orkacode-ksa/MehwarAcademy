@@ -23,6 +23,8 @@ export const TENANT_SCOPED_MODELS = [
   "Topic",
   "Lecture",
   "Attendance",
+  "ClassSession",
+  "Violation",
   "Assessment",
   "Grade",
   "QualityFileItem",

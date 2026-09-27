@@ -34,6 +34,9 @@ model Tenant {
   /// مُحتفظ به من اليوم الأول: النطاق موحّد الآن، فيصير النطاق الفرعي لاحقًا إعدادًا لا هجرة.
   slug   String       @unique
   name   String
+  /// رمز انضمام أعضاء هيئة التدريس — يُعطيه المالك للأستاذ فيسجّل داخل جامعته
+  /// (لائحتها وتقويمها) بدل مستأجر شخصي فارغ.
+  joinCode String?    @unique
   status TenantStatus @default(TRIAL)
 
   /// توجيه مزوّد الذكاء لكل مستأجر — جامعة ترفض مزوّدًا تُشغَّل على غيره بلا إعادة بناء.
@@ -83,6 +86,12 @@ model Regulation {
   letterGrades    Json @default("[]")
   /// سياسة الغياب: { warnPercent, banPercent }
   absencePolicy   Json @default("{}")
+  /// أنواع المخالفات: [{ key, label, severity, action, escalateAfter? }]
+  /// الجامعة تعرّف أنواعها وعقوباتها، والمنصة تسجّل وتعدّ وتُصعّد.
+  violationTypes  Json @default("[]")
+  /// مؤشرات تقييم الأداء وأوزانها: [{ key, weight }] — المفاتيح من قائمة ثابتة في
+  /// `rules/performance.ts` لأن كل مؤشر يُحسب من بيانات حقيقية، والأوزان للجامعة.
+  performanceKpis Json @default("[]")
   /// تسميات تحلّ محل الافتراضية في الواجهة: { course: "مقرر", section: "شعبة", ... }
   terminology     Json @default("{}")
 
@@ -474,6 +483,15 @@ model Course {
   /// النسخ من اللائحة نقطة انطلاق لا إنجاز: بدون هذا الحقل كانت خطوة الدرجات تظهر
   /// مكتملة لحظة إنشاء المقرر، فيمرّ الأستاذ على أوزان لم يراجعها قط.
   gradeSchemeConfirmedAt DateTime?
+  /// توصيف المقرر (الوصف · المخرجات · المراجع ...) — شكله في `courseSpecSchema`.
+  spec                   Json      @default("{}")
+  /// بنود ملف المقرر — **نسخة** من لائحة الجامعة عند الإنشاء: [{ key, label, required }].
+  /// نسخة لا إشارة للسبب نفسه في gradeScheme: ملف مقرر جارٍ لا يتغيّر تحت يد صاحبه.
+  fileItems              Json      @default("[]")
+  /// سياسة الغياب — نسخة من اللائحة عند الإنشاء: { warnPercent, banPercent }.
+  absencePolicy          Json      @default("{}")
+  /// المقرر الذي استُنسخ منه هذا المقرر (الأرشفة والاستنساخ).
+  clonedFromId           String?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   deletedAt              DateTime?
@@ -485,6 +503,7 @@ model Course {
   assessments    Assessment[]
   qualityItems   QualityFileItem[]
   generationJobs GenerationJob[]
+  violations     Violation[]
 
   @@unique([workspaceId, semesterId, code])
   @@index([workspaceId])
@@ -500,12 +519,18 @@ model Section {
   courseId    String
   label       String
   capacity    Int
+  /// مواعيد الشعبة الأسبوعية: [{ day: 0-6 (الأحد=0), start: "HH:MM", end: "HH:MM", room? }].
+  /// منها وحدها تُعرف «محاضرة اليوم» وعدد المحاضرات الذي تُحسب عليه نسبة الغياب.
+  meetings    Json      @default("[]")
+  /// رمز انضمام الطالب لهذه الشعبة — يدخل به الطالب حسابه لأول مرة.
+  joinCode    String?   @unique
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
 
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
   attendance  Attendance[]
+  sessions    ClassSession[]
 
   @@unique([courseId, label])
   @@index([workspaceId])
@@ -528,6 +553,7 @@ model Enrollment {
   student    User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
   attendance Attendance[]
   grades     Grade[]
+  violations Violation[]
 
   @@unique([sectionId, studentId])
   @@index([workspaceId])
@@ -547,8 +573,9 @@ model Topic {
   createdAt        DateTime  @default(now())
   deletedAt        DateTime?
 
-  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lectures Lecture[]
+  sessions ClassSession[]
 
   @@index([workspaceId])
   @@index([courseId, orderIndex])
@@ -569,6 +596,10 @@ model Lecture {
   workspaceId    String
   topicId        String
   title          String
+  /// نوع المادة: TEXT · SLIDES · AUDIO · VIDEO · LINK — التوليد خارجي، والمنصة تحفظ الناتج في موضعه.
+  kind           String        @default("TEXT")
+  /// رابط المادة (NotebookLM · Drive · YouTube ...) حين تكون خارج المنصة.
+  url            String?
   scriptText     String?
   slidesAssetId  String?
   videoAssetId   String?
@@ -615,6 +646,55 @@ model Attendance {
   @@map("attendance_records")
 }
 
+/// محاضرة عُقدت فعلًا — «ابدأ» تُنشئها و«انتهى» تُغلقها.
+/// منها يُعرف الموضوع التالي (أول موضوع لم تُعقد له محاضرة) وانتظام تسجيل الحضور.
+model ClassSession {
+  id          String    @id @default(cuid())
+  tenantId    String
+  workspaceId String
+  sectionId   String
+  topicId     String?
+  date        DateTime  @db.Date
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  topic   Topic?  @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@unique([sectionId, date])
+  @@index([workspaceId])
+  @@index([tenantId])
+  @@map("class_sessions")
+}
+
+/// مخالفة طالب — نوعها وعقوبتها من لائحة الجامعة (`Regulation.violationTypes`)،
+/// وتُنسخ التسمية والدرجة في الصف حتى لا يغيّر تعديل اللائحة سجلًا مضى.
+model Violation {
+  id           String    @id @default(cuid())
+  tenantId     String
+  workspaceId  String
+  courseId     String
+  enrollmentId String
+  typeKey      String
+  typeLabel    String
+  severity     String
+  action       String?
+  note         String?
+  /// MANUAL يسجّلها الأستاذ · AUTO تولّدها قاعدة (الحرمان بالغياب).
+  source       String    @default("MANUAL")
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([courseId])
+  @@index([enrollmentId])
+  @@index([tenantId])
+  @@map("violations")
+}
+
 enum AssessmentType {
   QUIZ
   ASSIGNMENT
@@ -633,6 +713,11 @@ model Assessment {
   type          AssessmentType
   maxScore      Decimal        @db.Decimal(6, 2)
   weightPercent Decimal        @db.Decimal(5, 2)
+  /// نص التقييم: الأسئلة أو التعليمات — ما يُسلَّم للطالب ويُحفظ نموذجًا في ملف المقرر.
+  instructions  String?
+  dueDate       DateTime?
+  /// تقييم معمل (دليل · تقرير · نشاط · اختبار عملي) — يُعرض في قسم المعمل.
+  isLab         Boolean        @default(false)
   createdAt     DateTime       @default(now())
   deletedAt     DateTime?
 
@@ -666,29 +751,17 @@ model Grade {
 
 // ───────────────────────── ملف الجودة ─────────────────────────
 
-enum QualityItemKey {
-  COURSE_SPECIFICATION
-  LEARNING_OUTCOMES_MAP
-  LECTURE_ARCHIVE
-  ASSESSMENT_PLAN
-  EXAM_SAMPLES
-  GRADE_DISTRIBUTION
-  STUDENT_FEEDBACK
-  ATTENDANCE_RECORD
-  QUESTION_BANK
-  COURSE_REPORT
-  IMPROVEMENT_PLAN
-}
-
 model QualityFileItem {
-  id          String         @id @default(cuid())
+  id          String   @id @default(cuid())
   tenantId    String
   workspaceId String
   courseId    String
-  itemKey     QualityItemKey
-  completed   Boolean        @default(false)
+  /// مفتاح بند من `Course.fileItems` (نسخة لائحة الجامعة) — نص لا قائمة ثابتة، وإلا
+  /// رُفض كل بند تضيفه جامعة. الصف يُنشأ عند أول تأشير يدوي، لا مسبقًا.
+  itemKey     String
+  completed   Boolean  @default(false)
   note        String?
-  updatedAt   DateTime       @updatedAt
+  updatedAt   DateTime @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)

@@ -1,3 +1,4 @@
+import { newJoinCode } from "../../lib/joinCode.js";
 import type {
   AcademicYearCreateInput,
   HolidayCreateInput,
@@ -49,6 +50,20 @@ export const DEFAULT_REGULATION: RegulationInput = {
   ],
   absencePolicy: { warnPercent: 15, banPercent: 25 },
   terminology: {},
+  // المفتاح ABSENCE_BAN تُسجّله قاعدة الغياب آليًا؛ البقية يسجّلها الأستاذ.
+  violationTypes: [
+    { key: "ABSENCE_BAN", label: "حرمان بسبب الغياب", severity: "HIGH", action: "الحرمان من دخول الاختبار النهائي" },
+    { key: "CHEATING", label: "غش في اختبار", severity: "HIGH", action: "رصد صفر في الاختبار والرفع للقسم", escalateAfter: 1 },
+    { key: "PLAGIARISM", label: "انتحال في واجب", severity: "MEDIUM", action: "رصد صفر في الواجب", escalateAfter: 2 },
+    { key: "MISCONDUCT", label: "إخلال بنظام القاعة", severity: "MEDIUM", action: "إنذار كتابي", escalateAfter: 3 },
+    { key: "LATE_SUBMISSION", label: "تأخر في التسليم", severity: "LOW", action: "خصم حسب تقدير الأستاذ" },
+  ],
+  performanceKpis: [
+    { key: "SETUP", weight: 25 },
+    { key: "QUALITY_FILE", weight: 30 },
+    { key: "ATTENDANCE_LOGGED", weight: 25 },
+    { key: "GRADES_ON_TIME", weight: 20 },
+  ],
 };
 
 export async function listInstitutions() {
@@ -61,6 +76,7 @@ export async function listInstitutions() {
       slug: true,
       name: true,
       status: true,
+      joinCode: true,
       createdAt: true,
       _count: { select: { users: true, departments: true, AcademicYear: true } },
       Regulation: { select: { updatedAt: true } },
@@ -75,7 +91,7 @@ export async function createInstitution(input: InstitutionCreateInput) {
 
   return prismaBase.$transaction(async (tx) => {
     const tenant = await tx.tenant.create({
-      data: { name: input.name, slug: input.slug, status: "ACTIVE" },
+      data: { name: input.name, slug: input.slug, status: "ACTIVE", joinCode: newJoinCode(8) },
     });
     // اللائحة تُنشأ فورًا: جامعة بلا لائحة تعني أستاذًا لا يعرف ما المطلوب منه.
     // ضبط GUC داخل المعاملة نفسها لأن `regulations` تحت RLS.

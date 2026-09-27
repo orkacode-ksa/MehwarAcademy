@@ -44,6 +44,46 @@ export const absencePolicySchema = z.object({
   banPercent: z.number().int().min(1).max(100),
 });
 
+/** درجة المخالفة — ثلاث لا أكثر: ما يزيد يصير تصنيفًا لا يُستعمل. */
+export const VIOLATION_SEVERITIES = ["LOW", "MEDIUM", "HIGH"] as const;
+export const SEVERITY_LABEL: Record<(typeof VIOLATION_SEVERITIES)[number], string> = {
+  LOW: "بسيطة",
+  MEDIUM: "متوسطة",
+  HIGH: "جسيمة",
+};
+
+/**
+ * نوع مخالفة كما تعرّفه الجامعة.
+ * `escalateAfter`: عند بلوغ عدد مخالفات الطالب من هذا النوع هذا الرقم تُعلَّم «مُصعَّدة».
+ * المفتاح `ABSENCE_BAN` محجوز: تُسجّله قاعدة الغياب آليًا عند بلوغ نسبة الحرمان.
+ */
+export const violationTypeSchema = z.object({
+  key: z.string().min(1).max(40),
+  label: z.string().min(1).max(80),
+  severity: z.enum(VIOLATION_SEVERITIES),
+  action: z.string().max(200).optional(),
+  escalateAfter: z.number().int().min(1).max(20).optional(),
+});
+export type ViolationType = z.infer<typeof violationTypeSchema>;
+
+/**
+ * مؤشرات تقييم الأداء — **القائمة ثابتة** لأن كل مؤشر يُحسب من بيانات يجمعها النظام
+ * أصلًا، ولا مؤشر بلا مصدر. ما للجامعة هو **الاختيار والأوزان**.
+ */
+export const PERFORMANCE_KPIS = {
+  SETUP: "اكتمال تجهيز المقرر",
+  QUALITY_FILE: "اكتمال ملف المقرر",
+  ATTENDANCE_LOGGED: "انتظام تسجيل الحضور",
+  GRADES_ON_TIME: "رصد الدرجات قبل موعد القفل",
+  OUTCOMES_MAPPED: "ربط المواضيع بمخرجات التعلّم",
+} as const;
+export type PerformanceKpiKey = keyof typeof PERFORMANCE_KPIS;
+
+export const performanceKpiSchema = z.object({
+  key: z.enum(Object.keys(PERFORMANCE_KPIS) as [PerformanceKpiKey, ...PerformanceKpiKey[]]),
+  weight: z.number().int().min(0).max(100),
+});
+
 export const regulationSchema = z
   .object({
     courseFileItems: z.array(courseFileItemSchema).max(40),
@@ -51,6 +91,8 @@ export const regulationSchema = z
     letterGrades: z.array(letterGradeSchema).max(15),
     absencePolicy: absencePolicySchema,
     terminology: z.record(z.string().max(40)).default({}),
+    violationTypes: z.array(violationTypeSchema).max(30).default([]),
+    performanceKpis: z.array(performanceKpiSchema).max(10).default([]),
   })
   .refine((r) => r.gradeScheme.reduce((sum, c) => sum + c.weight, 0) === 100, {
     message: "مجموع أوزان الدرجات يجب أن يساوي ١٠٠",
@@ -63,6 +105,18 @@ export const regulationSchema = z
   .refine((r) => new Set(r.courseFileItems.map((i) => i.key)).size === r.courseFileItems.length, {
     message: "مفاتيح بنود ملف المقرر مكرّرة",
     path: ["courseFileItems"],
+  })
+  .refine((r) => new Set(r.violationTypes.map((v) => v.key)).size === r.violationTypes.length, {
+    message: "مفاتيح أنواع المخالفات مكرّرة",
+    path: ["violationTypes"],
+  })
+  .refine(
+    (r) => r.performanceKpis.length === 0 || r.performanceKpis.reduce((sum, k) => sum + k.weight, 0) === 100,
+    { message: "مجموع أوزان مؤشرات الأداء يجب أن يساوي ١٠٠", path: ["performanceKpis"] },
+  )
+  .refine((r) => new Set(r.performanceKpis.map((k) => k.key)).size === r.performanceKpis.length, {
+    message: "مؤشر أداء مكرّر",
+    path: ["performanceKpis"],
   });
 export type RegulationInput = z.infer<typeof regulationSchema>;
 

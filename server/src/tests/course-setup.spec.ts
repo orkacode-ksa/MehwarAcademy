@@ -5,7 +5,7 @@ import { computeSetupProgress, SETUP_STEPS } from "../modules/academic/courseSet
  * تقدّم التجهيز مُشتقّ لا مُخزَّن — فهذه الاختبارات تحرس المعنى المعروض للأستاذ:
  * «الخطوة ٣ من ٦ — التالي: توزيع الدرجات».
  */
-const EMPTY = { topics: 0, sections: 0, gradeScheme: [] as never[], gradeSchemeConfirmedAt: null, materials: 0, assessments: 0 };
+const EMPTY = { specComplete: true, topics: 0, sections: 0, gradeScheme: [] as never[], gradeSchemeConfirmedAt: null, materials: 0, assessments: 0 };
 
 describe("تقدّم تجهيز المقرر", () => {
   it("مقرر جديد: خطوة واحدة مكتملة والتالي هو الفهرس", () => {
@@ -41,6 +41,7 @@ describe("تقدّم تجهيز المقرر", () => {
 
   it("التجهيز الكامل يُرجع next = null ولا يعرض خطوة تالية", () => {
     const p = computeSetupProgress({
+      specComplete: true,
       topics: 5,
       sections: 2,
       gradeScheme: [{ key: "FINAL", label: "نهائي", weight: 100 }],
@@ -50,6 +51,12 @@ describe("تقدّم تجهيز المقرر", () => {
     });
     expect(p.done).toBe(6);
     expect(p.next).toBeNull();
+  });
+
+  it("مقرر بلا توصيف: الخطوة الأولى ناقصة والتالي هو التوصيف", () => {
+    const p = computeSetupProgress({ ...EMPTY, specComplete: false, topics: 5 });
+    expect(p.done).toBe(1);
+    expect(p.next?.key).toBe("COURSE");
   });
 
   it("خطوة متقدّمة مكتملة لا تُقفز فوق خطوة ناقصة قبلها", () => {
