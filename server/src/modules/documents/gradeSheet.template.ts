@@ -6,16 +6,18 @@ export interface GradeSheetData {
   sectionLabel: string;
   teacherName: string;
   generatedAt: Date;
-  assessments: { id: string; title: string; maxScore: number }[];
+  assessments: { id: string; title: string; maxScore: number; weightPercent: number }[];
   students: {
     universityIdNumber: string;
     fullName: string;
     scores: Record<string, number | null>;
+    /** المجموع الموزون من ١٠٠ — لا جمع الدرجات الخام (١٠ من ١٠ في كويز ≠ ١٠ من ٤٠ في النهائي). */
     total: number;
+    letter: string | null;
   }[];
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -48,12 +50,13 @@ export function renderGradeSheetHtml(data: GradeSheetData): string {
         <td class="name">${escapeHtml(student.fullName)}</td>
         ${cells}
         <td class="num total">${formatNumber(student.total)}</td>
+        <td class="total">${student.letter ? escapeHtml(student.letter) : "—"}</td>
       </tr>`;
     })
     .join("\n");
 
   const assessmentHeaders = data.assessments
-    .map((a) => `<th>${escapeHtml(a.title)}<br/><span class="max">من ${formatNumber(a.maxScore)}</span></th>`)
+    .map((a) => `<th>${escapeHtml(a.title)}<br/><span class="max">من ${formatNumber(a.maxScore)} · ${formatNumber(a.weightPercent)}٪</span></th>`)
     .join("");
 
   return `<!doctype html>
@@ -118,7 +121,8 @@ tr:nth-child(even) { background: #FAFBFC; }
         <th>الرقم الجامعي</th>
         <th>اسم الطالب</th>
         ${assessmentHeaders}
-        <th>المجموع</th>
+        <th>المجموع<br/><span class="max">من ١٠٠</span></th>
+        <th>التقدير</th>
       </tr>
     </thead>
     <tbody>

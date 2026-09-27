@@ -272,6 +272,7 @@ export async function getMe(userId: string) {
       role: true,
       totpEnabled: true,
       foundingMember: true,
+      isDeptHead: true,
     },
   });
 

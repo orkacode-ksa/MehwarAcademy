@@ -189,3 +189,32 @@ ownerRouter.delete(
     res.status(204).send();
   }),
 );
+
+// ───────────────────────── المستخدمون ورئاسة القسم ─────────────────────────
+
+ownerRouter.get(
+  "/institutions/:tenantId/users",
+  validate({ params: tenantParam }),
+  asyncHandler(async (req, res) => {
+    await assertInstitution(req.params.tenantId as string);
+    res.json({ success: true, data: await service.listInstitutionUsers(req.params.tenantId as string) });
+  }),
+);
+
+ownerRouter.patch(
+  "/institutions/:tenantId/users/:userId",
+  validate({ params: z.object({ tenantId: cuidSchema, userId: cuidSchema }), body: z.object({ isDeptHead: z.boolean() }).strict() }),
+  asyncHandler(async (req, res) => {
+    const tenantId = req.params.tenantId as string;
+    await assertInstitution(tenantId);
+    const updated = await service.setDeptHead(tenantId, req.params.userId as string, req.body.isDeptHead);
+    await recordAudit({
+      userId: actor(req),
+      tenantId,
+      action: req.body.isDeptHead ? "DEPT_HEAD_ASSIGNED" : "DEPT_HEAD_REVOKED",
+      entityType: "User",
+      entityId: updated.id,
+    });
+    res.json({ success: true, data: updated });
+  }),
+);

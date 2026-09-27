@@ -24,3 +24,18 @@ documentsRouter.get(
     res.send(pdf);
   }),
 );
+
+documentsRouter.get(
+  "/:workspaceId/course-file/:courseId.pdf",
+  requireAuth,
+  requireWorkspaceMembership,
+  expensiveRateLimit,
+  validate({ params: z.object({ courseId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    const pdf = await service.generateCourseFilePdf(req.workspaceId as string, req.params.courseId as string);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=course-file.pdf");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.send(pdf);
+  }),
+);

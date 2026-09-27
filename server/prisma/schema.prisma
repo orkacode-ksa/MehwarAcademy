@@ -152,6 +152,10 @@ model User {
 
   foundingMember Boolean @default(false)
 
+  /// رئيس القسم: عضو هيئة تدريس يحتفظ بدوره ومقرراته، ويُضاف له عرض القسم للقراءة.
+  /// علَم لا دور مستقل — تحويله إلى دور كان سيُسقط عنه شاشات تدريسه.
+  isDeptHead Boolean @default(false)
+
   createdAt DateTime  @default(now()) @updatedAt
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

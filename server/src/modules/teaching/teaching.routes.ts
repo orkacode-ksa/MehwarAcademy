@@ -7,6 +7,9 @@ import {
   cuidSchema,
   startSessionSchema,
   createViolationSchema,
+  updateAssessmentSchema,
+  createMaterialSchema,
+  linkTopicOutcomesSchema,
 } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
@@ -14,6 +17,7 @@ import { requireRole } from "../../middleware/rbac.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import * as controller from "./teaching.controller.js";
 import * as today from "./today.service.js";
+import * as content from "./content.service.js";
 import { AppError } from "../../lib/AppError.js";
 
 function ws(req: { workspaceId?: string }): string {
@@ -119,10 +123,86 @@ teachingRouter.get(
   asyncHandler(controller.listAssessments),
 );
 
-teachingRouter.post("/grades", teacherOnly, validate({ body: setGradeSchema }), asyncHandler(controller.setGrades));
+teachingRouter.post(
+  "/grades",
+  teacherOnly,
+  validate({ body: setGradeSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.saveGrades(ws(req), req.body) });
+  }),
+);
 teachingRouter.get(
-  "/courses/:courseId/gradesheet",
+  "/courses/:courseId/sections/:sectionId/grades",
+  teacherOnly,
+  validate({ params: z.object({ courseId: cuidSchema, sectionId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.getGradeGrid(ws(req), req.params.courseId as string, req.params.sectionId as string) });
+  }),
+);
+teachingRouter.patch(
+  "/assessments/:assessmentId",
+  teacherOnly,
+  validate({ params: z.object({ assessmentId: cuidSchema }).passthrough(), body: updateAssessmentSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.updateAssessment(ws(req), req.params.assessmentId as string, req.body) });
+  }),
+);
+teachingRouter.delete(
+  "/assessments/:assessmentId",
+  teacherOnly,
+  validate({ params: z.object({ assessmentId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    await content.removeAssessment(ws(req), req.params.assessmentId as string);
+    res.status(204).send();
+  }),
+);
+
+// ── المواد (الخطوة ⑤) ──
+teachingRouter.get(
+  "/courses/:courseId/materials",
   teacherOnly,
   validate({ params: z.object({ courseId: cuidSchema }).passthrough() }),
-  asyncHandler(controller.getGradeSheet),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.listCourseMaterials(ws(req), req.params.courseId as string) });
+  }),
+);
+teachingRouter.get(
+  "/topics/:topicId/materials",
+  validate({ params: z.object({ topicId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.listMaterials(ws(req), req.params.topicId as string) });
+  }),
+);
+teachingRouter.get(
+  "/topics/:topicId/source-pack",
+  teacherOnly,
+  validate({ params: z.object({ topicId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.sourcePack(ws(req), req.params.topicId as string) });
+  }),
+);
+teachingRouter.put(
+  "/topics/:topicId/outcomes",
+  teacherOnly,
+  validate({ params: z.object({ topicId: cuidSchema }).passthrough(), body: linkTopicOutcomesSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await content.setTopicOutcomes(ws(req), req.params.topicId as string, req.body.learningOutcomes) });
+  }),
+);
+teachingRouter.post(
+  "/materials",
+  teacherOnly,
+  validate({ body: createMaterialSchema }),
+  asyncHandler(async (req, res) => {
+    res.status(201).json({ success: true, data: await content.createMaterial(ws(req), req.body) });
+  }),
+);
+teachingRouter.delete(
+  "/materials/:materialId",
+  teacherOnly,
+  validate({ params: z.object({ materialId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    await content.removeMaterial(ws(req), req.params.materialId as string);
+    res.status(204).send();
+  }),
 );

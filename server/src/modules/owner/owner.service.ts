@@ -243,3 +243,23 @@ export async function institutionExists(tenantId: string): Promise<boolean> {
   });
   return found !== null;
 }
+
+/**
+ * مستخدمو الجامعة — `users` خارج العزل الآلي (المصادقة تسبق حسم المستأجر)، فالعزل هنا
+ * بفلتر `tenantId` صريح من معامل المسار بعد التحقق من وجود الجامعة.
+ */
+export async function listInstitutionUsers(tenantId: string) {
+  return prismaBase.user.findMany({
+    where: { tenantId, deletedAt: null, role: { in: ["TEACHER", "STUDENT"] } },
+    orderBy: [{ role: "asc" }, { fullName: "asc" }],
+    take: 500,
+    select: { id: true, fullName: true, email: true, role: true, isDeptHead: true, createdAt: true },
+  });
+}
+
+export async function setDeptHead(tenantId: string, userId: string, isDeptHead: boolean) {
+  const user = await prismaBase.user.findFirst({ where: { id: userId, tenantId, deletedAt: null }, select: { id: true, role: true } });
+  if (!user) throw AppError.notFound("المستخدم غير موجود في هذه الجامعة");
+  if (user.role !== "TEACHER") throw AppError.badRequest("رئيس القسم عضو هيئة تدريس");
+  return prismaBase.user.update({ where: { id: user.id }, data: { isDeptHead }, select: { id: true, isDeptHead: true } });
+}

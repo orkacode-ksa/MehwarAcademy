@@ -8,12 +8,15 @@ import {
   importRosterSchema,
   courseSpecSchema,
   setMeetingsSchema,
+  cloneCourseSchema,
 } from "@mihwar/shared";
+import { cloneCourse } from "../teaching/content.service.js";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
 import { requireRole } from "../../middleware/rbac.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import * as controller from "./academic.controller.js";
+import { AppError } from "../../lib/AppError.js";
 
 export const academicRouter = Router({ mergeParams: true });
 
@@ -69,4 +72,13 @@ academicRouter.put(
   teacherOnly,
   validate({ params: z.object({ sectionId: cuidSchema }).passthrough(), body: setMeetingsSchema }),
   asyncHandler(controller.setMeetings),
+);
+academicRouter.post(
+  "/courses/:courseId/clone",
+  teacherOnly,
+  validate({ params: z.object({ courseId: cuidSchema }).passthrough(), body: cloneCourseSchema }),
+  asyncHandler(async (req, res) => {
+    if (!req.workspaceId) throw AppError.forbidden();
+    res.status(201).json({ success: true, data: await cloneCourse(req.workspaceId, req.params.courseId as string, req.body.semesterId) });
+  }),
 );
