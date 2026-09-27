@@ -6,6 +6,8 @@ import type { AddressInfo } from "node:net";
 import { createApp } from "../app.js";
 import { prismaBase } from "../lib/prisma.js";
 import { env } from "../config/env.js";
+import { drainGeneration } from "../modules/generation/generation.service.js";
+import { resetExpensiveLimitForTests } from "../middleware/rateLimit.js";
 
 /**
  * المتجر والبنك والملفات والتوليد والتقارير — عبر الواجهة البرمجية الحقيقية.
@@ -20,7 +22,6 @@ const W = "/api/workspaces/me";
 let aCourse: string;
 let aSection: string;
 let aWorkspace: string;
-let aTenant: string;
 const PNG = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex");
 const PDF = Buffer.from("%PDF-1.4\n%mihwar test\n");
 
@@ -41,7 +42,6 @@ beforeAll(async () => {
 
   const me = await a.get("/api/auth/me");
   aWorkspace = me.body.data.workspaceMemberships[0].workspaceId;
-  aTenant = me.body.data.tenantId;
   const term = (await a.get(`${W}/academic/terms`)).body.data[0].id;
   aCourse = (await a.post(`${W}/academic/courses`).send({ semesterId: term, code: "PHY 101", nameAr: "فيزياء عامة", creditHours: 3 })).body.data.id;
   await a.put(`${W}/academic/courses/${aCourse}/spec`).send({
@@ -53,11 +53,6 @@ beforeAll(async () => {
   await a.post(`${W}/teaching/materials`).send({ topicId: t.body.data.id, kind: "TEXT", title: "ملخّص", text: "القانون الأول..." });
   aSection = (await a.post(`${W}/academic/sections`).send({ courseId: aCourse, label: "1", capacity: 30 })).body.data.id;
   await a.post(`${W}/academic/roster/import`).send({ sectionId: aSection, rows: [{ universityIdNumber: "447000001", fullName: "علي" }, { universityIdNumber: "447000002", fullName: "سعد" }] });
-});
-
-afterAll(() => {
-  env.N8N_WEBHOOK_URL = undefined;
-  env.N8N_SHARED_SECRET = undefined;
 });
 
 describe("الاشتراك والدفع بالتحويل البنكي", () => {
@@ -265,58 +260,125 @@ describe("بنك المقررات", () => {
   });
 });
 
-describe("التوليد عبر n8n", () => {
+describe("التوليد داخل المنصة (Claude يكتب · Gemini يُنطق)", () => {
   let server: http.Server;
-  let received: { headers: http.IncomingHttpHeaders; body: string } | null = null;
+  const claudeCalls: { content: { type: string; text?: string }[] }[] = [];
+  let ttsCalls = 0;
   let topicId: string;
+  const saved = { ...env };
 
+  const reply = (res: http.ServerResponse, body: unknown) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(body));
   beforeAll(async () => {
     server = http.createServer((req, res) => {
       let data = "";
       req.on("data", (c) => (data += c));
       req.on("end", () => {
-        received = { headers: req.headers, body: data };
-        res.writeHead(200).end("{}");
+        const body = JSON.parse(data);
+        if (req.url?.startsWith("/v1/messages")) {
+          expect(req.headers["x-api-key"]).toBe("claude-key");
+          claudeCalls.push(body.messages[0]);
+          const prompt: string = body.messages[0].content.at(-1).text;
+          const text = prompt.includes('"turns"')
+            ? JSON.stringify({ turns: [{ speaker: "A", text: "مرحبًا، ما قانون نيوتن الأول؟" }, { speaker: "B", text: "الجسم يبقى على حاله ما لم تؤثّر فيه قوة." }] })
+            : prompt.includes('"narration"')
+              ? "```json\n" + JSON.stringify({ slides: [{ title: "القصور الذاتي", bullets: ["الجسم يقاوم التغيير"], narration: "نبدأ بالقصور الذاتي." }, { title: "القوة", bullets: ["ق = ك × ت"], narration: "ثم القوة." }] }) + "\n```"
+              : prompt.includes('"slides"')
+                ? JSON.stringify({ slides: [{ title: "القانون الأول", bullets: ["القصور الذاتي", "مثال السيارة"] }, { title: "الخلاصة", bullets: ["ثلاثة قوانين"] }] })
+                : "## مقدمة\nشرح القانون الأول.";
+          return reply(res, { content: [{ type: "text", text }] });
+        }
+        ttsCalls++;
+        expect(body.generationConfig.responseModalities).toEqual(["AUDIO"]);
+        // ثانية واحدة من PCM بمعدّل 24kHz.
+        return reply(res, { candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/L16;codec=pcm;rate=24000", data: Buffer.alloc(48_000).toString("base64") } }] } }] });
       });
     });
     await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
     topicId = (await a.get(`${W}/teaching/courses/${aCourse}/topics`)).body.data[0].id;
+    await resetExpensiveLimitForTests((await a.get("/api/auth/me")).body.data.id);
+    const up = await a.post("/api/files/me/upload?purpose=MATERIAL").set("Content-Type", "application/pdf").set("X-File-Name", "lecture.pdf").send(PDF);
+    await a.post(`${W}/teaching/materials`).send({ topicId, kind: "LINK", title: "محاضرتي", fileId: up.body.data.id });
   });
-  afterAll(() => server.close());
+  afterAll(() => {
+    server.close();
+    Object.assign(env, { ANTHROPIC_API_KEY: saved.ANTHROPIC_API_KEY, GEMINI_API_KEY: saved.GEMINI_API_KEY, ANTHROPIC_BASE_URL: saved.ANTHROPIC_BASE_URL, AI_BASE_URL: saved.AI_BASE_URL });
+  });
 
-  it("بلا إعداد: رسالة واضحة لا انهيار", async () => {
+  const bin = (url: string) =>
+    a
+      .get(url)
+      .buffer(true)
+      .parse((res, cb) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (d: Buffer) => chunks.push(d));
+        res.on("end", () => cb(null, Buffer.concat(chunks)));
+      });
+  const gen = async (kind: string) => {
+    const r = await a.post("/api/integrations/generation/me").send({ topicId, kind });
+    expect(r.status).toBe(202);
+    await drainGeneration();
+    const jobs = (await a.get(`/api/integrations/generation/me/course/${aCourse}`)).body.data as { id: string; status: string; errorMessage: string | null }[];
+    const job = jobs.find((j) => j.id === r.body.data.id);
+    expect(job?.errorMessage ?? null).toBeNull();
+    expect(job?.status).toBe("SUCCEEDED");
+    const mats = (await a.get(`${W}/teaching/topics/${topicId}/materials`)).body.data as { title: string; kind: string; url: string | null; scriptText: string | null }[];
+    return mats[mats.length - 1] as (typeof mats)[number];
+  };
+
+  it("بلا مفاتيح: رسالة واضحة لا انهيار", async () => {
+    env.ANTHROPIC_API_KEY = undefined;
+    env.GEMINI_API_KEY = undefined;
     const r = await a.post("/api/integrations/generation/me").send({ topicId, kind: "TEXT" });
     expect(r.status).toBe(400);
     expect(r.body.error.message).toContain("لم يُفعَّل");
   });
 
-  it("المهمة تصل موقّعة بحزمة المصادر، والنتيجة الموقّعة وحدها تصير مادة", async () => {
-    env.N8N_WEBHOOK_URL = `http://127.0.0.1:${(server.address() as AddressInfo).port}/hook`;
-    env.N8N_SHARED_SECRET = "s".repeat(32);
-    const r = await a.post("/api/integrations/generation/me").send({ topicId, kind: "TEXT" });
-    expect(r.status).toBe(202);
-    expect(received).not.toBeNull();
-    const got = received as unknown as { headers: http.IncomingHttpHeaders; body: string };
-    const payload = JSON.parse(got.body);
-    expect(payload.sourcePack).toContain("قوانين نيوتن");
-    expect(payload.engine).toBe("GEMINI");
-    const ts = got.headers["x-mihwar-timestamp"] as string;
-    const expected = crypto.createHmac("sha256", env.N8N_SHARED_SECRET).update(`${ts}.${got.body}`).digest("hex");
-    expect(got.headers["x-mihwar-signature"]).toBe(expected);
+  it("Claude وحده: الشرح يعمل، والصوت يطلب تفعيله", async () => {
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    Object.assign(env, { ANTHROPIC_API_KEY: "claude-key", ANTHROPIC_BASE_URL: base, AI_BASE_URL: base });
+    const st = (await a.get("/api/integrations/generation/me/status")).body.data;
+    expect(st).toMatchObject({ enabled: true, writer: "claude", kinds: { TEXT: true, AUDIO: false } });
+    expect((await a.post("/api/integrations/generation/me").send({ topicId, kind: "AUDIO" })).status).toBe(400);
 
-    const cb = JSON.stringify({ jobId: payload.jobId, tenantId: payload.tenantId, status: "SUCCEEDED", result: { title: "شرح مولَّد", text: "نص الشرح" } });
-    const now = String(Date.now());
-    const forged = await request(app).post("/api/integrations/n8n/callback").set("Content-Type", "application/json").set("X-Mihwar-Timestamp", now).set("X-Mihwar-Signature", "0".repeat(64)).send(cb);
-    expect(forged.status).toBe(401);
-    const sig = crypto.createHmac("sha256", env.N8N_SHARED_SECRET).update(`${now}.${cb}`).digest("hex");
-    const ok = await request(app).post("/api/integrations/n8n/callback").set("Content-Type", "application/json").set("X-Mihwar-Timestamp", now).set("X-Mihwar-Signature", sig).send(cb);
-    expect(ok.status).toBe(200);
-    expect(ok.body.data.status).toBe("SUCCEEDED");
-    const again = await request(app).post("/api/integrations/n8n/callback").set("Content-Type", "application/json").set("X-Mihwar-Timestamp", now).set("X-Mihwar-Signature", sig).send(cb);
-    expect(again.body.data.duplicate).toBe(true);
+    const m = await gen("TEXT");
+    expect(m).toMatchObject({ kind: "TEXT", title: "شرح: قوانين نيوتن" });
+    expect(m.scriptText).toContain("القانون الأول");
+    // الكاتب تلقّى مصادر الأستاذ: نصّه، وملف PDF الذي رفعه في الموضوع.
+    const call = claudeCalls.at(-1) as { content: { type: string; text?: string }[] };
+    expect(call.content.some((c) => c.type === "document")).toBe(true);
+    expect(call.content.at(-1)?.text).toContain("القانون الأول...");
+  });
 
-    const mats = await a.get(`${W}/teaching/topics/${topicId}/materials`);
-    expect(mats.body.data.map((m: { title: string }) => m.title)).toContain("شرح مولَّد");
-    expect(aTenant).toBe(payload.tenantId);
+  it("الشرائح ملف PDF في مساحة الأستاذ", async () => {
+    const m = await gen("SLIDES");
+    expect(m.kind).toBe("SLIDES");
+    const f = await bin(m.url as string);
+    expect(f.headers["content-type"]).toContain("application/pdf");
+    expect(f.body.subarray(0, 4).toString()).toBe("%PDF");
+  }, 30_000);
+
+  it("البودكاست حوار بصوتين ← WAV، ودرس الفيديو شرائح متزامنة مع السرد", async () => {
+    env.GEMINI_API_KEY = "gemini-key";
+    const audio = await gen("AUDIO");
+    expect(audio.kind).toBe("AUDIO");
+    expect(audio.scriptText).toContain("الأستاذ:");
+    const wav = await bin(audio.url as string);
+    expect(wav.body.subarray(0, 4).toString()).toBe("RIFF");
+    // القفز في المشغّل يحتاج Range.
+    const part = await a.get(audio.url as string).set("Range", "bytes=8-11").buffer(true).parse((res, cb) => {
+      const c: Buffer[] = [];
+      res.on("data", (d: Buffer) => c.push(d));
+      res.on("end", () => cb(null, Buffer.concat(c)));
+    });
+    expect(part.status).toBe(206);
+    expect((part.body as Buffer).toString()).toBe("WAVE");
+
+    const before = ttsCalls;
+    const video = await gen("VIDEO");
+    expect(ttsCalls - before).toBe(2); // سرد لكل شريحة
+    const deck = JSON.parse(video.scriptText as string);
+    expect(deck.v).toBe(1);
+    expect(deck.slides.map((s: { start: number }) => s.start)).toEqual([0, 1.6]);
+    expect(deck.slides[0].title).toBe("القصور الذاتي");
   });
 });

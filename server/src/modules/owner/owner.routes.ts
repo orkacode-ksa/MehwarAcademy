@@ -23,7 +23,8 @@ import * as service from "./owner.service.js";
 import * as store from "../store/store.service.js";
 import * as bank from "../bank/bank.service.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
-import { n8nConfigured } from "../integrations/generation.service.js";
+import { kindsAvailable } from "../generation/generation.service.js";
+import { writerOf } from "../generation/engine.js";
 import { googleConfigured } from "../integrations/google.service.js";
 import { env } from "../../config/env.js";
 
@@ -339,7 +340,8 @@ ownerRouter.get(
       success: true,
       data: {
         storage: getStorageProvider().mode,
-        n8n: n8nConfigured(),
+        writer: writerOf(),
+        voice: kindsAvailable().AUDIO,
         google: googleConfigured(),
         redis: !!env.REDIS_URL,
       },

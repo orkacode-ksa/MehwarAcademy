@@ -1,4 +1,4 @@
-import { assetUrl } from "../../api/client.js";
+import { MaterialView } from "../../components/materials/MaterialView.js";
 import { useParams } from "react-router-dom";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
@@ -106,16 +106,12 @@ export function StudentCoursePage() {
                 {t.lectures.length === 0 && <li className="text-[12.5px] text-ink-3">لا مواد بعد</li>}
                 {t.lectures.map((m) => (
                   <li key={m.id} className="text-[13px]">
-                    {m.url ? (
-                      <a href={assetUrl(m.url)} target="_blank" rel="noreferrer" className="text-deep underline">
-                        {m.title}
-                      </a>
-                    ) : (
-                      <details>
-                        <summary className="cursor-pointer">{m.title}</summary>
-                        <p className="whitespace-pre-wrap leading-7 text-ink-2 mt-1">{m.scriptText}</p>
-                      </details>
-                    )}
+                    <details>
+                      <summary className="cursor-pointer min-h-[32px] flex items-center">{m.title}</summary>
+                      <div className="mt-1.5">
+                        <MaterialView m={m} />
+                      </div>
+                    </details>
                   </li>
                 ))}
               </ul>

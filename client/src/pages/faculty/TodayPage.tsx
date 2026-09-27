@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { WEEKDAYS } from "@mihwar/shared";
-import { api, ApiError, assetUrl } from "../../api/client.js";
+import { api, ApiError } from "../../api/client.js";
+import { MaterialView } from "../../components/materials/MaterialView.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
@@ -304,16 +305,12 @@ function SessionView({ lecture, onClose }: { lecture: Lecture; onClose: () => vo
             <ul className="grid gap-2">
               {materials?.map((m) => (
                 <li key={m.id} className="border border-line2 rounded-[10px] px-3 py-2.5">
-                  {m.url ? (
-                    <a href={assetUrl(m.url)} target="_blank" rel="noreferrer" className="text-[13.5px] text-deep underline">
-                      {m.title}
-                    </a>
-                  ) : (
-                    <details>
-                      <summary className="text-[13.5px] cursor-pointer">{m.title}</summary>
-                      <p className="text-[13px] text-ink-2 mt-2 whitespace-pre-wrap leading-7">{m.scriptText}</p>
-                    </details>
-                  )}
+                  <details>
+                    <summary className="text-[13.5px] cursor-pointer min-h-[32px] flex items-center">{m.title}</summary>
+                    <div className="mt-2">
+                      <MaterialView m={m} />
+                    </div>
+                  </details>
                 </li>
               ))}
             </ul>

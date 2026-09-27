@@ -10,7 +10,7 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import type { BankAccount, Plan } from "../account/types.js";
 
-interface Integrations { storage: "r2" | "db"; n8n: boolean; google: boolean; redis: boolean }
+interface Integrations { storage: "r2" | "db"; writer: "claude" | "gemini" | null; voice: boolean; redis: boolean }
 
 /** إعدادات المالك: الحسابات البنكية · الباقات · حالة التكاملات. */
 export function OwnerSettingsPage() {
@@ -46,10 +46,10 @@ export function OwnerSettingsPage() {
               التخزين <Chip tone={integ.storage === "r2" ? "teal" : "amber"}>{integ.storage === "r2" ? "Cloudflare R2" : "قاعدة البيانات (مؤقت)"}</Chip>
             </li>
             <li className="flex justify-between gap-2">
-              أتمتة التوليد (n8n) <Chip tone={integ.n8n ? "teal" : "amber"}>{integ.n8n ? "مفعّلة" : "تنتظر الإعداد"}</Chip>
+              كاتب المواد (شرح · عرض) <Chip tone={integ.writer ? "teal" : "amber"}>{integ.writer === "claude" ? "Claude" : integ.writer === "gemini" ? "Gemini" : "ينتظر مفتاحًا"}</Chip>
             </li>
             <li className="flex justify-between gap-2">
-              ربط Google <Chip tone={integ.google ? "teal" : "amber"}>{integ.google ? "مفعّل" : "ينتظر الإعداد"}</Chip>
+              الصوت (بودكاست · درس مصوّر) <Chip tone={integ.voice ? "teal" : "amber"}>{integ.voice ? "Gemini TTS" : "ينتظر مفتاح Gemini"}</Chip>
             </li>
             <li className="flex justify-between gap-2">
               Redis <Chip tone={integ.redis ? "teal" : "neutral"}>{integ.redis ? "مفعّل" : "غير لازم الآن"}</Chip>

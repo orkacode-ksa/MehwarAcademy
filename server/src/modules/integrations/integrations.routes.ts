@@ -9,7 +9,7 @@ import { AppError } from "../../lib/AppError.js";
 import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
 import * as google from "./google.service.js";
-import * as gen from "./generation.service.js";
+import * as gen from "../generation/generation.service.js";
 
 export const integrationsRouter = Router();
 
@@ -60,7 +60,7 @@ integrationsRouter.get(
   requireAuth,
   requireWorkspaceMembership,
   asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await gen.generationStatus(req.workspaceId as string, uid(req)) });
+    res.json({ success: true, data: await gen.generationStatus(req.workspaceId as string) });
   }),
 );
 integrationsRouter.post(
@@ -83,12 +83,3 @@ integrationsRouter.get(
   }),
 );
 
-// PUBLIC: نتيجة n8n — محروسة بتوقيع HMAC على الجسم الخام، لا بجلسة.
-integrationsRouter.post(
-  "/n8n/callback",
-  asyncHandler(async (req, res) => {
-    const raw = (req as unknown as { rawBody?: Buffer }).rawBody;
-    const out = await gen.handleCallback(raw, req.header("X-Mihwar-Timestamp"), req.header("X-Mihwar-Signature"));
-    res.json({ success: true, data: out });
-  }),
-);

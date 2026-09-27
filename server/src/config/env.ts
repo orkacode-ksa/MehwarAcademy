@@ -35,6 +35,14 @@ const envSchema = z.object({
   AI_MODEL_CHAT: z.string().min(1).default("gemini-3.1-flash-lite"),
   AI_MODEL_HEAVY: z.string().min(1).default("gemini-3.8-flash"),
   AI_MODEL_TTS: z.string().min(1).default("gemini-3.5-flash-tts"),
+
+  /**
+   * الكاتب في توليد المواد (الشرح · الشرائح · نص البودكاست · نص درس الفيديو): Claude إن وُجد
+   * مفتاحه — أدقّ عربيةً وأشدّ التزامًا بالمصادر المرفقة — وإلا Gemini. الصوت دائمًا Gemini TTS.
+   */
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_BASE_URL: z.string().url().default("https://api.anthropic.com"),
+  AI_MODEL_WRITER: z.string().min(1).default("claude-sonnet-5"),
   STORAGE_ENDPOINT: z.string().optional(),
   STORAGE_ACCESS_KEY: z.string().optional(),
   STORAGE_SECRET_KEY: z.string().optional(),
@@ -59,9 +67,6 @@ const envSchema = z.object({
     .string()
     .default("openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/cloud-platform"),
 
-  /** أتمتة التوليد عبر n8n: عنوان Webhook الذي يستقبل المهام، وسرّ توقيع HMAC بين الطرفين. */
-  N8N_WEBHOOK_URL: z.string().url().optional(),
-  N8N_SHARED_SECRET: z.string().min(24).optional(),
 
   /** مسار صريح لملف Chromium التنفيذي — يُستخدم فقط إذا لم يُكتشف تلقائيًا عبر PLAYWRIGHT_BROWSERS_PATH */
   CHROMIUM_EXECUTABLE_PATH: z.string().optional(),

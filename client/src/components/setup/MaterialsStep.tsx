@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createMaterialSchema, GENERATION_KINDS, MATERIAL_KINDS, type GenerationKind, type MaterialKind } from "@mihwar/shared";
-import { api, ApiError, assetUrl, uploadRaw } from "../../api/client.js";
+import { api, ApiError, uploadRaw } from "../../api/client.js";
+import { MaterialView } from "../materials/MaterialView.js";
 import { useApi } from "../../hooks/useApi.js";
 import { Button } from "../ui/Button.js";
 import { Card, ErrorText, IconButton, Input, Select, Textarea } from "../ui/Form.js";
@@ -16,18 +17,19 @@ interface TopicWithMaterials { id: string; title: string; learningOutcomes: stri
 /**
  * ⑤ المواد — لكل موضوع مادة واحدة على الأقل.
  *
- * التوليد خارجي (NotebookLM على حساب الأستاذ). المنصة تعطيه «حزمة المصادر» جاهزة بنقرة —
- * المقرر والمستوى وسياق الموضوع ومخرجاته — ثم يحفظ الناتج (رابطًا أو نصًّا) في موضعه.
+ * «ولّد» يُنتج المادة داخل المنصة من مصادر الأستاذ نفسه (التوصيف · المخرجات · نصوصه وملفات PDF
+ * التي رفعها في الموضوع) وتصل هنا وحدها. بلا توليد مفعّل: «حزمة المصادر» جاهزة للنسخ.
  */
 export function MaterialsStep({ courseId, onChanged }: { courseId: string; onChanged: () => void }) {
   const { data: topics, loading, error, reload } = useApi<TopicWithMaterials[]>(`${W}/teaching/courses/${courseId}/materials`);
-  const { data: gen } = useApi<GenStatus>("/integrations/generation/me/status");
+  const { data: gen, reload: reloadGen } = useApi<GenStatus>("/integrations/generation/me/status");
   const { data: jobs, reload: reloadJobs } = useApi<Job[]>(`/integrations/generation/me/course/${courseId}`);
   const [openId, setOpenId] = useState<string | null>(null);
 
   function changed() {
     reload();
     reloadJobs();
+    reloadGen();
     onChanged();
   }
 
@@ -50,7 +52,7 @@ export function MaterialsStep({ courseId, onChanged }: { courseId: string; onCha
       aside={topics ? <span className="text-[12.5px] text-ink-3">{formatNum(done)} من {formatNum(topics.length)} مواضيع</span> : undefined}
       hint={
         gen?.enabled
-          ? "«ولّد» يُنتج المادة من توصيف مقررك ومخرجات الموضوع وتصل هنا وحدها. أو أضف مادتك يدويًا."
+          ? "ارفع ملفاتك في الموضوع أولًا (PDF) ثم اضغط «ولّد» — يُبنى الناتج على مصادرك ويصل هنا وحده."
           : "انسخ «حزمة المصادر» والصقها في NotebookLM، ثم احفظ الناتج هنا برابطه أو نصّه أو ملفه."
       }
     >
@@ -81,7 +83,7 @@ export function MaterialsStep({ courseId, onChanged }: { courseId: string; onCha
   );
 }
 
-interface GenStatus { enabled: boolean; quota: number; used: number; engine: string; google: { email: string } | null }
+interface GenStatus { enabled: boolean; kinds: Record<GenerationKind, boolean>; quota: number; used: number }
 interface Job { id: string; topicId: string | null; outputKind: GenerationKind | null; status: string; errorMessage: string | null }
 
 function TopicMaterials({ topic, gen, jobs, onChanged }: { topic: TopicWithMaterials; gen: GenStatus | null; jobs: Job[]; onChanged: () => void }) {
@@ -92,6 +94,7 @@ function TopicMaterials({ topic, gen, jobs, onChanged }: { topic: TopicWithMater
   const { showToast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [shown, setShown] = useState<string | null>(null);
 
   async function generate(kind: GenerationKind) {
     try {
@@ -149,7 +152,7 @@ function TopicMaterials({ topic, gen, jobs, onChanged }: { topic: TopicWithMater
       {gen?.enabled ? (
         <div className="mb-3">
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(GENERATION_KINDS) as GenerationKind[]).map((k) => {
+            {(Object.keys(GENERATION_KINDS) as GenerationKind[]).filter((k) => gen.kinds[k]).map((k) => {
               const job = jobs.find((j) => j.outputKind === k && (j.status === "RUNNING" || j.status === "PENDING"));
               return (
                 <Button key={k} variant={k === "VIDEO" ? "gold" : "secondary"} size="sm" disabled={!!job} onClick={() => void generate(k)}>
@@ -159,7 +162,8 @@ function TopicMaterials({ topic, gen, jobs, onChanged }: { topic: TopicWithMater
             })}
           </div>
           <p className="text-[11.5px] text-ink-3 mt-1.5">
-            {gen.engine === "NOTEBOOKLM" ? "بحساب Google المربوط" : "بمحرّك المنصة"} · استهلكت {gen.used} من {gen.quota} هذا الشهر
+            {jobs.some((j) => j.status === "RUNNING" || j.status === "PENDING") ? "يستغرق من دقيقة إلى بضع دقائق — يمكنك مغادرة الصفحة · " : ""}
+            استهلكت {formatNum(gen.used)} من {formatNum(gen.quota)} هذا الشهر
           </p>
           {jobs
             .filter((j) => j.status === "FAILED")
@@ -185,18 +189,26 @@ function TopicMaterials({ topic, gen, jobs, onChanged }: { topic: TopicWithMater
 
       <ul className="grid gap-1.5 mb-3">
         {topic.lectures.map((m) => (
-          <li key={m.id} className="flex items-center gap-2 text-[13px]">
-            <Chip>{MATERIAL_KINDS[m.kind] ?? m.kind}</Chip>
-            {m.url ? (
-              <a href={assetUrl(m.url)} target="_blank" rel="noreferrer" className="flex-1 min-w-0 truncate text-deep underline">
+          <li key={m.id} className="text-[13px]">
+            <div className="flex items-center gap-2">
+              <Chip>{MATERIAL_KINDS[m.kind] ?? m.kind}</Chip>
+              <button
+                type="button"
+                onClick={() => setShown(shown === m.id ? null : m.id)}
+                aria-expanded={shown === m.id}
+                className="flex-1 min-w-0 truncate text-start text-deep underline min-h-[36px]"
+              >
                 {m.title}
-              </a>
-            ) : (
-              <span className="flex-1 min-w-0 truncate">{m.title}</span>
+              </button>
+              <IconButton label={`حذف ${m.title}`} onClick={() => void api.del(`${W}/teaching/materials/${m.id}`).then(onChanged)}>
+                <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
+              </IconButton>
+            </div>
+            {shown === m.id && (
+              <div className="mt-2 mb-1">
+                <MaterialView m={m} />
+              </div>
             )}
-            <IconButton label={`حذف ${m.title}`} onClick={() => void api.del(`${W}/teaching/materials/${m.id}`).then(onChanged)}>
-              <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
-            </IconButton>
           </li>
         ))}
       </ul>

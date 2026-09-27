@@ -101,7 +101,7 @@ export const BANK_STATUS_LABEL = {
 
 // ───────────────────────── التوليد ─────────────────────────
 
-export const GENERATION_KINDS = { TEXT: "شرح نصي", SLIDES: "عرض تقديمي", AUDIO: "بودكاست صوتي", VIDEO: "فيديو" } as const;
+export const GENERATION_KINDS = { TEXT: "شرح نصي", SLIDES: "عرض تقديمي", AUDIO: "بودكاست صوتي", VIDEO: "درس مصوّر" } as const;
 export type GenerationKind = keyof typeof GENERATION_KINDS;
 export const requestGenerationSchema = z
   .object({ topicId: z.string().min(1), kind: z.enum(["TEXT", "SLIDES", "AUDIO", "VIDEO"]) })

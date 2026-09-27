@@ -20,7 +20,7 @@ async function getBrowser(): Promise<Browser> {
  * أي طلب شبكة (صورة عن بعد، خط عن بعد، استدعاء SSRF داخل قالب) يُرفض فورًا.
  * كل الخطوط والأصول يجب أن تكون data: URIs مضمّنة في الـ HTML نفسه.
  */
-export async function renderHtmlToPdf(html: string): Promise<Buffer> {
+export async function renderHtmlToPdf(html: string, opts: { slides?: boolean } = {}): Promise<Buffer> {
   const browser = await getBrowser();
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -37,11 +37,14 @@ export async function renderHtmlToPdf(html: string): Promise<Buffer> {
 
   try {
     await page.setContent(html, { waitUntil: "networkidle", timeout: 15_000 });
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "14mm", bottom: "14mm", left: "12mm", right: "12mm" },
-    });
+    // الشرائح: صفحات ١٦:٩ بلا هوامش (القالب يرسم كل شيء)، والباقي A4.
+    const pdf = opts.slides
+      ? await page.pdf({ width: "1280px", height: "720px", printBackground: true, margin: { top: "0", bottom: "0", left: "0", right: "0" } })
+      : await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: { top: "14mm", bottom: "14mm", left: "12mm", right: "12mm" },
+        });
     return pdf;
   } finally {
     await page.close();

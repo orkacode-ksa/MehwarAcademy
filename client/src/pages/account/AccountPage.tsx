@@ -1,34 +1,20 @@
-import { useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ORDER_STATUS_LABEL } from "@mihwar/shared";
-import { api } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Card } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
-import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import { ORDER_TONE, fmtDate, mb, type Entitlements, type Order, type Usage } from "./types.js";
 
-interface GenStatus { enabled: boolean; google: { email: string } | null; quota: number; used: number }
-
 /**
- * حسابي — كل ما يخصّ الأستاذ نفسه في شاشة واحدة: الباقة واستهلاكها · ربط Google · السيرة ·
- * الطلبات. لا تبويبات: أربع بطاقات تُقرأ من أعلى لأسفل.
+ * حسابي — كل ما يخصّ الأستاذ نفسه في شاشة واحدة: الباقة واستهلاكها · السيرة · الطلبات.
+ * لا تبويبات: ثلاث بطاقات تُقرأ من أعلى لأسفل.
  */
 export function AccountPage() {
   const { data, loading, error } = useApi<{ entitlements: Entitlements; usage: Usage; orders: Order[] }>("/store/me/me");
-  const { data: gen, reload: reloadGen } = useApi<GenStatus>("/integrations/generation/me/status");
-  const [params] = useSearchParams();
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    const g = params.get("google");
-    if (g === "connected") showToast("رُبط حساب Google");
-    if (g === "failed") showToast("لم يكتمل ربط Google — حاول مرة أخرى");
-  }, [params, showToast]);
 
   if (loading) return <p className="text-sm text-ink-3">جارٍ التحميل…</p>;
   if (error || !data) return <PageHeader title="حسابي" description={error ?? ""} />;
@@ -76,35 +62,6 @@ export function AccountPage() {
             <Icon name="star" /> {e.status === "ACTIVE" ? "غيّر أو جدّد باقتك" : "اشترك"}
           </Button>
         </Link>
-      </Card>
-
-      <Card title="التوليد بحساب Google" className="mt-4" hint="اربط حسابك مرة واحدة، فتولَّد الشروح والبودكاست والفيديو من داخل المنصة دون الخروج منها.">
-        {gen?.google ? (
-          <div className="flex items-center gap-3 flex-wrap">
-            <Chip tone="teal">مربوط</Chip>
-            <span className="text-[13px] flex-1 min-w-0 truncate" dir="ltr">
-              {gen.google.email}
-            </span>
-            <Button variant="secondary" size="sm" onClick={() => void api.del("/integrations/google").then(reloadGen)}>
-              فكّ الربط
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="secondary"
-            onClick={async () => {
-              try {
-                const { url } = await api.get<{ url: string }>("/integrations/google/start");
-                window.location.href = url;
-              } catch (err) {
-                showToast(err instanceof Error ? err.message : "تعذّر بدء الربط");
-              }
-            }}
-          >
-            اربط حساب Google
-          </Button>
-        )}
-        {gen && !gen.enabled && <p className="text-[12px] text-ink-3 mt-2">التوليد الآلي يُفعَّل قريبًا — «حزمة المصادر» متاحة الآن في خطوة المواد.</p>}
       </Card>
 
       <Card title="سيرتي ونشاطي العلمي" className="mt-4" hint="تُولَّد منها «السيرة الذاتية» في ملف كل مقرر.">

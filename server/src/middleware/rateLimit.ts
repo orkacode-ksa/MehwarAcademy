@@ -80,3 +80,8 @@ export function adminRateLimit(req: Request, res: Response, next: NextFunction):
   const key = req.auth?.userId ?? resolveClientIp(req);
   void consumeOrReject(adminLimiter, key, req, res, next);
 }
+
+/** للاختبارات: تصفير حدّ العمليات المكلفة لمستخدم — ملف اختبار واحد يستهلك حصّة الدقيقة. لا مسار يستدعيه. */
+export async function resetExpensiveLimitForTests(userId: string): Promise<void> {
+  await expensiveLimiter.delete(userId);
+}

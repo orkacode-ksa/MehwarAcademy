@@ -67,6 +67,20 @@ filesRouter.get(
     res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(out.file.originalName)}`);
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "private, max-age=300");
+    res.setHeader("Accept-Ranges", "bytes");
+    // الصوت والدرس المصوّر يحتاجان القفز (Range) — بدونه لا يعمل التقديم ولا الانتقال لشريحة.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.header("Range") ?? "");
+    const size = out.data.length;
+    if (range && (range[1] || range[2])) {
+      const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+      const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+      if (start >= size || start > end) {
+        res.setHeader("Content-Range", `bytes */${size}`);
+        return res.status(416).end();
+      }
+      res.status(206).setHeader("Content-Range", `bytes ${start}-${end}/${size}`);
+      return res.send(out.data.subarray(start, end + 1));
+    }
     res.send(out.data);
   }),
 );
