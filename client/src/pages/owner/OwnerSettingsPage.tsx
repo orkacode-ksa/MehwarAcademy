@@ -350,7 +350,7 @@ function AnnouncementsCard() {
               <span className="flex-1 min-w-0 truncate">{a.text}</span>
               <Chip tone="neutral">{AUDIENCE[a.audience]}</Chip>
               {a.until && <span className="text-[11.5px] text-ink-3 flex-none" dir="ltr">{a.until}</span>}
-              <Button size="sm" variant="ghost" onClick={() => void put(list.filter((x) => x.id !== a.id)).then((ok) => ok && showToast("حُذف الإعلان"))}>
+              <Button size="sm" variant="text" onClick={() => void put(list.filter((x) => x.id !== a.id)).then((ok) => ok && showToast("حُذف الإعلان"))}>
                 احذف
               </Button>
             </li>
