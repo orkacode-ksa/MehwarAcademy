@@ -3,6 +3,7 @@ import type { BankAccountInput, CreateOrderInput, PlanInput } from "@mihwar/shar
 import { prismaBase, withExplicitTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
+import { notify, notifyOwners } from "../notifications/notify.js";
 import { recordAudit } from "../../lib/auditLog.js";
 
 /**
@@ -174,6 +175,7 @@ export async function submitTransfer(
     },
   });
   await recordAudit({ userId, tenantId: o.tenantId, action: "ORDER_RECEIPT_SUBMITTED", entityType: "Order", entityId: o.id });
+  await notifyOwners({ kind: "RECEIPT_SUBMITTED", title: "إيصال تحويل بانتظار مراجعتك", body: `${Number(o.amount)} ر.س — ${info.payerName}`, link: "/payments" });
   return orderOut(updated);
 }
 
@@ -238,6 +240,7 @@ export async function reviewOrder(ownerId: string, orderId: string, decision: { 
       data: { status: "REJECTED", rejectReason: decision.reason, reviewedById: ownerId, reviewedAt: new Date() },
     });
     await recordAudit({ userId: ownerId, tenantId: o.tenantId, action: "ORDER_REJECTED", entityType: "Order", entityId: o.id });
+    await notify(o.tenantId, [o.userId], { kind: "ORDER_REJECTED", title: "لم يُعتمد إيصالك", body: decision.reason, link: `/orders/${o.id}` });
     return { status: "REJECTED" };
   }
 
@@ -271,6 +274,11 @@ export async function reviewOrder(ownerId: string, orderId: string, decision: { 
 
   await prismaBase.order.update({ where: { id: o.id }, data: { status: "APPROVED", reviewedById: ownerId, reviewedAt: new Date() } });
   await recordAudit({ userId: ownerId, tenantId: o.tenantId, action: "ORDER_APPROVED", entityType: "Order", entityId: o.id, after: { amount: Number(o.amount), kind: o.kind } });
+  await notify(o.tenantId, [o.userId], {
+    kind: "ORDER_APPROVED",
+    title: o.kind === "PLAN" ? "اعتُمد اشتراكك — باقتك مفعّلة الآن" : "اعتُمد شراء المقرر — أضِفه لفصلك من البنك",
+    link: o.kind === "PLAN" ? "/plans" : o.bankCourseId ? `/bank/${o.bankCourseId}` : `/orders/${o.id}`,
+  });
   return { status: "APPROVED" };
 }
 

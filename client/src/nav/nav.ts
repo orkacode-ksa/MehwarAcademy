@@ -16,7 +16,6 @@ export const NAV: Record<Role, NavItem[]> = {
     { key: "today", icon: "clock", label: "اليوم" },
     { key: "courses", icon: "book", label: "مقرراتي" },
     { key: "bank", icon: "box", label: "البنك" },
-    { key: "account", icon: "user", label: "حسابي" },
     { key: "evalp", icon: "chart", label: "أدائي" },
     { key: "dhome", icon: "users", label: "القسم" },
   ],
@@ -79,4 +78,13 @@ export const SCREEN_TO_ROLE: Record<string, Role> = (() => {
 
 export function roleOf(screenKey: string): Role {
   return SCREEN_TO_ROLE[screenKey] ?? "faculty";
+}
+
+/** شاشات لكل الأدوار (من رأس الصفحة): تأخذ تنقّل دور صاحبها لا دورًا ثابتًا. */
+export const SHARED_SCREENS = new Set(["account", "notifications"]);
+
+export function roleOfUser(role: string | undefined): Role {
+  if (role === "STUDENT") return "student";
+  if (role === "OWNER" || role === "ADMIN") return "admin";
+  return "faculty";
 }

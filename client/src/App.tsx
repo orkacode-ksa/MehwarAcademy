@@ -25,6 +25,7 @@ import { PaymentsPage } from "./pages/owner/PaymentsPage.js";
 import { OwnerBankPage } from "./pages/owner/OwnerBankPage.js";
 import { OwnerSettingsPage } from "./pages/owner/OwnerSettingsPage.js";
 import { AccountPage } from "./pages/account/AccountPage.js";
+import { NotificationsPage } from "./pages/common/NotificationsPage.js";
 import { PlansPage } from "./pages/account/PlansPage.js";
 import { OrderPage } from "./pages/account/OrderPage.js";
 import { CvPage } from "./pages/account/CvPage.js";
@@ -65,6 +66,7 @@ export function App() {
           <Route path="bank" element={<BankPage />} />
           <Route path="bank/:id" element={<BankDetailPage />} />
           <Route path="account" element={<AccountPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="cv" element={<CvPage />} />

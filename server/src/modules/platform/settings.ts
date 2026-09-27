@@ -33,6 +33,21 @@ export const platformSettingsSchema = z
       })
       .strict()
       .default({}),
+    /** إعلانات النظام في الشريط العلوي (صيانة · إصدار · سياسة) — لا إشعارات عمل. */
+    announcements: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(40),
+            text: z.string().trim().min(3).max(140),
+            audience: z.enum(["ALL", "TEACHER", "STUDENT"]).default("ALL"),
+            /** آخر يوم يظهر فيه (YYYY-MM-DD) — فارغ = حتى يُحذف */
+            until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
+          })
+          .strict(),
+      )
+      .max(5)
+      .default([]),
   })
   .strict();
 

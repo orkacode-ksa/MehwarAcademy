@@ -14,6 +14,7 @@ import { getPlatformSettings } from "../platform/settings.js";
 import { assertBudget, recordUsage } from "../platform/aiBudget.js";
 import { newMeter, narrateSlides, reviewJson, reviewText, secondsOf, speakDialogue, tidy, toWav, voiceReady, write, writeJson, writerReady, type Meter, type Source } from "./engine.js";
 import { extractText } from "./extract.js";
+import { notify } from "../notifications/notify.js";
 import { renderSlidesHtml, type Slide } from "./slides.js";
 
 /**
@@ -261,6 +262,33 @@ async function run(jobId: string) {
     await recordUsage({ tenantId: job.tenantId, userId: job.createdById, feature: "GENERATION", meter }).catch(() => undefined);
     const msg = err instanceof AppError ? err.message : "تعذّر التوليد الآن — حاول مرة أخرى بعد قليل";
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: "FAILED", errorMessage: msg } }).catch(() => undefined);
+  }
+  await announceBatch(job).catch((err: unknown) => logger.warn({ err, jobId }, "تعذّر إشعار اكتمال التوليد"));
+}
+
+/**
+ * إشعار واحد للدفعة لا لكل موضوع: حين تفرغ طابور المقرر يُبلَّغ الأستاذ بالحصيلة،
+ * ويُبلَّغ طلاب المقرر بأن مواد جديدة وصلت.
+ */
+async function announceBatch(job: { id: string; tenantId: string; courseId: string; createdById: string; createdAt: Date }) {
+  const pending = await prisma.generationJob.count({ where: { courseId: job.courseId, status: { in: ["PENDING", "RUNNING"] } } });
+  if (pending > 0) return;
+  const since = new Date(job.createdAt.getTime() - 5 * 60_000);
+  const [done, failed, course] = await Promise.all([
+    prisma.generationJob.count({ where: { courseId: job.courseId, status: "SUCCEEDED", createdAt: { gte: since } } }),
+    prisma.generationJob.count({ where: { courseId: job.courseId, status: "FAILED", createdAt: { gte: since } } }),
+    prisma.course.findUnique({ where: { id: job.courseId }, select: { nameAr: true } }),
+  ]);
+  const name = course?.nameAr ?? "المقرر";
+  await notify(job.tenantId, [job.createdById], {
+    kind: failed && !done ? "GENERATION_FAILED" : "GENERATION_DONE",
+    title: failed && !done ? `تعذّر توليد مواد «${name}»` : `وصلت مواد «${name}»`,
+    body: [done ? `${done} جاهزة` : "", failed ? `${failed} لم تكتمل — أعد طلبها من الاستوديو` : ""].filter(Boolean).join(" · "),
+    link: `/course/${job.courseId}/setup?step=MATERIALS`,
+  });
+  if (done > 0) {
+    const students = await prisma.enrollment.findMany({ where: { deletedAt: null, section: { courseId: job.courseId } }, select: { studentId: true }, take: 5000 });
+    await notify(job.tenantId, students.map((e) => e.studentId), { kind: "MATERIALS_NEW", title: `مواد جديدة في «${name}»`, link: `/scourse/${job.courseId}` });
   }
 }
 

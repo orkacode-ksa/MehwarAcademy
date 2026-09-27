@@ -8,6 +8,8 @@ export interface SessionUser {
   role: "OWNER" | "ADMIN" | "TEACHER" | "STUDENT";
   isDeptHead: boolean;
   tenantId: string;
+  /** صورة الملف الشخصي — رابط ملف أو null (تُعرض الأحرف الأولى بدلها) */
+  avatarUrl?: string | null;
   workspaceMemberships: { workspaceId: string }[];
 }
 

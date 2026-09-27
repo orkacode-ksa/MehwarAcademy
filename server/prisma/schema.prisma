@@ -167,6 +167,13 @@ model User {
   /// (بحوث · مؤتمرات · دورات) في `FacultyActivity`. منهما تُولَّد «السيرة الذاتية» في ملف المقرر.
   profile Json @default("{}")
 
+  /// تفضيلات العرض (النمط · حجم الخط · خط العناوين · اللغة) — تتبع المستخدم بين أجهزته.
+  prefs        Json      @default("{}")
+  /// صورة الملف الشخصي (مصغّرة ٢٥٦px بلا بيانات EXIF) — ملف في `files`.
+  avatarFileId String?
+  /// آخر مرة فتح الإشعارات: ما بعده «غير مقروء» — عدّ واحد مفهرس لا علَم لكل إشعار.
+  notifSeenAt  DateTime?
+
   createdAt DateTime  @default(now()) @updatedAt
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -1176,4 +1183,23 @@ model UniversitySubmission {
 
   @@index([tenantId, status])
   @@map("university_submissions")
+}
+
+/// إشعار العمل لمستخدم واحد — يُكتب لحظة الحدث (طلب اعتُمد · توليد اكتمل · حرمان …) لا يُحسب
+/// عند كل فتح للجرس: العدّاد استعلام مفهرس واحد مهما كثر المستخدمون. يُحذف ما مضى عليه ٩٠ يومًا.
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  /// نوع الحدث (ORDER_APPROVED · GENERATION_DONE · ABSENCE_BAN …) — للأيقونة والتجميع
+  kind      String
+  title     String
+  body      String   @default("")
+  /// مسار داخل المنصة يفتحه النقر
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tenantId])
+  @@map("notifications")
 }

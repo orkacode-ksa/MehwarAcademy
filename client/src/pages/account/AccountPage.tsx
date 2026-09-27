@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ORDER_STATUS_LABEL } from "@mihwar/shared";
 import { useApi } from "../../hooks/useApi.js";
+import { useSession } from "../../hooks/useSession.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Card } from "../../components/ui/Form.js";
@@ -14,8 +15,11 @@ import { ORDER_TONE, fmtDate, mb, type Entitlements, type Order, type Usage } fr
  * لا تبويبات: ثلاث بطاقات تُقرأ من أعلى لأسفل.
  */
 export function AccountPage() {
-  const { data, loading, error } = useApi<{ entitlements: Entitlements; usage: Usage; orders: Order[] }>("/store/me/me");
+  const { user } = useSession();
+  const teacher = user?.role === "TEACHER";
+  const { data, loading, error } = useApi<{ entitlements: Entitlements; usage: Usage; orders: Order[] }>(teacher ? "/store/me/me" : null);
 
+  if (user && !teacher) return <PageHeader title="حسابي" description={`${user.fullName} · ${user.email}`} />;
   if (loading) return <p className="text-sm text-ink-3">جارٍ التحميل…</p>;
   if (error || !data) return <PageHeader title="حسابي" description={error ?? ""} />;
   const e = data.entitlements;

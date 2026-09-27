@@ -2,6 +2,7 @@ import type { AttendanceStatus } from "@prisma/client";
 import { prisma, withTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
+import { notifyOnce } from "../notifications/notify.js";
 import {
   absenceStatus,
   absencesUntilBan,
@@ -313,9 +314,10 @@ export async function saveAttendance(
 
   const valid = await prisma.enrollment.findMany({
     where: { id: { in: input.entries.map((e) => e.enrollmentId) }, sectionId: input.sectionId, workspaceId, deletedAt: null },
-    select: { id: true, student: { select: { fullName: true } } },
+    select: { id: true, studentId: true, student: { select: { fullName: true } } },
   });
   const names = new Map(valid.map((v) => [v.id, v.student.fullName]));
+  const studentOf = new Map(valid.map((v) => [v.id, v.studentId]));
   const entries = input.entries.filter((e) => names.has(e.enrollmentId));
 
   const policy = policyOf(section.course.absencePolicy);
@@ -376,6 +378,21 @@ export async function saveAttendance(
     }
     return out;
   });
+
+  // الطالب يُبلَّغ مرة لكل مستوى في المقرر — لا مع كل محاضرة يُسجَّل فيها حضور.
+  const tenantId = requireTenantId();
+  for (const a of alerts) {
+    const studentId = studentOf.get(a.enrollmentId);
+    if (!studentId) continue;
+    await notifyOnce(
+      tenantId,
+      studentId,
+      a.level === "BAN"
+        ? { kind: "ABSENCE_BAN", title: `بلغ غيابك حدّ الحرمان في «${section.course.nameAr}»`, body: `${a.percent}٪ — راجع أستاذ المقرر`, link: `/scourse/${section.courseId}` }
+        : { kind: "ABSENCE_WARN", title: `إنذار غياب في «${section.course.nameAr}»`, body: `${a.percent}٪ — اقترب من حد الحرمان`, link: `/scourse/${section.courseId}` },
+      180,
+    );
+  }
 
   return { recorded: entries.length, alerts };
 }

@@ -6,6 +6,7 @@ import { assertBudget, recordUsage } from "../platform/aiBudget.js";
 import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { getEntitlements } from "../store/entitlements.js";
+import { notify, notifyOwners } from "../notifications/notify.js";
 import { assertCanAddCourse } from "../academic/limits.js";
 
 /**
@@ -192,6 +193,15 @@ export async function harvestSemester(tenantId: string, semesterId: string, acto
   }
   await prisma.semester.update({ where: { id: semesterId }, data: { harvestedAt: new Date() } });
   await recordAudit({ userId: actorId, tenantId, action: "BANK_HARVEST", entityType: "Semester", entityId: semesterId, after: { created, drafted } });
+  await notify(tenantId, courses.map((c) => c.workspace.ownerId), {
+    kind: "TERM_CLOSED",
+    title: `أُقفل «${termLabel}»`,
+    body: "مقرراته وسجلاته للقراءة الآن، وتقاريرها وملفاتها متاحة للتنزيل.",
+    link: "/courses",
+  });
+  if (created + drafted > 0) {
+    await notifyOwners({ kind: "BANK_REVIEW", title: `${created + drafted} مقرر في البنك بانتظار قرارك`, body: `${tenant.name} — ${termLabel}`, link: "/obank" });
+  }
   return { created, drafted };
 }
 

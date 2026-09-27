@@ -9,6 +9,7 @@ import { uploadFile } from "../files/files.service.js";
 import { extractText } from "../generation/extract.js";
 import { newMeter, writeJson } from "../generation/engine.js";
 import { assertBudget, recordUsage } from "../platform/aiBudget.js";
+import { notify, notifyOwnersOnce } from "../notifications/notify.js";
 import { GENERIC_REGULATION } from "../owner/owner.service.js";
 
 /**
@@ -80,9 +81,12 @@ export async function submit(input: { workspaceId: string; userId: string; kind:
   }
   // ملفات اللوائح لا تُحسب على مساحة الأستاذ — هي مساهمة للمنصة.
   const file = await uploadFile({ workspaceId: input.workspaceId, userId: input.userId, purpose: "UNIVERSITY", fileName: input.fileName, mimeType: input.mimeType, data: input.data, skipQuota: true });
+  const tenantId = requireTenantId();
+  const tenant = await prismaBase.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
+  await notifyOwnersOnce({ kind: "SUBMISSION_NEW", title: "لوائح جامعة بانتظار مراجعتك", body: tenant?.name ?? "", link: `/osubmissions#${tenantId}` }, 1);
   return prisma.universitySubmission.create({
     data: {
-      tenantId: requireTenantId(),
+      tenantId,
       userId: input.userId,
       kind: input.kind,
       fileId: file.id,
@@ -141,7 +145,12 @@ export async function ownerFile(tenantId: string, id: string) {
 }
 
 export async function ownerDismiss(tenantId: string, id: string) {
-  await withExplicitTenantTx(tenantId, (tx) => tx.universitySubmission.updateMany({ where: { id }, data: { status: "DISMISSED", reviewedAt: new Date() } }));
+  const sub = await withExplicitTenantTx(tenantId, async (tx) => {
+    const row = await tx.universitySubmission.findFirst({ where: { id }, select: { userId: true, title: true } });
+    await tx.universitySubmission.updateMany({ where: { id }, data: { status: "DISMISSED", reviewedAt: new Date() } });
+    return row;
+  });
+  if (sub) await notify(tenantId, [sub.userId], { kind: "SUBMISSION_DISMISSED", title: "لم نحتج ملفك", body: `«${sub.title}» — ما فيه موجود أو لا يخص اللوائح.`, link: "/university" });
 }
 
 /**
@@ -215,7 +224,11 @@ export async function ownerApprove(ownerId: string, tenantId: string, name?: str
     where: { id: tenantId },
     data: { status: "ACTIVE", listed: true, ...(name ? { name } : {}), ...(t.joinCode ? {} : { joinCode: newJoinCode(8) }) },
   });
-  await withExplicitTenantTx(tenantId, (tx) => tx.universitySubmission.updateMany({ where: { status: "PENDING" }, data: { status: "APPLIED", reviewedAt: new Date() } }));
+  const submitters = await withExplicitTenantTx(tenantId, async (tx) => {
+    const rows = await tx.universitySubmission.findMany({ where: { status: "PENDING" }, select: { userId: true } });
+    await tx.universitySubmission.updateMany({ where: { status: "PENDING" }, data: { status: "APPLIED", reviewedAt: new Date() } });
+    return rows.map((r) => r.userId);
+  });
   // المقررات الجارية تأخذ بنود الملف وسياسة الغياب المعتمدة (المقفل لا يُمس — حارس الإقفال يمنعه أصلًا).
   await withExplicitTenantTx(tenantId, async (tx) => {
     const reg = await tx.regulation.findUnique({ where: { tenantId } });
@@ -226,4 +239,5 @@ export async function ownerApprove(ownerId: string, tenantId: string, name?: str
     });
   });
   await recordAudit({ userId: ownerId, tenantId, action: "UNIVERSITY_APPROVED", entityType: "Tenant", entityId: tenantId });
+  await notify(tenantId, submitters, { kind: "UNIVERSITY_APPROVED", title: "اعتُمدت لوائح جامعتك", body: "ملف المقرر وسياسة الغياب و«التزامي» تعمل الآن بلائحة جامعتك.", link: "/university" });
 }

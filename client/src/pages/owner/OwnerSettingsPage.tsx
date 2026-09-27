@@ -15,7 +15,10 @@ interface PlatformSettings {
   trialDays: number;
   ai: { monthlyBudgetSar: number; priceInputPerM: number; priceOutputPerM: number; priceAudioPerM: number; assistantDailyLimit: number; scientificReview: boolean; maxSourcesPerCourse: number };
   term: { autoCloseDaysAfterEnd: number };
+  announcements: Announcement[];
 }
+interface Announcement { id: string; text: string; audience: "ALL" | "TEACHER" | "STUDENT"; until: string | null }
+const AUDIENCE: Record<Announcement["audience"], string> = { ALL: "الجميع", TEACHER: "الأساتذة", STUDENT: "الطلاب" };
 interface Usage {
   spentSar: number;
   budgetSar: number;
@@ -36,6 +39,7 @@ export function OwnerSettingsPage() {
 
       <AiUsageCard />
       <PlatformSettingsCard />
+      <AnnouncementsCard />
 
       <Card title="الحسابات البنكية" hint="تظهر للعميل في صفحة الدفع. أضف حسابًا أو عطّله دون حذفه.">
         <div className="grid gap-3">
@@ -306,6 +310,88 @@ function PlatformSettingsCard() {
       <Button variant="primary" size="sm" className="mt-2" onClick={() => void save()}>
         <Icon name="chk" /> احفظ
       </Button>
+    </Card>
+  );
+}
+
+/**
+ * إعلانات الشريط العلوي (صيانة · إصدار · سياسة) — خمسة على الأكثر، ولكلٍّ جمهور وآخر يوم.
+ * يُحفظ فوق أحدث إعدادات من الخادم لا فوق نسخة قديمة في الصفحة، فلا يمسح تعديلًا في البطاقة الأخرى.
+ */
+function AnnouncementsCard() {
+  const { data, reload } = useApi<PlatformSettings>("/owner/platform/settings");
+  const [text, setText] = useState("");
+  const [audience, setAudience] = useState<Announcement["audience"]>("ALL");
+  const [until, setUntil] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const { showToast } = useToast();
+  const list = data?.announcements ?? [];
+
+  async function put(next: Announcement[]) {
+    setErr(null);
+    try {
+      const fresh = await api.get<PlatformSettings>("/owner/platform/settings");
+      await api.put("/owner/platform/settings", { ...fresh, announcements: next });
+      reload();
+      return true;
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "تعذّر الحفظ");
+      return false;
+    }
+  }
+
+  return (
+    <Card title="إعلانات النظام" className="mt-4" hint="تظهر بالتناوب في الشريط العلوي لكل من تختاره — للصيانة والإصدارات والسياسات، لا لإشعارات العمل.">
+      {list.length > 0 && (
+        <ul className="grid gap-1.5 mb-3">
+          {list.map((a) => (
+            <li key={a.id} className="flex items-center gap-2 text-[13px]">
+              <Icon name="megaphone" className="w-4 h-4 text-ink-3 flex-none" />
+              <span className="flex-1 min-w-0 truncate">{a.text}</span>
+              <Chip tone="neutral">{AUDIENCE[a.audience]}</Chip>
+              {a.until && <span className="text-[11.5px] text-ink-3 flex-none" dir="ltr">{a.until}</span>}
+              <Button size="sm" variant="ghost" onClick={() => void put(list.filter((x) => x.id !== a.id)).then((ok) => ok && showToast("حُذف الإعلان"))}>
+                احذف
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {list.length < 5 ? (
+        <form
+          className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] items-end [&>*]:min-w-0"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const a: Announcement = { id: crypto.randomUUID().slice(0, 8), text: text.trim(), audience, until: until || null };
+            void put([...list, a]).then((ok) => {
+              if (!ok) return;
+              setText("");
+              setUntil("");
+              showToast("نُشر الإعلان");
+            });
+          }}
+        >
+          <Label text={`النص (${text.trim().length}/١٤٠)`}>
+            <Input value={text} maxLength={140} onChange={(e) => setText(e.target.value)} placeholder="مثال: صيانة مجدولة ليلة الجمعة من ٢ إلى ٤ فجرًا" />
+          </Label>
+          <Label text="لمن">
+            <select value={audience} onChange={(e) => setAudience(e.target.value as Announcement["audience"])} className="w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface text-[13.5px]">
+              {Object.entries(AUDIENCE).map(([k, l]) => (
+                <option key={k} value={k}>{l}</option>
+              ))}
+            </select>
+          </Label>
+          <Label text="آخر يوم (اختياري)">
+            <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} dir="ltr" />
+          </Label>
+          <Button type="submit" variant="primary" disabled={text.trim().length < 3}>
+            انشر
+          </Button>
+        </form>
+      ) : (
+        <p className="text-[12.5px] text-ink-3">خمسة إعلانات على الأكثر — احذف واحدًا لتضيف غيره.</p>
+      )}
+      <ErrorText>{err}</ErrorText>
     </Card>
   );
 }

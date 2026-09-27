@@ -5,7 +5,7 @@ import { BottomNav } from "../components/shell/BottomNav.js";
 import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
 import { SubscriptionBanner } from "../components/shell/SubscriptionBanner.js";
-import { roleOf } from "../nav/nav.js";
+import { roleOf, roleOfUser, SHARED_SCREENS } from "../nav/nav.js";
 import { logout, useSession } from "../hooks/useSession.js";
 import { AssistantPanel } from "../components/assistant/AssistantPanel.js";
 import { Icon } from "../icons/Icon.js";
@@ -13,17 +13,16 @@ import { Icon } from "../icons/Icon.js";
 /**
  * هيكل المنصة الداخلي: الشريط الجانبي (سطح المكتب) أو السفلي (الجوال) + الرأس + المحتوى.
  *
- * أُزيل البحث الموحّد ومركز الإشعارات وشريط النظام: كانت كلها تعرض بيانات وهمية (عدّاد
- * إشعارات من ملف mock) — وعدد وهمي أسوأ من لا عدد. تعود حين يكون لها مصدر حقيقي.
+ * شريط النظام والإشعارات من الخادم (`/me/strip` · `/me/notifications`) — لا بيانات وهمية.
  */
 export function AppShell() {
   const location = useLocation();
   const screenKey = location.pathname.split("/")[1] || "today";
-  const role = roleOf(screenKey);
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { user } = useSession();
+  const role = SHARED_SCREENS.has(screenKey) ? roleOfUser(user?.role) : roleOf(screenKey);
   const teacher = user?.role === "TEACHER" && role === "faculty";
 
 
