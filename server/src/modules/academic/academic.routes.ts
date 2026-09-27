@@ -24,6 +24,7 @@ const teacherOnly = requireRole("TEACHER", "OWNER", "ADMIN");
 
 academicRouter.get("/years", asyncHandler(controller.listYears));
 academicRouter.get("/terms", asyncHandler(controller.listTerms));
+academicRouter.get("/course-catalog", teacherOnly, asyncHandler(controller.courseCatalog));
 academicRouter.get("/courses/:courseId/sections", asyncHandler(controller.listSections));
 academicRouter.post("/roster/import", teacherOnly, validate({ body: importRosterSchema }), asyncHandler(controller.importRoster));
 academicRouter.put(

@@ -8,7 +8,7 @@ import type {
   enrollStudentSchema,
 } from "@mihwar/shared";
 import type { z } from "zod";
-import { prisma, prismaBase } from "../../lib/prisma.js";
+import { prisma, prismaBase, withTenantTx } from "../../lib/prisma.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
 import { computeSetupProgress } from "./courseSetup.js";
 import { isSpecComplete } from "@mihwar/shared";
@@ -40,7 +40,37 @@ export async function listAcademicYears() {
  * كل فصول الجامعة مسطّحة — لاختيار فصل عند إنشاء مقرر.
  * الأستاذ لا يعرف «سنة ثم فصل»، يعرف «الفصل الأول ١٤٤٧»: خطوة اختيار أقل.
  */
+/**
+ * الفصول المفتوحة لإنشاء مقرر. جامعة لم يعتمدها المالك بعد (مساحة أستاذ شخصية) لا يدير أحدٌ
+ * تقويمها — فإن خلت من فصل مفتوح يُنشأ لها «الفصل الحالي» (١٦ أسبوعًا من اليوم) بدل أن يعلق
+ * الأستاذ أمام قائمة فارغة. الجامعة المعتمدة تقويمها للمالك وحده: تُرجع قائمة فارغة، وتصله
+ * إشارة في إشعاراته.
+ */
 export async function listTerms() {
+  const open = await openTerms();
+  if (open.length > 0) return open;
+  const tenantId = requireTenantId();
+  const tenant = await prismaBase.tenant.findUnique({ where: { id: tenantId }, select: { listed: true } });
+  if (tenant?.listed) return [];
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start.getTime() + 16 * 7 * 864e5);
+  const label = `${start.getUTCFullYear()}/${start.getUTCFullYear() + 1}`;
+  // قفل على مستوى الجامعة: تبويبان يفتحان «مقرر جديد» معًا لا يُنشئان فصلين.
+  await withTenantTx(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"term:" + tenantId}))`;
+    if (await tx.semester.count({ where: { tenantId, deletedAt: null, status: { in: ["PREP", "ACTIVE"] } } })) return;
+    let year =
+      (await tx.academicYear.findFirst({ where: { tenantId, deletedAt: null, endDate: { gte: start } }, orderBy: { startDate: "desc" } })) ??
+      (await tx.academicYear.findFirst({ where: { tenantId, label } }));
+    if (!year) year = await tx.academicYear.create({ data: { tenantId, label, startDate: start, endDate: end } });
+    else if (year.endDate < end || year.deletedAt) year = await tx.academicYear.update({ where: { id: year.id }, data: { endDate: end, deletedAt: null } });
+    await tx.semester.create({ data: { tenantId, academicYearId: year.id, label: "الفصل الحالي", startDate: start, endDate: end, status: "ACTIVE" } });
+  });
+  return openTerms();
+}
+
+async function openTerms() {
   const terms = await prisma.semester.findMany({
     where: { deletedAt: null, status: { in: ["PREP", "ACTIVE"] } },
     orderBy: { startDate: "desc" },
@@ -368,4 +398,31 @@ export async function listSections(workspaceId: string, courseId: string) {
       _count: { select: { enrollments: { where: { deletedAt: null } } } },
     },
   });
+}
+
+/**
+ * اقتراحات «مقرر جديد»: ما سبق في جامعته + عناوين البنك المنشورة — يختار بدل أن يكتب،
+ * فلا يتكرر «أحياء عامه» و«احياء عامة» لمقرر واحد. مختصر (٢٠) ومفهرس بالرمز.
+ */
+export async function courseCatalog(q: string) {
+  const term = q.trim();
+  const where = term ? { OR: [{ code: { contains: term, mode: "insensitive" as const } }, { nameAr: { contains: term } }] } : {};
+  const [mine, bank] = await Promise.all([
+    prisma.course.findMany({ where: { deletedAt: null, ...where }, select: { code: true, nameAr: true, creditHours: true, hasLab: true }, orderBy: { createdAt: "desc" }, take: 40 }),
+    prismaBase.bankCourse.findMany({
+      where: { status: "PUBLISHED", ...(term ? { OR: [{ code: { contains: term, mode: "insensitive" } }, { title: { contains: term } }] } : {}) },
+      select: { code: true, title: true },
+      take: 20,
+    }),
+  ]);
+  const seen = new Set<string>();
+  const out: { code: string; nameAr: string; creditHours: number | null; hasLab: boolean | null }[] = [];
+  for (const c of [...mine, ...bank.map((b) => ({ code: b.code, nameAr: b.title, creditHours: null, hasLab: null }))]) {
+    const k = `${c.code}|${c.nameAr}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(c);
+    if (out.length >= 20) break;
+  }
+  return out;
 }

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { createCourseSchema } from "@mihwar/shared";
+import { createCourseSchema, normalizeCourseCode } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
@@ -109,6 +109,15 @@ export function CoursesPage() {
   );
 }
 
+interface Suggestion { code: string; nameAr: string; creditHours: number | null; hasLab: boolean | null }
+
+const field = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px]";
+
+/**
+ * مقرر جديد بأقل كتابة: الفصل يُختار وحده إن كان واحدًا، والساعات أزرار، والرمز والاسم
+ * يُقترحان مما سبق في جامعته ومن البنك — نقرة تملأ الأربعة. ما يُكتب يدويًا يُوحَّد رمزه
+ * (bio101 ← BIO 101) قبل الحفظ.
+ */
 function NewCourseForm({
   terms,
   onCancel,
@@ -118,12 +127,36 @@ function NewCourseForm({
   onCancel: () => void;
   onCreated: () => void;
 }) {
-  const [v, setV] = useState({ code: "", nameAr: "", creditHours: "3", hasLab: false, semesterId: "" });
+  const [v, setV] = useState({ code: "", nameAr: "", creditHours: 3, hasLab: false, semesterId: terms.length === 1 ? terms[0]!.id : "" });
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState("");
+  const [picked, setPicked] = useState(false);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+
+  useEffect(() => {
+    if (terms.length === 1 && !v.semesterId) setV((o) => ({ ...o, semesterId: terms[0]!.id }));
+  }, [terms, v.semesterId]);
+
+  useEffect(() => {
+    if (picked) return;
+    const t = setTimeout(() => {
+      void api
+        .get<Suggestion[]>(`/workspaces/me/academic/course-catalog?q=${encodeURIComponent(q.trim())}`)
+        .then(setSuggestions)
+        .catch(() => setSuggestions([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, picked]);
+
+  function pick(s: Suggestion) {
+    setV((o) => ({ ...o, code: s.code, nameAr: s.nameAr, creditHours: s.creditHours ?? o.creditHours, hasLab: s.hasLab ?? o.hasLab }));
+    setPicked(true);
+    setSuggestions([]);
+  }
 
   async function submit() {
-    const parsed = createCourseSchema.safeParse({ ...v, creditHours: Number(v.creditHours) });
+    const parsed = createCourseSchema.safeParse(v);
     if (!parsed.success) {
       setErr(parsed.error.issues[0]?.message ?? "بيانات غير صالحة");
       return;
@@ -140,31 +173,98 @@ function NewCourseForm({
     }
   }
 
+  const term = terms.find((t) => t.id === v.semesterId);
+
   return (
     <section className="bg-white border border-line rounded-[14px] p-4 mb-5">
       <h2 className="font-semibold text-[15px] mb-3">مقرر جديد</h2>
+
+      {terms.length === 0 ? (
+        <p className="text-[13px] text-gold-text mb-3">لا يوجد فصل مفتوح في تقويم جامعتك الآن — أبلغنا المالك، وستتمكن من الإضافة فور فتحه.</p>
+      ) : terms.length === 1 ? (
+        <p className="text-[12.5px] text-ink-3 mb-3">
+          يُضاف إلى <b className="text-ink-2">{term?.label}</b>
+        </p>
+      ) : (
+        <div className="mb-3">
+          <span className="block text-[11.5px] text-ink-3 mb-1">الفصل</span>
+          <div className="flex gap-1.5 flex-wrap" role="radiogroup" aria-label="الفصل">
+            {terms.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={v.semesterId === t.id}
+                onClick={() => setV({ ...v, semesterId: t.id })}
+                className={`px-3 py-1.5 rounded-full border text-[13px] ${v.semesterId === t.id ? "bg-deep text-white border-deep" : "border-line"}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <label className="block mb-3">
+        <span className="block text-[11.5px] text-ink-3 mb-1">ابحث عن المقرر بالاسم أو الرمز</span>
+        <input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPicked(false);
+          }}
+          placeholder="مثال: أحياء أو BIO"
+          className={field}
+          autoFocus
+        />
+      </label>
+      {suggestions.length > 0 && (
+        <ul className="grid gap-1 mb-3 max-h-56 overflow-auto border border-line rounded-[10px] p-1">
+          {suggestions.map((s) => (
+            <li key={`${s.code}|${s.nameAr}`}>
+              <button type="button" onClick={() => pick(s)} className="w-full text-start px-2.5 py-2 rounded-lg hover:bg-paper flex items-center gap-2">
+                <span className="flex-1 min-w-0 truncate text-[13.5px]">{s.nameAr}</span>
+                <span dir="ltr" className="text-[12px] text-ink-3">{s.code}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
         <label className="block">
           <span className="block text-[11.5px] text-ink-3 mb-1">رمز المقرر</span>
-          <input value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} dir="ltr" placeholder="BIO 101" className="w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px] text-start" />
+          <input
+            value={v.code}
+            onChange={(e) => setV({ ...v, code: e.target.value })}
+            onBlur={() => v.code.trim() && setV({ ...v, code: normalizeCourseCode(v.code) })}
+            dir="ltr"
+            placeholder="BIO 101"
+            className={`${field} text-start`}
+          />
         </label>
         <label className="block">
           <span className="block text-[11.5px] text-ink-3 mb-1">اسم المقرر</span>
-          <input value={v.nameAr} onChange={(e) => setV({ ...v, nameAr: e.target.value })} placeholder="أحياء عامة" className="w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px]" />
+          <input value={v.nameAr} onChange={(e) => setV({ ...v, nameAr: e.target.value })} placeholder="أحياء عامة" className={field} />
         </label>
-        <label className="block">
-          <span className="block text-[11.5px] text-ink-3 mb-1">الساعات المعتمدة</span>
-          <input type="number" min={1} max={12} value={v.creditHours} onChange={(e) => setV({ ...v, creditHours: e.target.value })} className="w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px]" />
-        </label>
-        <label className="block">
-          <span className="block text-[11.5px] text-ink-3 mb-1">الفصل</span>
-          <select value={v.semesterId} onChange={(e) => setV({ ...v, semesterId: e.target.value })} className="w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px]">
-            <option value="">اختر الفصل</option>
-            {terms.map((t) => (
-              <option key={t.id} value={t.id}>{t.label}</option>
-            ))}
-          </select>
-        </label>
+      </div>
+
+      <div className="mt-3">
+        <span className="block text-[11.5px] text-ink-3 mb-1">الساعات المعتمدة</span>
+        <div className="flex gap-1.5" role="radiogroup" aria-label="الساعات المعتمدة">
+          {[1, 2, 3, 4, 5, 6].map((h) => (
+            <button
+              key={h}
+              type="button"
+              role="radio"
+              aria-checked={v.creditHours === h}
+              onClick={() => setV({ ...v, creditHours: h })}
+              className={`w-10 h-10 rounded-[10px] border text-[14px] ${v.creditHours === h ? "bg-deep text-white border-deep" : "border-line"}`}
+            >
+              {formatNum(h)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <label className="flex items-center gap-2 mt-3.5 text-[13.5px]">
@@ -175,7 +275,7 @@ function NewCourseForm({
       {err && <p className="text-[12px] text-crim mt-2.5">{err}</p>}
 
       <div className="flex gap-2 mt-4">
-        <Button variant="primary" onClick={() => void submit()} disabled={busy}>حفظ ومتابعة</Button>
+        <Button variant="primary" onClick={() => void submit()} disabled={busy || terms.length === 0}>حفظ ومتابعة</Button>
         <Button variant="secondary" onClick={onCancel}>إلغاء</Button>
       </div>
     </section>

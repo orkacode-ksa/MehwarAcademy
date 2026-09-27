@@ -13,6 +13,8 @@ import { useToast } from "../../state/ToastContext.js";
 interface Activity { id: string; type: ActivityType; title: string; venue: string | null; date: string; hours: number | null; participation: string | null }
 interface Data { fullName: string; email: string; profile: Partial<FacultyProfile>; activities: Activity[] }
 
+const RANKS = ["معيد", "محاضر", "أستاذ مساعد", "أستاذ مشارك", "أستاذ"];
+
 /** سيرتي — بيانات ثابتة مرة، ونشاط يُضاف كلما حدث؛ والسيرة PDF بنقرة. */
 export function CvPage() {
   const { data, reload } = useApi<Data>("/profile");
@@ -60,7 +62,14 @@ export function CvPage() {
       />
       <Card title="البيانات الأساسية" hint="الرتبة والتخصص يكفيان لتكتمل «السيرة الذاتية» في ملفات مقرراتك.">
         <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
-          {field("rank", "الرتبة العلمية")}
+          <Label text="الرتبة العلمية">
+            <Select value={p.rank} onChange={(e) => setP({ ...p, rank: e.target.value })}>
+              <option value="">اختر</option>
+              {[...RANKS, ...(p.rank && !RANKS.includes(p.rank) ? [p.rank] : [])].map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </Select>
+          </Label>
           {field("specialization", "التخصص")}
           {field("department", "القسم")}
           {field("college", "الكلية")}

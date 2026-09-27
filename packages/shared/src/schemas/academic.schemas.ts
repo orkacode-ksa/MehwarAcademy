@@ -27,10 +27,25 @@ export const createSemesterSchema = z
   })
   .strict();
 
+/**
+ * رمز المقرر بصيغة واحدة مهما كُتب: أحرف كبيرة، أرقام لاتينية، ومسافة واحدة بين الحروف والأرقام
+ * («bio102» و«BIO  102» و«BIO١٠٢» ← «BIO 102») — فلا يتكرّر المقرر في البنك والتقارير بصيغ مختلفة.
+ */
+export function normalizeCourseCode(raw: string): string {
+  return raw
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+    .replace(/[-_]/g, " ")
+    .toUpperCase()
+    .replace(/([A-Z\u0600-\u06FF])(\d)/g, "$1 $2")
+    .replace(/(\d)([A-Z\u0600-\u06FF])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export const createCourseSchema = z
   .object({
-    semesterId: cuidSchema,
-    code: z.string().trim().min(2).max(20),
+    semesterId: z.string({ required_error: "اختر الفصل" }).min(1, "اختر الفصل").pipe(cuidSchema),
+    code: z.string().trim().min(2, "اكتب رمز المقرر").max(20).transform(normalizeCourseCode),
     nameAr: z.string().trim().min(2).max(150),
     creditHours: z.coerce.number().int().min(1).max(12),
     /** مقرر ذو معمل — يفتح خطوة المعمل في مسار التجهيز. */

@@ -72,3 +72,8 @@ export async function saveSpec(req: Request, res: Response): Promise<void> {
 export async function setMeetings(req: Request, res: Response): Promise<void> {
   res.json({ success: true, data: await service.setSectionMeetings(ws(req), req.params.sectionId as string, req.body.meetings) });
 }
+
+export async function courseCatalog(req: Request, res: Response): Promise<void> {
+  const q = typeof req.query.q === "string" ? req.query.q.slice(0, 40) : "";
+  res.json({ success: true, data: await service.courseCatalog(q) });
+}
