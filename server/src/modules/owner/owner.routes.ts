@@ -18,6 +18,7 @@ import { requireAuth } from "../../middleware/auth.js";
 import { requireRole } from "../../middleware/rbac.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { recordAudit } from "../../lib/auditLog.js";
+import { runWithTenant } from "../../lib/tenantContext.js";
 import { AppError } from "../../lib/AppError.js";
 import * as service from "./owner.service.js";
 import * as store from "../store/store.service.js";
@@ -168,6 +169,8 @@ ownerRouter.patch(
     const tenantId = req.params.tenantId as string;
     await assertInstitution(tenantId);
     const term = await service.setTermStatus(tenantId, req.params.termId as string, req.body.status);
+    // الإقفال يسحب مقررات الفصل للبنك (جديدها للمراجعة، ونسخ الموجود مسودّات) — في سياق الجامعة نفسها.
+    const harvest = term.status === "CLOSED" ? await runWithTenant({ tenantId, userId: actor(req) }, () => bank.harvestSemester(tenantId, term.id, actor(req))) : null;
     // تغيير حالة الفصل يفتح أو يُغلق الرصد على كل أساتذة الجامعة.
     await recordAudit({
       userId: actor(req),
@@ -177,7 +180,7 @@ ownerRouter.patch(
       entityId: term.id,
       after: { status: term.status },
     });
-    res.json({ success: true, data: term });
+    res.json({ success: true, data: { ...term, harvest } });
   }),
 );
 
@@ -324,6 +327,13 @@ ownerRouter.get(
   asyncHandler(async (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
     res.json({ success: true, data: await bank.ownerList(status) });
+  }),
+);
+/** تقييم المحرّك للمقرر وسعر مقترح — قبل قرار المالك. */
+ownerRouter.post(
+  "/bank/:id/evaluate",
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await bank.ownerEvaluate(actor(req), req.params.id as string) });
   }),
 );
 ownerRouter.patch(

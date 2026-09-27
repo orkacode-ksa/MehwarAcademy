@@ -6,6 +6,7 @@ import { prisma } from "./lib/prisma.js";
 import { assertRlsEffective } from "./lib/rlsGuard.js";
 import { redis } from "./lib/redis.js";
 import { closePdfEngine } from "./lib/pdf.js";
+import { startTermCloser } from "./jobs/termCloser.js";
 
 installArabicZodErrorMap();
 
@@ -18,6 +19,8 @@ await assertRlsEffective();
 const server = app.listen(env.PORT, () => {
   logger.info(`مِحوَر: الخادم يعمل على المنفذ ${env.PORT} — بيئة ${env.NODE_ENV}`);
 });
+
+startTermCloser();
 
 server.headersTimeout = 65_000;
 server.requestTimeout = 60_000;

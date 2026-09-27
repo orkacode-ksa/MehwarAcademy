@@ -449,6 +449,9 @@ model Semester {
   status         TermStatus @default(PREP)
   /// بعد هذا التاريخ يُقفل الرصد آليًا — لا يعتمد على انتباه أحد.
   gradeLockAt    DateTime?
+  /// متى أُقفل الفصل (يدويًا أو آليًا) ومتى سُحبت مقرراته للبنك
+  closedAt       DateTime?
+  harvestedAt    DateTime?
   createdAt      DateTime   @default(now())
   deletedAt      DateTime?
 
@@ -1009,34 +1012,42 @@ model Order {
 /// مقرر في البنك — **كتلة واحدة** تُباع وتُضاف: نسخة كاملة من المقرر (توصيف · فهرس · مواد ·
 /// تقييمات بنماذج إجاباتها) بلا طلاب ولا درجات.
 model BankCourse {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   title          String
   code           String
   specialization String
   university     String
-  description    String   @default("")
-  level          String   @default("")
+  description    String    @default("")
+  level          String    @default("")
   /// 0 = مجاني
-  price          Decimal  @default(0) @db.Decimal(10, 2)
+  price          Decimal   @default(0) @db.Decimal(10, 2)
   /// يُتاح بحصة VIP في الباقة
-  vipIncluded    Boolean  @default(true)
+  vipIncluded    Boolean   @default(true)
   /// DRAFT · PENDING · PUBLISHED · REJECTED · ARCHIVED
-  status         String   @default("PENDING")
+  status         String    @default("PENDING")
   content        Json
   /// ملخّص للعرض قبل الشراء: عدد المواضيع والمواد والتقييمات والمخرجات
-  summary        Json     @default("{}")
+  summary        Json      @default("{}")
   sourceCourseId String?
   sourceTenantId String?
-  version        Int      @default(1)
-  importsCount   Int      @default(0)
+  version        Int       @default(1)
+  importsCount   Int       @default(0)
   reviewNote     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  /// النسخة الجديدة المسحوبة عند إقفال فصل ولم يعتمدها المالك بعد: { content, summary, authorId, authorName, university, termLabel }.
+  /// المنشور يبقى كما هو حتى الاعتماد — لا يتغيّر منتج معروض للبيع بلا مراجعة.
+  draft          Json?
+  draftAt        DateTime?
+  /// تقييم المحرّك للمقرر: درجات المعايير والقوة والضعف والسعر المقترح وتعليله
+  evaluation     Json?
+  suggestedPrice Decimal?  @db.Decimal(10, 2)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   authors  BankCourseAuthor[]
   accesses BankCourseAccess[]
 
   @@index([status, specialization])
+  @@index([sourceCourseId])
   @@map("bank_courses")
 }
 

@@ -9,6 +9,7 @@ import { env } from "../config/env.js";
 import { drainGeneration } from "../modules/generation/generation.service.js";
 import { resetExpensiveLimitForTests } from "../middleware/rateLimit.js";
 import { resetSettingsCache } from "../modules/platform/settings.js";
+import { closeDueTerms } from "../jobs/termCloser.js";
 
 /**
  * المتجر والبنك والملفات والتوليد والتقارير — عبر الواجهة البرمجية الحقيقية.
@@ -219,66 +220,145 @@ describe("الاختبارات ونموذج الإجابة وتقرير المق
   }, 60_000);
 });
 
-describe("بنك المقررات", () => {
-  let bankId: string;
+describe("بنك المقررات — يمتلئ وحده عند إقفال الفصل", () => {
+  let mock: http.Server;
+  const saved = { ...env };
+  const ids: Record<string, string> = {};
+  const closed: { tenant: string; term: string }[] = [];
+  let c2 = "";
+  const ctx = async (agent: ReturnType<typeof request.agent>) => {
+    const me = (await agent.get("/api/auth/me")).body.data;
+    const term = (await agent.get(`${W}/academic/terms`)).body.data[0].id as string;
+    return { tenant: me.tenantId as string, term };
+  };
+  const endTerm = async (agent: ReturnType<typeof request.agent>) => {
+    const { tenant, term } = await ctx(agent);
+    await withExplicitTenantTx(tenant, (tx) => tx.semester.update({ where: { id: term }, data: { endDate: new Date(Date.now() - 60 * 864e5) } }));
+    closed.push({ tenant, term });
+    return term;
+  };
+  const reopenAll = async () => {
+    for (const { tenant, term } of closed.splice(0)) {
+      await withExplicitTenantTx(tenant, (tx) => tx.semester.update({ where: { id: term }, data: { status: "ACTIVE", endDate: new Date(Date.now() + 90 * 864e5) } }));
+    }
+  };
 
-  it("النشر يذهب للمراجعة ويُسجَّل المؤلف", async () => {
-    const pub = await a.post(`/api/store/bank/publish/me/${aCourse}`).send({ specialization: "الفيزياء", description: "مقرر كامل بمواده واختباراته" });
-    expect(pub.status).toBe(200);
-    bankId = pub.body.data.id;
-    expect(pub.body.data.status).toBe("PENDING");
-    expect((await b.get("/api/store/bank")).body.data.courses.find((c: { id: string }) => c.id === bankId)).toBeUndefined();
+  beforeAll(async () => {
+    mock = http.createServer((req, res) => {
+      req.resume();
+      req.on("end", () =>
+        res.writeHead(200, { "Content-Type": "application/json" }).end(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        scores: [{ key: "SPEC", label: "التوصيف", score: 8, note: "مخرجات واضحة" }],
+                        overall: 7.5,
+                        specialization: "الفيزياء",
+                        strengths: ["نماذج إجابة"],
+                        weaknesses: ["مواد قليلة"],
+                        suggestedPriceSar: 119.6,
+                        priceRationale: "مقرر أساسي مطلوب",
+                        includeInPro: true,
+                      }),
+                    },
+                  ],
+                },
+              },
+            ],
+            usageMetadata: { promptTokenCount: 2000, candidatesTokenCount: 300 },
+          }),
+        ),
+      );
+    });
+    await new Promise<void>((r) => mock.listen(0, "127.0.0.1", () => r()));
+    Object.assign(env, { GEMINI_API_KEY: "gemini-key", AI_BASE_URL: `http://127.0.0.1:${(mock.address() as AddressInfo).port}` });
+    const term = (await a.get(`${W}/academic/terms`)).body.data[0].id;
+    c2 = (await a.post(`${W}/academic/courses`).send({ semesterId: term, code: "PHY 102", nameAr: "فيزياء ٢", creditHours: 3 })).body.data.id;
+    await a.post(`${W}/teaching/topics`).send({ courseId: c2, title: "الطاقة" });
+    await a.post(`${W}/academic/courses`).send({ semesterId: term, code: "EMPTY 1", nameAr: "بلا فهرس", creditHours: 2 });
+  });
+  afterAll(async () => {
+    mock.close();
+    Object.assign(env, { GEMINI_API_KEY: saved.GEMINI_API_KEY, AI_BASE_URL: saved.AI_BASE_URL });
+    await reopenAll();
   });
 
-  it("المالك ينشر ويسعّر — والمراجعة تُسجَّل في جدول المؤلفين", async () => {
-    const r = await owner.patch(`/api/owner/bank/${bankId}`).send({ status: "PUBLISHED", price: 150, vipIncluded: false });
-    expect(r.status).toBe(200);
-    const list = await owner.get("/api/owner/bank");
-    const row = list.body.data.find((x: { id: string }) => x.id === bankId);
+  it("الإقفال الآلي بعد مهلة الرصد يسحب المقررات (لا الفارغة) ويجعل الفصل للقراءة فقط", async () => {
+    await endTerm(a);
+    expect(await closeDueTerms()).toBeGreaterThanOrEqual(1);
+    const review = (await owner.get("/api/owner/bank?status=review")).body.data as { id: string; code: string; status: string; sourceCourseId: string; authors: { role: string; userName: string }[] }[];
+    const tenantCourses = new Set([aCourse, c2]);
+    const mine = review.filter((r) => tenantCourses.has(r.sourceCourseId) || r.code === "EMPTY 1");
+    expect(mine.map((r) => r.code).sort()).toEqual(["PHY 101", "PHY 102"]);
+    for (const r of mine) {
+      expect(r.status).toBe("PENDING");
+      expect(r.authors[0]).toMatchObject({ role: "CREATOR", userName: "د. ناشر" });
+      ids[r.code] = r.id;
+    }
+    // المقفل للعرض فقط — حارس قاعدة البيانات يمنع كل كتابة
+    const locked = await a.post(`${W}/teaching/topics`).send({ courseId: aCourse, title: "موضوع متأخر" });
+    expect(locked.status).toBe(409);
+    expect(locked.body.error.code).toBe("TERM_LOCKED");
+    expect((await a.get(`${W}/teaching/courses/${aCourse}/topics`)).status).toBe(200);
+    // الأستاذ لا ينشر — يرى حالة مقرره فقط
+    expect((await a.get(`/api/store/bank/status/me/${aCourse}`)).body.data).toMatchObject({ status: "PENDING", version: 1 });
+  });
+
+  it("المحرّك يقيّم ويقترح سعرًا وتخصصًا — والمالك يقرّر", async () => {
+    const ev = await owner.post(`/api/owner/bank/${ids["PHY 101"]}/evaluate`);
+    expect(ev.status).toBe(200);
+    expect(ev.body.data).toMatchObject({ suggestedPriceSar: 120, specialization: "الفيزياء", overall: 7.5 });
+    expect((await a.post(`/api/owner/bank/${ids["PHY 101"]}/evaluate`)).status).toBe(403);
+    expect((await owner.patch(`/api/owner/bank/${ids["PHY 102"]}`).send({ decision: "PUBLISH", price: 80 })).status).toBe(400); // بلا تخصص
+    await owner.patch(`/api/owner/bank/${ids["PHY 101"]}`).send({ decision: "PUBLISH", price: 150, vipIncluded: false });
+    await owner.patch(`/api/owner/bank/${ids["PHY 102"]}`).send({ decision: "PUBLISH", price: 80, vipIncluded: true, specialization: "الفيزياء" });
+    const row = (await owner.get("/api/owner/bank?status=PUBLISHED")).body.data.find((x: { id: string }) => x.id === ids["PHY 101"]);
+    expect(row).toMatchObject({ price: 150, suggestedPrice: 120, specialization: "الفيزياء" });
     expect(row.authors.map((x: { role: string }) => x.role)).toEqual(["CREATOR", "REVIEWER"]);
-    expect(row.university).toBeTruthy();
   });
 
-  it("المشتري: التفاصيل ← يحتاج شراء ← تحويل ← اعتماد ← إضافة لمقرراته بمحتواه", async () => {
-    const d = await b.get(`/api/store/bank/${bankId}`);
+  it("المشتري: التفاصيل بلا محتوى ← شراء بتحويل ← إضافة بمحتواه · ومشمول «محور برو» من الحصة", async () => {
+    const id = ids["PHY 101"] as string;
+    const d = await b.get(`/api/store/bank/${id}`);
     expect(d.body.data.outline).toEqual(["قوانين نيوتن"]);
-    expect(d.body.data.authors[0]).toMatchObject({ name: "د. ناشر", role: "CREATOR" });
-    expect(JSON.stringify(d.body.data)).not.toContain("القوة = الكتلة"); // لا محتوى قبل الشراء
-
-    const acq = await b.post(`/api/store/bank/${bankId}/acquire/me`);
+    expect(JSON.stringify(d.body.data)).not.toContain("القوة = الكتلة");
+    const acq = await b.post(`/api/store/bank/${id}/acquire/me`);
     expect(acq.body.data).toMatchObject({ granted: false, needsPurchase: true, price: 150 });
-    const o = (await b.post("/api/store/orders").send({ kind: "BANK_COURSE", bankCourseId: bankId })).body.data;
+    const o = (await b.post("/api/store/orders").send({ kind: "BANK_COURSE", bankCourseId: id })).body.data;
     await b.post(`/api/store/orders/${o.id}/receipt`).set("Content-Type", "application/pdf").set("X-Payer-Name", encodeURIComponent("مشترٍ")).set("X-Transfer-Date", "2026-09-27").send(PDF);
     await owner.post(`/api/owner/store/orders/${o.id}/review`).send({ decision: "APPROVE" });
-
-    const term = (await b.get(`${W}/academic/terms`)).body.data[0].id;
-    const imp = await b.post(`/api/store/bank/${bankId}/import/me`).send({ semesterId: term });
+    const { term } = await ctx(b);
+    const imp = await b.post(`/api/store/bank/${id}/import/me`).send({ semesterId: term });
     expect(imp.status).toBe(201);
-    const assessments = await b.get(`${W}/teaching/courses/${imp.body.data.id}/assessments`);
-    expect(assessments.body.data[0].answerKey).toContain("القوة = الكتلة");
-    const topics = await b.get(`${W}/teaching/courses/${imp.body.data.id}/topics`);
-    expect(topics.body.data[0].title).toBe("قوانين نيوتن");
+    ids.imported = imp.body.data.id;
+    expect((await b.get(`${W}/teaching/courses/${imp.body.data.id}/assessments`)).body.data[0].answerKey).toContain("القوة = الكتلة");
+
+    const pro = await b.post(`/api/store/bank/${ids["PHY 102"]}/acquire/me`);
+    expect(pro.body.data).toMatchObject({ granted: true, via: "VIP", remaining: 4 });
   });
 
-  it("تحديث المؤلف يرفع الإصدار ويُسجَّل «محرِّر» ويعيد للمراجعة", async () => {
-    const pub = await a.post(`/api/store/bank/publish/me/${aCourse}`).send({ specialization: "الفيزياء", description: "نسخة ٢" });
-    expect(pub.body.data).toMatchObject({ version: 2, status: "PENDING" });
-    const row = (await owner.get("/api/owner/bank")).body.data.find((x: { id: string }) => x.id === bankId);
-    expect(row.authors.map((x: { role: string }) => x.role)).toEqual(["CREATOR", "REVIEWER", "EDITOR"]);
-  });
-
-  it("مقرر مشمول بـ VIP يُحصل عليه من الحصة بلا دفع", async () => {
-    // المشتري ما زال في التجربة (حدود VIP: ٥ مقررات)
-    // مقرر ثانٍ (إعادة نشر المقرر نفسه تحدّث الكتلة نفسها — وهي مملوكة للمشتري أصلًا)
-    const term = (await a.get(`${W}/academic/terms`)).body.data[0].id;
-    const c2 = (await a.post(`${W}/academic/courses`).send({ semesterId: term, code: "PHY 102", nameAr: "فيزياء ٢", creditHours: 3 })).body.data.id;
-    await a.post(`${W}/teaching/topics`).send({ courseId: c2, title: "الطاقة" });
-    const pub = await a.post(`/api/store/bank/publish/me/${c2}`).send({ specialization: "الفيزياء", description: "x" });
-    await owner.patch(`/api/owner/bank/${pub.body.data.id}`).send({ status: "PUBLISHED", price: 80, vipIncluded: true });
-    const got = await b.post(`/api/store/bank/${pub.body.data.id}/acquire/me`);
-    expect(got.body.data).toMatchObject({ granted: true, via: "VIP", remaining: 4 });
-    expect((await b.get("/api/store/me/me")).body.data.entitlements.bankCoursesUsed).toBe(1);
-    expect((await request(app).get("/api/store/bank")).status).toBe(401); // بلا جلسة
+  it("تعديل المستورد يُسحب عند إقفال فصل المشتري نسخةً جديدة «محرِّر» فوق المنشور حتى يعتمدها المالك", async () => {
+    await b.post(`${W}/teaching/topics`).send({ courseId: ids.imported, title: "قانون الجذب العام" });
+    await endTerm(b);
+    await closeDueTerms();
+    const row = (await owner.get("/api/owner/bank?status=review")).body.data.find((x: { id: string }) => x.id === ids["PHY 101"]);
+    expect(row.status).toBe("PUBLISHED"); // المشترون يرون المنشور كما هو
+    expect(row.draft).toMatchObject({ authorName: "د. مشترٍ" });
+    expect(row.authors.at(-1)).toMatchObject({ role: "EDITOR", userName: "د. مشترٍ" });
+    await owner.patch(`/api/owner/bank/${ids["PHY 101"]}`).send({ decision: "PUBLISH", price: 150 });
+    const d = (await b.get(`/api/store/bank/${ids["PHY 101"]}`)).body.data;
+    expect(d.outline).toEqual(["قوانين نيوتن", "قانون الجذب العام"]);
+    expect(d.version).toBe(2);
+    // سحب ثانٍ بلا تغيير لا يُنشئ نسخة
+    await reopenAll();
+    await endTerm(b);
+    await closeDueTerms();
+    const again = (await owner.get("/api/owner/bank?status=review")).body.data.find((x: { id: string }) => x.id === ids["PHY 101"]);
+    expect(again).toBeUndefined();
   });
 });
 

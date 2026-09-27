@@ -209,7 +209,7 @@ export async function setTermStatus(tenantId: string, termId: string, next: Term
     if (!ALLOWED_TRANSITIONS[current].includes(next)) {
       throw AppError.badRequest(`لا يمكن الانتقال من «${current}» إلى «${next}»`);
     }
-    return tx.semester.update({ where: { id: term.id }, data: { status: next } });
+    return tx.semester.update({ where: { id: term.id }, data: { status: next, ...(next === "CLOSED" ? { closedAt: new Date() } : {}) } });
   });
 }
 

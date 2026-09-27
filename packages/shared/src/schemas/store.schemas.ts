@@ -70,24 +70,22 @@ export const ORDER_STATUS_LABEL = {
 
 // ───────────────────────── بنك المقررات ─────────────────────────
 
-export const publishToBankSchema = z
-  .object({
-    specialization: z.string().trim().min(2).max(80),
-    description: z.string().trim().max(2000).default(""),
-    note: z.string().trim().max(300).optional(),
-  })
-  .strict();
-
+/**
+ * قرار المالك على مقرر في البنك. النشر يعتمد النسخة المسحوبة (إن وُجدت) ويحدّد السعر؛
+ * الرفض يُسقط النسخة المسحوبة (أو يرفض المقرر الجديد)؛ الأرشفة تسحبه من الكتالوج.
+ */
 export const bankReviewSchema = z
   .object({
-    status: z.enum(["PUBLISHED", "REJECTED", "ARCHIVED", "PENDING"]),
+    decision: z.enum(["PUBLISH", "REJECT", "ARCHIVE"]),
     price: z.coerce.number().min(0).max(100000).optional(),
     vipIncluded: z.boolean().optional(),
     specialization: z.string().trim().min(2).max(80).optional(),
     title: z.string().trim().min(2).max(150).optional(),
+    description: z.string().trim().max(2000).optional(),
     reviewNote: z.string().trim().max(300).optional(),
   })
   .strict();
+export type BankReviewInput = z.infer<typeof bankReviewSchema>;
 
 export const importBankCourseSchema = z.object({ semesterId: z.string().min(1) }).strict();
 

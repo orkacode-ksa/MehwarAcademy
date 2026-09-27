@@ -38,6 +38,15 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
+  // حارس إقفال الفصل في قاعدة البيانات (mihwar_guard_term) — يصل عبر Prisma برسالته.
+  if (err instanceof Error && err.message.includes("TERM_LOCKED")) {
+    res.status(409).json({
+      success: false,
+      error: { code: "TERM_LOCKED", message: "هذا الفصل مُقفل — بياناته للعرض فقط. لإعادة فتحه راسل إدارة المنصة.", requestId },
+    });
+    return;
+  }
+
   logger.error({ err, requestId }, "خطأ غير متوقع");
   res.status(500).json({
     success: false,

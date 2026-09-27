@@ -1,15 +1,21 @@
-import type { CourseSpec } from "@mihwar/shared";
+import type { BankReviewInput, CourseSpec } from "@mihwar/shared";
+import { Prisma } from "@prisma/client";
 import { prisma, prismaBase, withTenantTx } from "../../lib/prisma.js";
+import { newMeter, writeJson } from "../generation/engine.js";
+import { assertBudget, recordUsage } from "../platform/aiBudget.js";
 import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { getEntitlements } from "../store/entitlements.js";
 import { assertCanAddCourse } from "../academic/limits.js";
 
 /**
- * بنك المقررات — **المقرر كتلة واحدة** تُنشر وتُباع وتُضاف.
+ * بنك المقررات — **المقرر كتلة واحدة** تُباع وتُضاف، ويمتلئ البنك وحده.
  *
- * الكتلة نسخة كاملة من عمل الأستاذ: التوصيف والفهرس والمواد والتقييمات بنماذج إجاباتها
- * وتوزيع الدرجات — بلا طلاب ولا درجات ولا حضور. من يضيفها لمقرراته يبدأ فصله جاهزًا.
+ * لا يَنشر الأستاذ ولا يُسعّر: عند إقفال الفصل تُسحب كل مقرراته كتلًا (التوصيف والفهرس والمواد
+ * والتقييمات بنماذج إجاباتها وتوزيع الدرجات — بلا طلاب ولا درجات ولا حضور). المقرر الجديد
+ * يدخل البنك «بانتظار المراجعة»، والمقرر الذي له كتلة (أصلُه أو نسخةٌ استُوردت منه أو استُنسخت)
+ * تُسجَّل نسخته الجديدة «مسودة» فوق المنشور حتى يعتمدها المالك. ثم يقيّمه المحرّك ويقترح
+ * سعرًا، والمالك يقرّر.
  *
  * وجدول المؤلفين (`bank_course_authors`) سجلّ لا يُحذف منه: من أنشأ الكتلة، ومن عدّلها،
  * ومن راجعها، وبأي إصدار ومتى — أساس حفظ الحقوق وأي تقاسم إيراد لاحق.
@@ -81,78 +87,122 @@ async function snapshotCourse(workspaceId: string, courseId: string) {
   return { course: c, snapshot, summary };
 }
 
-/** نشر مقرر في البنك (أو تحديث نسخته) — يذهب للمراجعة قبل أن يظهر في الكتالوج. */
-export async function publishFromCourse(
-  user: { userId: string; tenantId: string },
-  workspaceId: string,
-  courseId: string,
-  input: { specialization: string; description: string; note?: string },
-) {
-  const { course, snapshot, summary } = await snapshotCourse(workspaceId, courseId);
-  const [author, tenant] = await Promise.all([
-    prismaBase.user.findUniqueOrThrow({ where: { id: user.userId }, select: { fullName: true } }),
-    prismaBase.tenant.findUniqueOrThrow({ where: { id: user.tenantId }, select: { name: true } }),
-  ]);
-
-  const existing = await prismaBase.bankCourse.findFirst({ where: { sourceCourseId: courseId, sourceTenantId: user.tenantId } });
-  const bank = existing
-    ? await prismaBase.bankCourse.update({
-        where: { id: existing.id },
-        data: {
-          content: snapshot as object,
-          summary,
-          specialization: input.specialization,
-          description: input.description,
-          title: course.nameAr,
-          code: course.code,
-          level: snapshot.spec.level ?? "",
-          version: { increment: 1 },
-          // تعديل المحتوى يعيده للمراجعة — لا يتغيّر منتج معروض للبيع بلا نظر.
-          status: "PENDING",
-        },
-      })
-    : await prismaBase.bankCourse.create({
-        data: {
-          title: course.nameAr,
-          code: course.code,
-          specialization: input.specialization,
-          university: tenant.name,
-          description: input.description,
-          level: snapshot.spec.level ?? "",
-          content: snapshot as object,
-          summary,
-          sourceCourseId: courseId,
-          sourceTenantId: user.tenantId,
-          status: "PENDING",
-        },
-      });
-
-  await prismaBase.bankCourseAuthor.create({
-    data: {
-      bankCourseId: bank.id,
-      userId: user.userId,
-      userName: author.fullName,
-      university: tenant.name,
-      role: existing ? "EDITOR" : "CREATOR",
-      note: input.note ?? null,
-      version: bank.version,
-    },
-  });
-  await prismaBase.bankCourseAccess.upsert({
-    where: { bankCourseId_userId: { bankCourseId: bank.id, userId: user.userId } },
-    create: { bankCourseId: bank.id, userId: user.userId, tenantId: user.tenantId, via: "AUTHOR" },
-    update: {},
-  });
-  await recordAudit({ userId: user.userId, tenantId: user.tenantId, action: existing ? "BANK_COURSE_UPDATED" : "BANK_COURSE_SUBMITTED", entityType: "BankCourse", entityId: bank.id });
-  return { id: bank.id, status: bank.status, version: bank.version };
+/**
+ * الكتلة التي يغذّيها مقرر: المقرر المستورد من البنك يغذّي كتلته، والأصل يغذّي الكتلة التي
+ * أُنشئت منه، والمستنسخ لفصل جديد يرث كتلة أصله.
+ */
+async function lineageOf(course: { id: string; bankCourseId: string | null; clonedFromId: string | null }): Promise<string | null> {
+  let c: { id: string; bankCourseId: string | null; clonedFromId: string | null } | null = course;
+  for (let depth = 0; c && depth < 12; depth++) {
+    if (c.bankCourseId) return c.bankCourseId;
+    const own = await prismaBase.bankCourse.findFirst({ where: { sourceCourseId: c.id }, select: { id: true } });
+    if (own) return own.id;
+    c = c.clonedFromId ? await prisma.course.findFirst({ where: { id: c.clonedFromId }, select: { id: true, bankCourseId: true, clonedFromId: true } }) : null;
+  }
+  return null;
 }
 
-/** حالة المقرر في البنك — لصفحة المقرر: هل نُشر؟ بأي إصدار؟ */
-export async function bankStatusOf(tenantId: string, courseId: string) {
-  return prismaBase.bankCourse.findFirst({
-    where: { sourceCourseId: courseId, sourceTenantId: tenantId },
-    select: { id: true, status: true, version: true, reviewNote: true, importsCount: true, specialization: true, description: true },
+/** مقارنة لا تتأثر بترتيب المفاتيح — JSONB في Postgres يعيد ترتيبها عند الحفظ. */
+const canon = (v: unknown): unknown =>
+  Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon((v as Record<string, unknown>)[k])])) : v;
+const same = (a: unknown, b: unknown) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+
+/**
+ * سحب مقررات فصل أُقفل إلى البنك. يُستدعى داخل سياق مستأجر الفصل (runWithTenant).
+ * آمن للتكرار: مقرر لم يتغيّر محتواه منذ آخر سحب لا يُنشئ نسخة.
+ */
+export async function harvestSemester(tenantId: string, semesterId: string, actorId?: string) {
+  const [tenant, semester] = await Promise.all([
+    prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true } }),
+    prisma.semester.findFirstOrThrow({ where: { id: semesterId }, select: { label: true, academicYear: { select: { label: true } } } }),
+  ]);
+  const termLabel = `${semester.label} — ${semester.academicYear.label}`;
+  const courses = await prisma.course.findMany({
+    where: { semesterId, deletedAt: null },
+    select: { id: true, workspaceId: true, bankCourseId: true, clonedFromId: true, workspace: { select: { ownerId: true } } },
   });
+  let created = 0;
+  let drafted = 0;
+  for (const c of courses) {
+    const snap = await snapshotCourse(c.workspaceId, c.id).catch(() => null);
+    if (!snap) continue; // مقرر بلا فهرس لا يدخل البنك
+    const author = await prismaBase.user.findUnique({ where: { id: c.workspace.ownerId }, select: { id: true, fullName: true } });
+    if (!author) continue;
+    const entryId = await lineageOf(c);
+    const entry = entryId ? await prismaBase.bankCourse.findUnique({ where: { id: entryId } }) : null;
+
+    if (!entry) {
+      const bank = await prismaBase.bankCourse.create({
+        data: {
+          title: snap.course.nameAr,
+          code: snap.course.code,
+          specialization: "",
+          university: tenant.name,
+          description: snap.snapshot.spec.description ?? "",
+          level: snap.snapshot.spec.level ?? "",
+          content: snap.snapshot as object,
+          summary: snap.summary,
+          sourceCourseId: c.id,
+          sourceTenantId: tenantId,
+          status: "PENDING",
+          vipIncluded: true,
+        },
+      });
+      await prismaBase.bankCourseAuthor.create({
+        data: { bankCourseId: bank.id, userId: author.id, userName: author.fullName, university: tenant.name, role: "CREATOR", note: termLabel, version: 1 },
+      });
+      await prismaBase.bankCourseAccess.upsert({
+        where: { bankCourseId_userId: { bankCourseId: bank.id, userId: author.id } },
+        create: { bankCourseId: bank.id, userId: author.id, tenantId, via: "AUTHOR" },
+        update: {},
+      });
+      created++;
+      continue;
+    }
+
+    const current = (entry.draft as { content?: unknown } | null)?.content ?? entry.content;
+    if (same(current, snap.snapshot)) continue;
+    if (entry.status === "PUBLISHED") {
+      // المنشور يبقى كما هو للمشترين، والنسخة الجديدة تنتظر اعتماد المالك.
+      await prismaBase.bankCourse.update({
+        where: { id: entry.id },
+        data: {
+          draft: { content: snap.snapshot, summary: snap.summary, authorId: author.id, authorName: author.fullName, university: tenant.name, termLabel } as object,
+          draftAt: new Date(),
+        },
+      });
+    } else {
+      await prismaBase.bankCourse.update({
+        where: { id: entry.id },
+        data: { content: snap.snapshot as object, summary: snap.summary, version: { increment: 1 }, status: "PENDING", evaluation: undefined },
+      });
+    }
+    await prismaBase.bankCourseAuthor.create({
+      data: {
+        bankCourseId: entry.id,
+        userId: author.id,
+        userName: author.fullName,
+        university: tenant.name,
+        role: "EDITOR",
+        note: termLabel,
+        version: entry.version + 1,
+      },
+    });
+    drafted++;
+  }
+  await prisma.semester.update({ where: { id: semesterId }, data: { harvestedAt: new Date() } });
+  await recordAudit({ userId: actorId, tenantId, action: "BANK_HARVEST", entityType: "Semester", entityId: semesterId, after: { created, drafted } });
+  return { created, drafted };
+}
+
+/** حالة مقرر الأستاذ في البنك (عبر السلالة) — لصفحة المقرر. */
+export async function bankStatusOf(workspaceId: string, courseId: string) {
+  const c = await prisma.course.findFirst({ where: { id: courseId, workspaceId, deletedAt: null }, select: { id: true, bankCourseId: true, clonedFromId: true } });
+  if (!c) throw AppError.notFound("المقرر غير موجود");
+  const id = await lineageOf(c);
+  if (!id) return null;
+  const b = await prismaBase.bankCourse.findUnique({ where: { id }, select: { id: true, status: true, version: true, importsCount: true, draftAt: true } });
+  return b ? { ...b, hasDraft: !!b.draftAt } : null;
 }
 
 const cardSelect = {
@@ -305,25 +355,142 @@ export async function importToCourse(user: { userId: string; tenantId: string },
 
 // ───────────────────────── المالك ─────────────────────────
 
-export async function ownerList(status?: string) {
+/** قائمة المالك. «review» = ما ينتظر قراره: مقرر جديد، أو نسخة مسحوبة فوق منشور. */
+export async function ownerList(filter?: string) {
+  const where =
+    filter === "review"
+      ? { OR: [{ status: "PENDING" }, { draftAt: { not: null } }] }
+      : filter
+        ? { status: filter }
+        : {};
   const rows = await prismaBase.bankCourse.findMany({
-    where: status ? { status } : {},
+    where,
     orderBy: { updatedAt: "desc" },
     take: 200,
-    select: { ...cardSelect, status: true, reviewNote: true, authors: { orderBy: { createdAt: "asc" } }, _count: { select: { accesses: true } } },
+    select: {
+      ...cardSelect,
+      status: true,
+      reviewNote: true,
+      sourceCourseId: true,
+      draftAt: true,
+      draft: true,
+      evaluation: true,
+      suggestedPrice: true,
+      authors: { orderBy: { createdAt: "asc" } },
+      _count: { select: { accesses: true } },
+    },
   });
-  return rows.map((r) => ({ ...r, price: Number(r.price) }));
+  return rows.map(({ draft, ...r }) => ({
+    ...r,
+    price: Number(r.price),
+    suggestedPrice: r.suggestedPrice === null ? null : Number(r.suggestedPrice),
+    draft: draft ? { summary: (draft as { summary?: unknown }).summary, authorName: (draft as { authorName?: string }).authorName, termLabel: (draft as { termLabel?: string }).termLabel } : null,
+  }));
 }
 
-/** مراجعة المالك: النشر والتسعير والإتاحة لـVIP — وتُسجَّل في جدول المؤلفين كمراجعة. */
-export async function ownerReview(
-  ownerId: string,
-  id: string,
-  input: { status: string; price?: number; vipIncluded?: boolean; specialization?: string; title?: string; reviewNote?: string },
-) {
+export interface BankEvaluation {
+  scores: { key: string; label: string; score: number; note: string }[];
+  overall: number;
+  specialization: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestedPriceSar: number;
+  priceRationale: string;
+  includeInPro: boolean;
+}
+
+/** يلخّص الكتلة للمحرّك: الأرقام محسوبة هنا (لا يخمّنها)، والنصوص مقتطعة. */
+function digest(c: Snapshot, summary: Record<string, unknown>) {
+  const materials = c.topics.flatMap((t) => t.materials);
+  const kinds = materials.reduce<Record<string, number>>((m, x) => ({ ...m, [x.kind]: (m[x.kind] ?? 0) + 1 }), {});
+  const withKey = c.assessments.filter((a) => (a.answerKey ?? "").trim()).length;
+  const linked = c.assessments.filter((a) => a.outcomes.length > 0).length;
+  const lines = [
+    `العنوان والمستوى: ${c.spec.level ?? "غير محدد"} · ${c.creditHours} ساعات${c.hasLab ? " · بمعمل" : ""}`,
+    `الوصف: ${(c.spec.description ?? "").slice(0, 800)}`,
+    `المخرجات (${(c.spec.outcomes ?? []).length}): ${(c.spec.outcomes ?? []).map((o) => `${o.code}: ${o.text}`).join(" | ").slice(0, 2000)}`,
+    `المراجع: ${c.spec.references?.main ?? ""}`,
+    `الإحصاءات المحسوبة: ${JSON.stringify(summary)} · أنواع المواد: ${JSON.stringify(kinds)} · تقييمات بنموذج إجابة: ${withKey}/${c.assessments.length} · تقييمات مربوطة بمخرجات: ${linked}/${c.assessments.length}`,
+    `الفهرس: ${c.topics.map((t, i) => `${i + 1}. ${t.title} (${t.materials.length} مادة)`).join(" | ")}`,
+    `عينة من المواد النصية:\n${materials
+      .filter((m) => m.text && !m.text.startsWith('{"v":1'))
+      .slice(0, 4)
+      .map((m) => `### ${m.title}\n${(m.text ?? "").slice(0, 3000)}`)
+      .join("\n\n")}`,
+    `عينة من التقييمات:\n${c.assessments
+      .slice(0, 3)
+      .map((a) => `- ${a.title} (${a.type}، ${a.maxScore} درجة): ${(a.instructions ?? "").slice(0, 600)}`)
+      .join("\n")}`,
+  ];
+  return lines.join("\n");
+}
+
+/** تقييم المحرّك للمقرر وسعر مقترح — يُحفظ على الكتلة ليراه المالك قبل قراره. */
+export async function ownerEvaluate(ownerId: string, id: string) {
   const b = await prismaBase.bankCourse.findUnique({ where: { id } });
   if (!b) throw AppError.notFound("المقرر غير موجود");
-  const updated = await prismaBase.bankCourse.update({ where: { id }, data: input });
+  await assertBudget();
+  const draft = b.draft as { content?: Snapshot; summary?: Record<string, unknown> } | null;
+  const content = (draft?.content ?? b.content) as unknown as Snapshot;
+  const summary = (draft?.summary ?? b.summary) as Record<string, unknown>;
+  const [plans, published] = await Promise.all([
+    prismaBase.plan.findMany({ where: { active: true }, select: { nameAr: true, priceMonthly: true, priceYearly: true } }),
+    prismaBase.bankCourse.findMany({ where: { status: "PUBLISHED", id: { not: id } }, select: { title: true, price: true, summary: true }, take: 20, orderBy: { importsCount: "desc" } }),
+  ]);
+  const meter = newMeter();
+  const task = `أنت خبير جودة أكاديمية (معايير NCAAA) ومستشار تسعير لمنتجات تعليمية رقمية في السعودية.
+قيّم «${b.title}» (${b.code}) من ${b.university} كمنتج جاهز يشتريه عضو هيئة تدريس ليبدأ فصله به.
+المعايير (٠–١٠ لكلٍّ مع ملاحظة قصيرة): SPEC اكتمال التوصيف ووضوح المخرجات · COVERAGE تغطية الفهرس بالمواد ·
+ACCURACY الدقة العلمية والمصطلحية في العينة · ASSESSMENT جودة التقييمات ونماذج إجابتها وربطها بالمخرجات ·
+RICHNESS تنوّع المواد (نص · عرض · صوت · درس مصوّر) · MARKET الطلب المتوقع على المقرر في الجامعات.
+ثم: overall (٠–١٠) · specialization (التخصص بكلمتين) · strengths وweaknesses (٣ لكلٍّ) ·
+suggestedPriceSar سعر شراء لمرة واحدة بالريال (رقم صحيح؛ مرجع السوق: باقات المنصة ${plans.map((p) => `${p.nameAr} ${Number(p.priceMonthly)} ر.س شهريًا`).join(" و")}،
+ومقررات منشورة: ${published.map((p) => `${p.title} ${Number(p.price)} ر.س`).join("، ") || "لا يوجد بعد"}) · priceRationale سطران ·
+includeInPro هل يُتاح ضمن حصة «محور برو» السنوية.
+الصيغة: {"scores":[{"key":"SPEC","label":"...","score":0,"note":"..."}],"overall":0,"specialization":"","strengths":[],"weaknesses":[],"suggestedPriceSar":0,"priceRationale":"","includeInPro":true}`;
+  let ev: BankEvaluation;
+  try {
+    ev = await writeJson<BankEvaluation>({ text: digest(content, summary), pdfs: [] }, task, meter);
+  } finally {
+    await recordUsage({ tenantId: b.sourceTenantId ?? "platform", userId: ownerId, feature: "BANK_REVIEW", meter }).catch(() => undefined);
+  }
+  const price = Math.max(0, Math.round(Number(ev.suggestedPriceSar) || 0));
+  const evaluation = { ...ev, suggestedPriceSar: price, at: new Date().toISOString() };
+  await prismaBase.bankCourse.update({
+    where: { id },
+    data: { evaluation: evaluation as object, suggestedPrice: price, ...(b.specialization ? {} : { specialization: String(ev.specialization ?? "").slice(0, 80) }) },
+  });
+  return evaluation;
+}
+
+/** قرار المالك: نشر (مع اعتماد المسودة) · رفض (المسودة أو المقرر) · أرشفة — ويُسجَّل مراجعةً. */
+export async function ownerReview(ownerId: string, id: string, input: BankReviewInput) {
+  const b = await prismaBase.bankCourse.findUnique({ where: { id } });
+  if (!b) throw AppError.notFound("المقرر غير موجود");
+  const draft = b.draft as { content?: unknown; summary?: unknown } | null;
+  const meta = {
+    ...(input.price !== undefined ? { price: input.price } : {}),
+    ...(input.vipIncluded !== undefined ? { vipIncluded: input.vipIncluded } : {}),
+    ...(input.specialization ? { specialization: input.specialization } : {}),
+    ...(input.title ? { title: input.title } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    reviewNote: input.reviewNote ?? null,
+  };
+  let version = b.version;
+  let data: Record<string, unknown>;
+  if (input.decision === "PUBLISH") {
+    if (!b.specialization && !input.specialization) throw AppError.badRequest("حدّد تخصص المقرر قبل نشره");
+    data = { ...meta, status: "PUBLISHED" };
+    if (draft?.content) {
+      version = b.version + 1;
+      data = { ...data, content: draft.content, summary: draft.summary ?? b.summary, version, draft: Prisma.DbNull, draftAt: null };
+    }
+  } else if (input.decision === "REJECT") {
+    data = draft ? { ...meta, draft: Prisma.DbNull, draftAt: null } : { ...meta, status: "REJECTED" };
+  } else {
+    data = { ...meta, status: "ARCHIVED" };
+  }
+  const updated = await prismaBase.bankCourse.update({ where: { id }, data });
   const owner = await prismaBase.user.findUniqueOrThrow({ where: { id: ownerId }, select: { fullName: true } });
   await prismaBase.bankCourseAuthor.create({
     data: {
@@ -332,8 +499,8 @@ export async function ownerReview(
       userName: owner.fullName,
       university: "مِحوَر",
       role: "REVIEWER",
-      note: [input.status, input.reviewNote].filter(Boolean).join(" · "),
-      version: b.version,
+      note: [input.decision, input.reviewNote].filter(Boolean).join(" · "),
+      version,
     },
   });
   await recordAudit({ userId: ownerId, action: "BANK_COURSE_REVIEWED", entityType: "BankCourse", entityId: id, after: input });

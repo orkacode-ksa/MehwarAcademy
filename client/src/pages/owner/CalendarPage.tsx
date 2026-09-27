@@ -124,12 +124,18 @@ export function CalendarPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() =>
+                        onClick={() => {
+                          // الإقفال لا يُتراجع عنه بنقرة خاطئة: يجعل بيانات الفصل للقراءة ويسحب مقرراته للبنك.
+                          if (
+                            NEXT_STATUS[t.status] === "CLOSED" &&
+                            !window.confirm("إقفال الفصل يجعل كل بياناته للقراءة فقط (درجات · حضور · مواد) ويسحب مقرراته إلى بنك المقررات للمراجعة. متابعة؟")
+                          )
+                            return;
                           void run(
                             () => api.patch(`${base}/terms/${t.id}/status`, { status: NEXT_STATUS[t.status] }),
                             `انتقل الفصل إلى «${STATUS_LABEL[NEXT_STATUS[t.status] as TermStatus]}»`,
-                          )
-                        }
+                          );
+                        }}
                       >
                         انقل إلى «{STATUS_LABEL[NEXT_STATUS[t.status] as TermStatus]}»
                       </Button>

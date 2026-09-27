@@ -1,6 +1,6 @@
 import { Router, raw } from "express";
 import { z } from "zod";
-import { createOrderSchema, submitTransferSchema, publishToBankSchema, importBankCourseSchema } from "@mihwar/shared";
+import { createOrderSchema, submitTransferSchema, importBankCourseSchema } from "@mihwar/shared";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireRole, requireWorkspaceMembership } from "../../middleware/rbac.js";
 import { validate } from "../../middleware/validate.js";
@@ -120,17 +120,11 @@ storeRouter.post(
     res.status(201).json({ success: true, data: await bank.importToCourse(who(req), req.workspaceId as string, req.params.id as string, req.body.semesterId) });
   }),
 );
-storeRouter.post(
-  "/bank/publish/:workspaceId/:courseId",
-  requireWorkspaceMembership,
-  validate({ body: publishToBankSchema }),
-  asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await bank.publishFromCourse(who(req), req.workspaceId as string, req.params.courseId as string, req.body) });
-  }),
-);
+// حالة مقرر الأستاذ في البنك — يدخله وحده عند إقفال الفصل، فلا نشر ولا تسعير من الأستاذ.
 storeRouter.get(
-  "/bank/status/:courseId",
+  "/bank/status/:workspaceId/:courseId",
+  requireWorkspaceMembership,
   asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await bank.bankStatusOf(who(req).tenantId, req.params.courseId as string) });
+    res.json({ success: true, data: await bank.bankStatusOf(req.workspaceId as string, req.params.courseId as string) });
   }),
 );
