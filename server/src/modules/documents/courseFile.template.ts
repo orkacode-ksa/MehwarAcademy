@@ -125,10 +125,10 @@ th, .summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 </div>
 <div class="summary">اكتمل <strong>${n(done)}</strong> من <strong>${n(required.length)}</strong> بنود إلزامية حسب لائحة الجامعة.</div>
 
-<h2>١ — بنود الملف</h2>
+<h2>1 — بنود الملف</h2>
 <table><thead><tr><th>#</th><th>البند</th><th>الحالة</th><th>ملاحظة</th></tr></thead><tbody>${itemsRows}</tbody></table>
 
-<h2>٢ — توصيف المقرر</h2>
+<h2>2 — توصيف المقرر</h2>
 <dl>
   <dt>نوع المقرر</dt><dd>${spec.courseType === "REQUIRED" ? "إجباري" : spec.courseType === "ELECTIVE" ? "اختياري" : "—"}</dd>
   <dt>المستوى</dt><dd>${e(spec.level) || "—"}</dd>
@@ -139,29 +139,29 @@ th, .summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 <h3>الوصف</h3>${para(spec.description)}
 <h3>الهدف العام</h3>${para(spec.goal)}
 
-<h2>٣ — مخرجات التعلّم</h2>
+<h2>3 — مخرجات التعلّم</h2>
 ${outcomesRows ? `<table><thead><tr><th>الرمز</th><th>المجال</th><th>المخرج</th><th>استراتيجية التدريس</th><th>طريقة التقييم</th></tr></thead><tbody>${outcomesRows}</tbody></table>` : '<p class="empty">لم تُكتب مخرجات بعد</p>'}
 
-<h2>٤ — محتوى المقرر وربطه بالمخرجات</h2>
+<h2>4 — محتوى المقرر وربطه بالمخرجات</h2>
 ${topicRows ? `<table><thead><tr><th>#</th><th>الموضوع</th><th>المخرجات</th><th>المواد</th></tr></thead><tbody>${topicRows}</tbody></table>` : '<p class="empty">لا مواضيع</p>'}
 
-<h2>٥ — خطة التقييم</h2>
+<h2>5 — خطة التقييم</h2>
 ${d.gradeScheme.length ? `<p>توزيع الدرجات: ${d.gradeScheme.map((g) => `${e(g.label)} ${n(g.weight)}٪`).join(" · ")}</p>` : ""}
 ${assessRows ? `<table><thead><tr><th>التقييم</th><th>النوع</th><th>العظمى</th><th>الوزن</th><th>النموذج</th></tr></thead><tbody>${assessRows}</tbody></table>` : '<p class="empty">لا تقييمات</p>'}
 
-<h2>٦ — مصادر التعلّم</h2>
+<h2>6 — مصادر التعلّم</h2>
 <h3>المرجع الأساسي</h3>${para(spec.references?.main)}
 <h3>المراجع المساندة</h3>${para(spec.references?.supporting)}
 <h3>المصادر الإلكترونية</h3>${para(spec.references?.electronic)}
 <h3>المرافق والتجهيزات</h3>${para(spec.facilities)}
 
-<h2>٧ — تقرير المقرر: النتائج والحضور</h2>
+<h2>7 — تقرير المقرر: النتائج والحضور</h2>
 ${sectionRows ? `<table><thead><tr><th>الشعبة</th><th>الطلاب</th><th>اكتمل رصدهم</th><th>المتوسط</th><th>الناجحون</th><th>التقديرات</th><th>المحاضرات</th><th>نسبة الغياب</th></tr></thead><tbody>${sectionRows}</tbody></table>` : '<p class="empty">لا شعب</p>'}
 ${violationRows ? `<h3>المخالفات المسجّلة</h3><table><thead><tr><th>النوع</th><th>العدد</th></tr></thead><tbody>${violationRows}</tbody></table>` : ""}
 
-<h2>٨ — تقييم جودة المقرر</h2>${para(spec.courseEvaluation)}
+<h2>8 — تقييم جودة المقرر</h2>${para(spec.courseEvaluation)}
 
-${samples ? `<h2>٩ — نماذج التقييمات</h2>${samples}` : ""}
+${samples ? `<h2>9 — نماذج التقييمات</h2>${samples}` : ""}
 
 <div class="footer">مِحوَر · ملف مولَّد من عمل الأستاذ في المنصة · بنوده من لائحة الجامعة</div>
 </body></html>`;

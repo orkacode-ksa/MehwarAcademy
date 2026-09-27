@@ -4,69 +4,34 @@ import { Rail } from "../components/shell/Rail.js";
 import { BottomNav } from "../components/shell/BottomNav.js";
 import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
-import { SearchPalette } from "../components/shell/SearchPalette.js";
-import { NotificationPanel } from "../components/shell/NotificationPanel.js";
 import { roleOf } from "../nav/nav.js";
-import { jumpPath, type JumpTarget } from "../nav/jump.js";
-import { NOTIFICATIONS as INITIAL_NOTIFICATIONS } from "../mock/notifications.js";
-import { useToast } from "../state/ToastContext.js";
+import { logout } from "../hooks/useSession.js";
 
 /**
- * هيكل المنصة الداخلي: الشريط + الشريط العلوي + لوحة الجوال «المزيد» + البحث الموحّد +
- * مركز الإشعارات، ملفوفًا حول محتوى كل شاشة (Outlet). منقول من `rail()`/`topbar()`
- * ومستمعات `click`/`keydown` في نهاية سكربت البروتوتايب.
+ * هيكل المنصة الداخلي: الشريط الجانبي (سطح المكتب) أو السفلي (الجوال) + الرأس + المحتوى.
+ *
+ * أُزيل البحث الموحّد ومركز الإشعارات وشريط النظام: كانت كلها تعرض بيانات وهمية (عدّاد
+ * إشعارات من ملف mock) — وعدد وهمي أسوأ من لا عدد. تعود حين يكون لها مصدر حقيقي.
  */
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { showToast } = useToast();
-
   const [moreOpen, setMoreOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
-  const screenKey = location.pathname.split("/")[1] || "home";
+  const screenKey = location.pathname.split("/")[1] || "today";
   const role = roleOf(screenKey);
-  const unreadCount = notifications.filter((n) => n.unread).length;
 
   useEffect(() => {
     setMoreOpen(false);
-    setSearchOpen(false);
-    setNotifOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setSearchOpen(false);
-        setNotifOpen(false);
-        setMoreOpen(false);
-        return;
-      }
-      const isTyping = /INPUT|TEXTAREA/.test((e.target as HTMLElement).tagName);
-      if ((e.key === "/" || ((e.metaKey || e.ctrlKey) && e.key === "k")) && !isTyping) {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
+      if (e.key === "Escape") setMoreOpen(false);
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
-
-  function handleJump(target: JumpTarget) {
-    if (target.type === "toast") {
-      showToast(target.message);
-      return;
-    }
-    const path = jumpPath(target);
-    if (path) navigate(path);
-  }
-
-  function markAllRead() {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-    showToast("عُلِّمت كل الإشعارات كمقروءة");
-  }
 
   return (
     <div className="min-h-dvh bg-canvas text-ink">
@@ -75,18 +40,15 @@ export function AppShell() {
       </a>
       <Rail role={role} />
       <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} />
-      <MoreSheet role={role} open={moreOpen} onClose={() => setMoreOpen(false)} onLogout={() => navigate("/login")} />
-      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} onJump={handleJump} />
-      <NotificationPanel
-        open={notifOpen}
-        onClose={() => setNotifOpen(false)}
-        notifications={notifications}
-        onMarkAllRead={markAllRead}
-        onJump={handleJump}
+      <MoreSheet
+        role={role}
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        onLogout={() => void logout().then(() => navigate("/login"))}
       />
       <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
-        <div className="max-w-[1260px] mx-auto" id="main">
-          <Topbar unreadCount={unreadCount} onSearchOpen={() => setSearchOpen(true)} onNotifOpen={() => setNotifOpen(true)} />
+        <div className="max-w-[1100px] mx-auto" id="main">
+          <Topbar />
           <Outlet />
         </div>
       </main>

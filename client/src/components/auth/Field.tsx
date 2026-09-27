@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -7,13 +7,18 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 /** يطابق `.fld` من البروتوتايب — حقل مُسمّى بحالة خطأ حقيقية (لا قيمة وهمية مُعبَّأة مسبقًا) */
-export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ label, error, trailing, className = "", ...rest }, ref) {
+export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ label, error, trailing, className = "", id, ...rest }, ref) {
+  // التسمية مربوطة بالحقل: كانت عنصرًا مجاورًا بلا htmlFor، فلا يقرأ قارئ الشاشة اسم الحقل
+  // ولا ينقل النقر على التسمية التركيز إليه.
+  const auto = useId();
+  const inputId = id ?? auto;
   return (
     <div className="mb-3.5">
-      <label className="block text-xs font-medium text-ink-2 mb-1.5">{label}</label>
+      <label htmlFor={inputId} className="block text-xs font-medium text-ink-2 mb-1.5">{label}</label>
       <div className="relative">
         <input
           ref={ref}
+          id={inputId}
           className={`w-full border rounded-[11px] px-3.5 py-2.5 bg-white text-ink ${
             error ? "border-crim" : "border-line"
           } ${trailing ? "pe-14" : ""} ${className}`}

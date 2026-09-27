@@ -18,6 +18,8 @@ const facultyDetailsSchema = z.object({
   fullName: z.string().trim().min(2, "الاسم الكامل مطلوب").max(120),
   email: emailSchema,
   password: passwordSchema,
+  /** رمز الجامعة من إدارة المنصة — اختياري: بدونه يبدأ الأستاذ بمساحة تجريبية جاهزة. */
+  institutionCode: z.string().trim().toUpperCase().max(12).optional().or(z.literal("")),
 });
 export type FacultyDetails = z.infer<typeof facultyDetailsSchema>;
 
@@ -42,6 +44,14 @@ export function SignupFacultyDetailsStep({ initial, onNext, onBack }: SignupFacu
         <Field label="الاسم الكامل" placeholder="د. عبدالله بن سعيد الغامدي" error={errors.fullName?.message} {...register("fullName")} />
         <Field label="البريد الجامعي" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
         <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" error={errors.password?.message} {...register("password")} />
+        <Field
+          label="رمز الجامعة (إن أعطتك إياه إدارة المنصة)"
+          placeholder="اختياري"
+          dir="ltr"
+          className="font-mono tracking-[.12em] text-center"
+          error={errors.institutionCode?.message}
+          {...register("institutionCode")}
+        />
         <Button type="submit" variant="primary" size="lg" className="w-full mt-2">
           متابعة <Icon name="arr" className="w-4 h-4" />
         </Button>

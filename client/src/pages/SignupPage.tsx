@@ -5,21 +5,25 @@ import { WizDots } from "../components/auth/WizDots.js";
 import { SignupRoleStep, type SignupRole } from "../components/auth/SignupRoleStep.js";
 import { SignupFacultyDetailsStep, type FacultyDetails } from "../components/auth/SignupFacultyDetailsStep.js";
 import { SignupStudentJoinStep, type StudentJoinDetails } from "../components/auth/SignupStudentJoinStep.js";
-import { SignupFinishStep } from "../components/auth/SignupFinishStep.js";
 import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME } from "../nav/nav.js";
 import { api, ApiError } from "../api/client.js";
+import { resetSession } from "../hooks/useSession.js";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 /**
- * معالج التسجيل بثلاث خطوات — منقول من `signup()` في البروتوتايب مع فارقين جوهريين:
+ * التسجيل بخطوتين: نوع الحساب ← البيانات، ثم الحساب يُنشأ فورًا.
+ *
+ * حُذفت خطوة ثالثة كانت تعرض محتوى وهميًا («انضممت إلى ٥ مقررات» · استيراد جدول لا يفعل
+ * شيئًا · «الفصل الأول ١٤٤٧ أُنشئ») — وعد لا يتحقّق أسوأ من لا شيء.
+ *
+ * معالج التسجيل — منقول من `signup()` في البروتوتايب مع فارقين جوهريين:
  * ١) حقول فارغة حقيقية بدل بيانات شخص وهمي معبَّأة مسبقًا (كانت خطأ عرض في البروتوتايب،
  *    نموذج تسجيل حقيقي لا يجوز أن يوحي بأن بيانات شخص آخر أُدخلت للمستخدم).
  * ٢) حقل كلمة مرور فعلي — البروتوتايب لم يتضمن كلمة مرور إطلاقاً في نموذج التسجيل،
  *    وهذا خلل وظيفي (لا يمكن إنشاء حساب فعلي بلا كلمة مرور)، لا تفصيلاً تصميميًا.
- * لا رابط خلفي حقيقي بعد (`POST /auth/register` يُوصَل في المرحلة ٧) — مسجَّل في
- * docs/api-gaps.md مع فجوة حقول الرتبة/القسم/الجامعة غير الموجودة في registerSchema بعد.
+ * الأستاذ: `POST /auth/register` (برمز جامعة اختياري). الطالب: `POST /auth/join-section`.
  */
 export function SignupPage() {
   const navigate = useNavigate();
@@ -35,21 +39,25 @@ export function SignupPage() {
    * كان هذا الزرّ ينتقل للوحة بلا استدعاء أي مسار: يظنّ المستخدم أن حسابه أُنشئ، ثم
    * يُرفض دخوله لأنه لا وجود له — وهو ما وقع فعلًا مع أول مستخدم حقيقي.
    */
-  async function enterPlatform() {
+  async function enterPlatform(faculty: Partial<FacultyDetails>, student: Partial<StudentJoinDetails>) {
     setAuthError(null);
-    const payload = {
-      fullName: facultyData.fullName ?? "",
-      email: facultyData.email ?? "",
-      password: facultyData.password ?? "",
-      role: role === "student" ? ("STUDENT" as const) : ("TEACHER" as const),
-    };
     try {
-      await api.post("/auth/register", payload);
+      if (role === "student") {
+        // الطالب يستلم حسابه الذي أنشأه كشف أستاذه — لا يُنشئ مستأجرًا ولا حسابًا جديدًا.
+        await api.post("/auth/join-section", student);
+      } else {
+        await api.post("/auth/register", {
+          fullName: faculty.fullName ?? "",
+          email: faculty.email ?? "",
+          password: faculty.password ?? "",
+          role: "TEACHER" as const,
+          ...(faculty.institutionCode ? { institutionCode: faculty.institutionCode } : {}),
+        });
+      }
+      resetSession();
       navigate(`/${ROLE_HOME[role ?? "faculty"]}`);
     } catch (err) {
-      setAuthError(
-        err instanceof ApiError ? err.message : "تعذّر إنشاء الحساب — تحقّق من اتصالك",
-      );
+      setAuthError(err instanceof ApiError ? err.message : "تعذّر إنشاء الحساب — تحقّق من اتصالك");
       setStep(2);
     }
   }
@@ -58,7 +66,7 @@ export function SignupPage() {
     <AuthLayout
       left={
         <>
-          <WizDots step={step} total={3} />
+          <WizDots step={step} total={2} />
           {step === 1 && (
             <SignupRoleStep
               initial={role}
@@ -74,7 +82,7 @@ export function SignupPage() {
               onBack={() => setStep(1)}
               onNext={(data) => {
                 setFacultyData(data);
-                setStep(3);
+                void enterPlatform(data, {});
               }}
             />
           )}
@@ -84,11 +92,10 @@ export function SignupPage() {
               onBack={() => setStep(1)}
               onNext={(data) => {
                 setStudentData(data);
-                setStep(3);
+                void enterPlatform({}, data);
               }}
             />
           )}
-          {step === 3 && role && <SignupFinishStep role={role} onEnter={() => void enterPlatform()} />}
           {authError && <p className="text-[12.5px] text-crim mt-3 text-center">{authError}</p>}
 
           <p className="text-xs text-ink-3 mt-5 text-center">

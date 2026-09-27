@@ -10,49 +10,31 @@ export interface NavItem {
 
 /** منسوخ حرفيًا من ثابت `NAV` في mihwar-prototype-v2.html */
 export const NAV: Record<Role, NavItem[]> = {
+  // الأستاذ: ثلاث وجهات لا عشر. كانت سبع منها صفحات بديلة، و«لا زرّ يقود إلى شاشة غير
+  // مبنية» (lessons §٣.٧). «القسم» يظهر لرئيس القسم وحده (انظر visibleNav).
   faculty: [
-    { key: "home", icon: "grid", label: "اللوحة" },
+    { key: "today", icon: "clock", label: "اليوم" },
     { key: "courses", icon: "book", label: "مقرراتي" },
-    { key: "studio", icon: "sparks", label: "الاستوديو" },
-    { key: "attend", icon: "users", label: "الحضور" },
-    { key: "office", icon: "clock", label: "الساعات" },
-    { key: "bank", icon: "box", label: "البنك" },
-    { key: "rules", icon: "shield", label: "الالتزام" },
-    { key: "evalp", icon: "chart", label: "التقييم" },
-    { key: "archive", icon: "arch", label: "الأرشيف" },
-    { key: "settings", icon: "gear", label: "الإعدادات" },
+    { key: "evalp", icon: "chart", label: "أدائي" },
+    { key: "dhome", icon: "users", label: "القسم" },
   ],
-  student: [
-    { key: "shome", icon: "grid", label: "الرئيسية" },
-    { key: "scourses", icon: "book", label: "مقرراتي" },
-    { key: "sgrades", icon: "tbl", label: "درجاتي" },
-    { key: "sdates", icon: "clock", label: "مواعيدي" },
-    { key: "sbook", icon: "users", label: "الساعات المكتبية" },
-  ],
-  dept: [
-    { key: "dhome", icon: "chart", label: "لوحة القسم" },
-    { key: "dmembers", icon: "users", label: "الأعضاء" },
-    { key: "dquality", icon: "shield", label: "الجودة" },
-    { key: "dresults", icon: "tbl", label: "النتائج" },
-  ],
-  admin: [
-    { key: "institutions", icon: "grid", label: "الجامعات" },
-    { key: "biz", icon: "chart", label: "الأعمال" },
-    { key: "cal", icon: "cal", label: "التقويم" },
-    { key: "users", icon: "users", label: "المستخدمون" },
-    { key: "subs", icon: "card", label: "الاشتراكات" },
-    { key: "ai", icon: "sparks", label: "الذكاء" },
-    { key: "ops", icon: "gear", label: "التشغيل" },
-  ],
+  student: [{ key: "scourses", icon: "book", label: "مقرراتي" }],
+  dept: [{ key: "dhome", icon: "users", label: "القسم" }],
+  admin: [{ key: "institutions", icon: "grid", label: "الجامعات" }],
 };
+
+/** عناصر التنقّل التي يحقّ للمستخدم رؤيتها — «القسم» لرئيس القسم وحده. */
+export function visibleNav(role: Role, isDeptHead: boolean): NavItem[] {
+  return NAV[role].filter((i) => i.key !== "dhome" || isDeptHead || role === "dept");
+}
 
 /** أول 4 عناصر تظهر في الشريط السفلي على الجوال، البقية عبر «المزيد» */
 export const MOBILE_PRIMARY_COUNT = 4;
 
 export const ROLE_HOME: Record<Role, string> = {
-  // «مقرراتي» لا «اللوحة»: اللوحة صفحة بديلة، والأستاذ يدخل ليفتح مقرره.
-  faculty: "courses",
-  student: "shome",
+  // «اليوم» للأستاذ: محاضرة اليوم هي القيمة اليومية، وتحيله لمقرراته إن لم يكن لديه شيء.
+  faculty: "today",
+  student: "scourses",
   dept: "dhome",
   admin: "institutions",
 };
@@ -66,7 +48,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
-  faculty: ["course", "exambuild"],
+  faculty: ["course"],
   student: ["scourse"],
   dept: [],
   admin: ["institutions"],
@@ -74,7 +56,8 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {
   const map: Record<string, Role> = {};
-  (Object.keys(NAV) as Role[]).forEach((role) => {
+  // «dhome» مذكور تحت الأستاذ والقسم معًا؛ يُنسب للأستاذ لأن رئيس القسم أستاذ.
+  (["dept", "student", "admin", "faculty"] as Role[]).forEach((role) => {
     NAV[role].forEach((item) => {
       map[item.key] = role;
     });

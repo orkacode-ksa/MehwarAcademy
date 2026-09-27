@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
-import { NAV, ROLE_HOME, type Role } from "../../nav/nav.js";
+import { ROLE_HOME, type Role } from "../../nav/nav.js";
+import { visibleNav } from "../../nav/nav.js";
+import { useSession } from "../../hooks/useSession.js";
 
 interface MoreSheetProps {
   role: Role;
@@ -45,16 +47,17 @@ interface Highlight {
  */
 function highlightFor(role: Role): Highlight {
   if (role === "student") {
-    return { title: "المستحق عليك", subtitle: "تسليماتك واختباراتك القادمة", to: "/sdates", icon: "pen" };
+    return { title: "مقرراتي", subtitle: "موادك ودرجاتك وغيابك", to: "/scourses", icon: "pen" };
   }
   if (role === "faculty") {
-    return { title: "مقرراتي", subtitle: "ابدأ من مقرر", to: "/courses", icon: "pen" };
+    return { title: "محاضرة اليوم", subtitle: "ابدأ محاضرتك وسجّل الحضور", to: "/today", icon: "pen" };
   }
   return { title: "لوحتك", subtitle: "ابدأ من الصفحة الرئيسية", to: `/${ROLE_HOME[role]}`, icon: "grid" };
 }
 
 export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
   const { pathname } = useLocation();
+  const { user } = useSession();
   const [render, setRender] = useState(open);
   const [shown, setShown] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -83,7 +86,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
 
   if (!render) return null;
 
-  const items = NAV[role];
+  const items = visibleNav(role, !!user?.isDeptHead);
   // بطاقة الصدارة تتبع الدور: «التنبيهات الوقائية» أداة عضو هيئة التدريس وحده،
   // وكانت تظهر لكل الأدوار — فيرى الطالب تنبيهات أستاذه، وفتحها يقلب هيكل الشاشة
   // إلى تنقّل عضو هيئة التدريس. الطالب يرى ما يخصّه: تسليماته المفتوحة.

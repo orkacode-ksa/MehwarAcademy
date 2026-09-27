@@ -14,6 +14,7 @@ interface Institution {
   slug: string;
   name: string;
   status: string;
+  joinCode: string | null;
   _count: { users: number; departments: number; AcademicYear: number };
   Regulation: { updatedAt: string } | null;
 }
@@ -74,23 +75,39 @@ export function InstitutionsPage() {
 
       <div className="grid gap-3">
         {data?.map((inst) => (
-          <Link
-            key={inst.id}
-            to={`/institutions/${inst.id}`}
-            className="bg-white border border-line rounded-[14px] p-4 flex items-center justify-between gap-4 hover:border-[#C6D3CB] hover:shadow-s1 transition-all"
-          >
-            <div className="min-w-0">
-              <div className="font-semibold text-[15px] truncate">{inst.name}</div>
-              <div className="text-[12.5px] text-ink-3 mt-0.5" dir="ltr">
-                {inst.slug}
+          <div key={inst.id} className="bg-white border border-line rounded-[14px] p-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <div className="font-semibold text-[15px] truncate">{inst.name}</div>
+                <div className="text-[12.5px] text-ink-3 mt-0.5" dir="ltr">
+                  {inst.slug}
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-[12.5px] text-ink-2">
+                <span>{formatNum(inst._count.users)} مستخدم</span>
+                <span>{formatNum(inst._count.AcademicYear)} سنة</span>
               </div>
             </div>
-            <div className="flex items-center gap-4 flex-none text-[12.5px] text-ink-2">
-              <span>{formatNum(inst._count.users)} مستخدم</span>
-              <span>{formatNum(inst._count.AcademicYear)} سنة</span>
-              <Icon name="arrl" className="w-4 h-4 text-ink-3" />
+            {inst.joinCode && (
+              <p className="text-[12.5px] text-ink-2 mt-2">
+                رمز انضمام الأساتذة:{" "}
+                <b dir="ltr" className="font-mono tracking-[.14em] text-deep">
+                  {inst.joinCode}
+                </b>
+              </p>
+            )}
+            <div className="flex gap-2 flex-wrap mt-3">
+              <Link to={`/institutions/${inst.id}`}>
+                <Button size="sm" variant="secondary">اللائحة</Button>
+              </Link>
+              <Link to={`/institutions/${inst.id}/calendar`}>
+                <Button size="sm" variant="secondary">التقويم</Button>
+              </Link>
+              <Link to={`/institutions/${inst.id}/users`}>
+                <Button size="sm" variant="secondary">المستخدمون</Button>
+              </Link>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </>

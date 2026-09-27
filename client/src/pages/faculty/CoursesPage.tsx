@@ -70,7 +70,7 @@ export function CoursesPage() {
         {courses?.map((c) => (
           <Link
             key={c.id}
-            to={`/course/${c.id}/setup`}
+            to={`/course/${c.id}`}
             className="block bg-white border border-line rounded-[14px] p-4 hover:border-[#C6D3CB] hover:shadow-s1 transition-all"
           >
             <div className="flex items-start justify-between gap-4">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { regulationSchema, type RegulationInput } from "@mihwar/shared";
+import { regulationSchema, PERFORMANCE_KPIS, SEVERITY_LABEL, VIOLATION_SEVERITIES, type PerformanceKpiKey, type RegulationInput } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
@@ -25,7 +25,11 @@ export function RegulationPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (data) setForm(structuredClone(data));
+    // لائحة أُنشئت قبل إضافة المخالفات والمؤشرات قد لا تحملهما — تُكمَّل بقوائم فارغة.
+    if (data) {
+      const copy = structuredClone(data);
+      setForm({ ...copy, violationTypes: copy.violationTypes ?? [], performanceKpis: copy.performanceKpis ?? [] });
+    }
   }, [data]);
 
   if (loading) return <p className="text-sm text-ink-3">جارٍ التحميل…</p>;
@@ -33,6 +37,7 @@ export function RegulationPage() {
   if (!form) return null;
 
   const weightTotal = form.gradeScheme.reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
+  const kpiTotal = form.performanceKpis.reduce((sum, k) => sum + (Number(k.weight) || 0), 0);
 
   function patch(next: Partial<RegulationInput>) {
     setForm((f) => (f ? { ...f, ...next } : f));
@@ -207,6 +212,100 @@ export function RegulationPage() {
               className="w-28 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
             />
           </label>
+        </div>
+      </section>
+
+      <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+        <h2 className="font-semibold text-[15px] mb-1">أنواع المخالفات</h2>
+        <p className="text-[12.5px] text-ink-3 mb-3">
+          ما يسجّله الأستاذ على الطالب، بدرجته وإجرائه. «التصعيد بعد» = عدد مرات النوع نفسه التي تُعلَّم بعدها المخالفة مُصعَّدة.
+          النوع «حرمان بسبب الغياب» تسجّله قاعدة الغياب آلياً.
+        </p>
+        <div className="grid gap-2.5">
+          {form.violationTypes.map((v, i) => {
+            const update = (patchV: Partial<typeof v>) => {
+              const list = [...form.violationTypes];
+              list[i] = { ...v, ...patchV };
+              patch({ violationTypes: list });
+            };
+            return (
+              <div key={v.key} className="border border-line2 rounded-[12px] p-3 grid gap-2 sm:grid-cols-[1.4fr_1fr_1.6fr_90px_44px] sm:items-center [&>*]:min-w-0">
+                <input value={v.label} onChange={(e) => update({ label: e.target.value })} aria-label="اسم المخالفة" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+                <select value={v.severity} onChange={(e) => update({ severity: e.target.value as typeof v.severity })} aria-label="الدرجة" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]">
+                  {VIOLATION_SEVERITIES.map((sv) => (
+                    <option key={sv} value={sv}>
+                      {SEVERITY_LABEL[sv]}
+                    </option>
+                  ))}
+                </select>
+                <input value={v.action ?? ""} onChange={(e) => update({ action: e.target.value || undefined })} placeholder="الإجراء" aria-label="الإجراء" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+                <input
+                  type="number"
+                  min={1}
+                  value={v.escalateAfter ?? ""}
+                  onChange={(e) => update({ escalateAfter: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="تصعيد"
+                  aria-label="التصعيد بعد"
+                  className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+                />
+                {v.key === "ABSENCE_BAN" ? (
+                  <span />
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={`حذف ${v.label}`}
+                    onClick={() => patch({ violationTypes: form.violationTypes.filter((_, j) => j !== i) })}
+                    className="w-11 h-11 grid place-items-center rounded-[9px] text-ink-3 hover:text-crim hover:bg-crim/[.08]"
+                  >
+                    <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-3"
+          onClick={() => patch({ violationTypes: [...form.violationTypes, { key: `V_${Date.now()}`, label: "مخالفة جديدة", severity: "LOW" }] })}
+        >
+          <Icon name="plus" /> نوع
+        </Button>
+      </section>
+
+      <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+        <div className="flex items-baseline justify-between mb-1">
+          <h2 className="font-semibold text-[15px]">مؤشرات تقييم الأداء</h2>
+          <span className={`text-[12.5px] font-medium ${kpiTotal === 100 || form.performanceKpis.length === 0 ? "text-teal" : "text-crim"}`}>
+            المجموع {formatNum(kpiTotal)}٪
+          </span>
+        </div>
+        <p className="text-[12.5px] text-ink-3 mb-3">
+          كل مؤشر يُحسب من عمل الأستاذ في المنصة. اختر المؤشرات وأوزانها — وزن صفر يستبعد المؤشر. يرى الأستاذ نتيجته وحده.
+        </p>
+        <div className="grid gap-2">
+          {(Object.keys(PERFORMANCE_KPIS) as PerformanceKpiKey[]).map((key) => {
+            const current = form.performanceKpis.find((k) => k.key === key);
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span className="flex-1 min-w-0 text-[13.5px]">{PERFORMANCE_KPIS[key]}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  aria-label={`وزن ${PERFORMANCE_KPIS[key]}`}
+                  value={current?.weight ?? 0}
+                  onChange={(e) => {
+                    const weight = Number(e.target.value);
+                    const others = form.performanceKpis.filter((k) => k.key !== key);
+                    patch({ performanceKpis: weight > 0 ? [...others, { key, weight }] : others });
+                  }}
+                  className="w-20 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px] flex-none"
+                />
+              </div>
+            );
+          })}
         </div>
       </section>
     </>

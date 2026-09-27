@@ -1,34 +1,31 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
-import { PlaceholderPage } from "./pages/PlaceholderPage.js";
-import { CoursePage } from "./pages/CoursePage.js";
-import { CoursesPage } from "./pages/faculty/CoursesPage.js";
-import { CourseSetupPage } from "./pages/faculty/CourseSetupPage.js";
-import { StudentCoursePage } from "./pages/StudentCoursePage.js";
-import { StudentCoursesIndexPage } from "./pages/StudentCoursesIndexPage.js";
-import { NAV, ROLE_LABEL, type Role } from "./nav/nav.js";
-import type { IconName } from "./icons/Icon.js";
-import { ShowcasePage } from "./pages/ShowcasePage.js";
 import { LandingPage } from "./pages/LandingPage.js";
 import { GuidePage } from "./pages/GuidePage.js";
+import { ShowcasePage } from "./pages/ShowcasePage.js";
+import { SignupPage } from "./pages/SignupPage.js";
+import { LoginPage } from "./pages/LoginPage.js";
+import { TodayPage } from "./pages/faculty/TodayPage.js";
+import { CoursesPage } from "./pages/faculty/CoursesPage.js";
+import { CourseHomePage } from "./pages/faculty/CourseHomePage.js";
+import { CourseSetupPage } from "./pages/faculty/CourseSetupPage.js";
+import { GradesPage } from "./pages/faculty/GradesPage.js";
+import { CourseFilePage } from "./pages/faculty/CourseFilePage.js";
+import { ViolationsPage } from "./pages/faculty/ViolationsPage.js";
+import { PerformancePage } from "./pages/faculty/PerformancePage.js";
+import { DeptPage } from "./pages/dept/DeptPage.js";
+import { StudentCoursesPage } from "./pages/student/StudentCoursesPage.js";
+import { StudentCoursePage } from "./pages/student/StudentCoursePage.js";
 import { InstitutionsPage } from "./pages/owner/InstitutionsPage.js";
 import { RegulationPage } from "./pages/owner/RegulationPage.js";
 import { CalendarPage } from "./pages/owner/CalendarPage.js";
-import { SignupPage } from "./pages/SignupPage.js";
-import { LoginPage } from "./pages/LoginPage.js";
-
-/** المرحلة التي يُبنى فيها محتوى كل مجموعة شاشات، وفق «ترتيب التنفيذ» في برومت إعادة البناء */
-const ROLE_STAGE: Record<Role, number> = { faculty: 4, student: 5, dept: 6, admin: 6 };
+import { InstitutionUsersPage } from "./pages/owner/InstitutionUsersPage.js";
 
 /**
- * توجيه المرحلة ٢: كل شاشة من الـ٢٩ لها مسار حقيقي يعمل الآن (بمحتوى بديل مؤقت لما لم
- * يُبنَ بعد)، ملفوفة بهيكل المنصة (AppShell). الهبوط والتسجيل والدخول تُبنى في المرحلة ٣
- * فتظهر الآن كصفحات بديلة خارج الهيكل (بلا شريط جانبي، تمامًا كما في البروتوتايب).
+ * كل مسار هنا يقود إلى شاشة مبنيّة وموصولة بالخادم. حلقة الصفحات البديلة أُزيلت: «لا زرّ
+ * يقود إلى شاشة غير مبنية» (lessons §٣.٧) — والتنقّل لا يعرض إلا ما بُني.
  */
-/** مفاتيح الشاشات التي لها مسار حقيقي أدناه. */
-const BUILT_SCREENS = new Set(["courses", "institutions"]);
-
 export function App() {
   return (
     <BrowserRouter>
@@ -39,37 +36,29 @@ export function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/guide" element={<GuidePage />} />
-        {/* صفحة مرجعية غير ملاحية: عرض مكوّنات المرحلة ١ (لا تظهر في أي تنقّل) */}
         <Route path="/showcase" element={<ShowcasePage />} />
 
         <Route element={<AppShell />}>
-          {(Object.keys(NAV) as Role[]).flatMap((role) =>
-            NAV[role]
-              // الشاشات المبنيّة فعلاً تُستثنى من حلقة الصفحات البديلة — وإلا سبقتها في الترتيب فحجبتها
-              .filter((item) => !BUILT_SCREENS.has(item.key))
-              .map((item) => (
-                <Route
-                  key={item.key}
-                  path={item.key}
-                  element={<PlaceholderPage kicker={ROLE_LABEL[role]} title={item.label} icon={item.icon as IconName} stage={ROLE_STAGE[role]} />}
-                />
-              )),
-          )}
-
+          {/* الأستاذ */}
+          <Route path="today" element={<TodayPage />} />
           <Route path="courses" element={<CoursesPage />} />
+          <Route path="course/:id" element={<CourseHomePage />} />
           <Route path="course/:id/setup" element={<CourseSetupPage />} />
-          <Route path="course/:id" element={<CoursePage />} />
-          <Route path="course/:id/:tab" element={<CoursePage />} />
-          <Route path="exambuild" element={<PlaceholderPage kicker="أستاذ" title="إنشاء اختبار" icon="file" stage={4} />} />
+          <Route path="course/:id/grades" element={<GradesPage />} />
+          <Route path="course/:id/file" element={<CourseFilePage />} />
+          <Route path="course/:id/violations" element={<ViolationsPage />} />
+          <Route path="evalp" element={<PerformancePage />} />
+          <Route path="dhome" element={<DeptPage />} />
 
-          {/* شاشات المالك — الخطوة ٠: الجامعة ولائحتها وتقويمها (docs/work-cycle.md §٤) */}
+          {/* الطالب */}
+          <Route path="scourses" element={<StudentCoursesPage />} />
+          <Route path="scourse/:id" element={<StudentCoursePage />} />
+
+          {/* المالك */}
           <Route path="institutions" element={<InstitutionsPage />} />
           <Route path="institutions/:tenantId" element={<RegulationPage />} />
           <Route path="institutions/:tenantId/calendar" element={<CalendarPage />} />
-
-          <Route path="scourses" element={<StudentCoursesIndexPage />} />
-          <Route path="scourse/:id" element={<StudentCoursePage />} />
-          <Route path="scourse/:id/:tab" element={<StudentCoursePage />} />
+          <Route path="institutions/:tenantId/users" element={<InstitutionUsersPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

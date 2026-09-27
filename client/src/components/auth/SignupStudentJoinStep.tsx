@@ -1,26 +1,24 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { passwordSchema } from "@mihwar/shared";
+import { emailSchema, passwordSchema } from "@mihwar/shared";
 import { Field } from "./Field.js";
 import { PasswordField } from "./PasswordField.js";
 import { Button } from "../ui/Button.js";
-import { Alert } from "../ui/Alert.js";
 import { Icon } from "../../icons/Icon.js";
-import { COURSES } from "../../mock/courses.js";
 
+/**
+ * انضمام الطالب لشعبته برمزها ورقمه الجامعي.
+ *
+ * كان هذا النموذج يطابق الرمز مع مقررات وهمية ثابتة، ثم يُرسل بيانات نموذج الأستاذ
+ * (فارغة) فلا يُنشأ حساب أبدًا. الآن: الرمز والرقم الجامعي يُطابَقان في الخادم مع كشف
+ * الشعبة الذي رفعه الأستاذ، فيستلم الطالب حسابه.
+ */
 const studentJoinSchema = z.object({
-  sectionCode: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .min(6, "كود الشعبة ست خانات على الأقل")
-    .max(20),
+  joinCode: z.string().trim().toUpperCase().min(6, "رمز الشعبة ست خانات").max(12),
+  universityIdNumber: z.string().trim().min(3, "الرقم الجامعي مطلوب").max(20),
   fullName: z.string().trim().min(2, "الاسم الكامل مطلوب").max(120),
-  universityId: z
-    .string()
-    .trim()
-    .regex(/^\d{9,10}$/, "الرقم الجامعي يتكون من 9-10 أرقام"),
+  email: emailSchema,
   password: passwordSchema,
 });
 export type StudentJoinDetails = z.infer<typeof studentJoinSchema>;
@@ -31,49 +29,30 @@ interface SignupStudentJoinStepProps {
   onBack: () => void;
 }
 
-/** يبحث عن مقرر مطابق فعلاً لبادئة الكود المُدخَل — بدل عرض نتيجة وهمية ثابتة كما في البروتوتايب */
-function matchCourse(sectionCode: string) {
-  const normalized = sectionCode.replace(/[\s-]/g, "").toUpperCase();
-  return COURSES.find((c) => normalized.startsWith(c.code.replace(/\s/g, "")));
-}
-
 export function SignupStudentJoinStep({ initial, onNext, onBack }: SignupStudentJoinStepProps) {
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors },
   } = useForm<StudentJoinDetails>({ resolver: zodResolver(studentJoinSchema), defaultValues: initial });
-
-  const sectionCode = useWatch({ control, name: "sectionCode" }) ?? "";
-  const matched = sectionCode.trim().length >= 6 ? matchCourse(sectionCode) : undefined;
 
   return (
     <>
       <h2 className="text-2xl font-semibold">انضم إلى شعبتك</h2>
-      <p className="text-ink-2 text-[13px] my-2 mb-[22px]">اطلب كود الشعبة من أستاذك — ست خانات على الأقل.</p>
+      <p className="text-ink-2 text-[13px] my-2 mb-[22px]">اطلب رمز الشعبة من أستاذك.</p>
       <form onSubmit={handleSubmit(onNext)} noValidate>
         <Field
-          label="كود الشعبة"
-          placeholder="MIC231-A"
+          label="رمز الشعبة"
+          placeholder="K7M2QX"
+          dir="ltr"
           className="font-mono tracking-[.14em] text-center text-[19px] py-[15px]"
-          error={errors.sectionCode?.message}
-          {...register("sectionCode")}
+          error={errors.joinCode?.message}
+          {...register("joinCode")}
         />
+        <Field label="الرقم الجامعي" inputMode="numeric" dir="ltr" placeholder="444XXXXXX" className="font-mono" error={errors.universityIdNumber?.message} {...register("universityIdNumber")} />
         <Field label="الاسم الكامل" placeholder="اسمك الثلاثي" error={errors.fullName?.message} {...register("fullName")} />
-        <Field label="الرقم الجامعي" inputMode="numeric" placeholder="444XXXXXX" className="font-mono" error={errors.universityId?.message} {...register("universityId")} />
+        <Field label="البريد الإلكتروني" type="email" dir="ltr" placeholder="name@example.com" error={errors.email?.message} {...register("email")} />
         <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" error={errors.password?.message} {...register("password")} />
-
-        {sectionCode.trim().length >= 6 &&
-          (matched ? (
-            <Alert tone="teal" icon="check" title={`${matched.code} — ${matched.name}`}>
-              شعبة مطابقة · {matched.st} طالباً مسجّلاً حالياً
-            </Alert>
-          ) : (
-            <Alert tone="amber" icon="alert" title="لم يُعثر على شعبة بهذا الكود">
-              تحقّق من الكود مع أستاذك، أو تابع وسيُراجَع طلبك يدويًا.
-            </Alert>
-          ))}
 
         <Button type="submit" variant="primary" size="lg" className="w-full mt-2">
           متابعة <Icon name="arr" className="w-4 h-4" />

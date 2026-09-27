@@ -1,13 +1,16 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { logout, useSession } from "../../hooks/useSession.js";
 import { Icon } from "../../icons/Icon.js";
-import { NAV, type Role } from "../../nav/nav.js";
+import { visibleNav, type Role } from "../../nav/nav.js";
 
 /**
  * الشريط الجانبي — سطح المكتب فقط (عرضه --rail). الجوال له مكوّن مستقل: BottomNav،
  * لأن دمج السياقين في عنصر واحد كان يفرض حلولًا وسطًا تُسيء للاثنين معًا.
  */
 export function Rail({ role }: { role: Role }) {
-  const items = NAV[role];
+  const { user } = useSession();
+  const items = visibleNav(role, !!user?.isDeptHead);
+  const navigate = useNavigate();
 
   return (
     <aside className="hidden sm:flex fixed inset-y-0 start-0 z-50 w-rail flex-col items-center gap-1 border-e border-glass-br bg-glass backdrop-blur-lg py-[18px]">
@@ -38,10 +41,15 @@ export function Rail({ role }: { role: Role }) {
 
       <div className="flex-1" />
 
-      <Link to="/" title="خروج" className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150">
+      <button
+        type="button"
+        title="خروج"
+        onClick={() => void logout().then(() => navigate("/login"))}
+        className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150"
+      >
         <Icon name="logout" className="w-[19px] h-[19px]" />
         <i className="not-italic text-[9.5px] font-medium">خروج</i>
-      </Link>
+      </button>
     </aside>
   );
 }

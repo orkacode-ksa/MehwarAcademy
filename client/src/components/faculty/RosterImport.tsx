@@ -47,7 +47,10 @@ export function RosterImport({ sectionId, onImported }: { sectionId: string; onI
   async function readFile(file: File) {
     setErr(null);
     try {
-      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      // CSV يُقرأ نصًّا: قراءته بايتات تفكّه Latin-1 فتصير العناوين العربية رموزًا مشوّهة
+      // («Ø§ÙØ±ÙÙ») ويُرفض كل سطر «هذا الحقل مطلوب» — التقطه الفحص في متصفّح حقيقي.
+      const isCsv = /\.csv$/i.test(file.name) || file.type === "text/csv";
+      const wb = isCsv ? XLSX.read(await file.text(), { type: "string" }) : XLSX.read(await file.arrayBuffer(), { type: "array" });
       const first = wb.SheetNames[0];
       const sheet = first ? wb.Sheets[first] : undefined;
       if (!sheet) {

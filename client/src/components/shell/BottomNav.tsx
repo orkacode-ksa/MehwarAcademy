@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
-import { MOBILE_PRIMARY_COUNT, NAV, type Role } from "../../nav/nav.js";
+import { MOBILE_PRIMARY_COUNT, visibleNav, type Role } from "../../nav/nav.js";
+import { useSession } from "../../hooks/useSession.js";
 
 interface BottomNavProps {
   role: Role;
@@ -15,7 +16,8 @@ interface BottomNavProps {
  */
 export function BottomNav({ role, onOpenMore, moreActive }: BottomNavProps) {
   const { pathname } = useLocation();
-  const primary = NAV[role].slice(0, MOBILE_PRIMARY_COUNT);
+  const { user } = useSession();
+  const primary = visibleNav(role, !!user?.isDeptHead).slice(0, MOBILE_PRIMARY_COUNT);
 
   const itemCls = "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 select-none";
   const pill = (active: boolean) =>
