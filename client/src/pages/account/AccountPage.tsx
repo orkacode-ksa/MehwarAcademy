@@ -34,7 +34,7 @@ export function AccountPage() {
 
       <Card
         title={`باقتك: ${e.planName}`}
-        aside={<Chip tone={e.status === "FREE" ? "neutral" : "teal"}>{e.status === "TRIAL" ? "تجربة" : e.status === "ACTIVE" ? "مفعّلة" : "مجانية"}</Chip>}
+        aside={<Chip tone={e.status === "EXPIRED" ? "crimson" : e.status === "TRIAL" ? "amber" : "teal"}>{e.status === "TRIAL" ? "تجربة" : e.status === "ACTIVE" ? "مفعّلة" : "منتهية"}</Chip>}
         hint={e.periodEnd ? `${e.status === "TRIAL" ? "تنتهي التجربة" : "تتجدّد"} في ${fmtDate(e.periodEnd)}` : "رقِّ باقتك لمقررات وتخزين وتوليد أكثر."}
       >
         <ul className="grid gap-3">

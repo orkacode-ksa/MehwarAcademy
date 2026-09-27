@@ -8,6 +8,6 @@ export async function assertCanAddCourse(workspaceId: string): Promise<void> {
   if (ent.maxCourses === null) return;
   const count = await prisma.course.count({ where: { workspaceId, deletedAt: null } });
   if (count >= ent.maxCourses) {
-    throw AppError.badRequest(`باقتك (${ent.planName}) تسمح بـ ${ent.maxCourses} مقررات — رقِّها من «اشتراكي» لإضافة المزيد`);
+    throw AppError.badRequest(`باقتك (${ent.planName}) تسمح بـ ${ent.maxCourses} مقررات — رقِّها من «حسابي» لإضافة المزيد`);
   }
 }

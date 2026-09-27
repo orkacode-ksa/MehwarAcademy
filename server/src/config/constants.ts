@@ -17,4 +17,3 @@ export const MAX_PAGE_LIMIT = 50;
 
 export const JSON_BODY_LIMIT = "200kb";
 
-export const TRIAL_DAYS = 14;

@@ -48,10 +48,10 @@ export function PlansPage() {
       </div>
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}
       {error && <p className="text-sm text-crim">{error}</p>}
-      <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
+      <div className="grid gap-3 sm:grid-cols-2 max-w-[760px] [&>*]:min-w-0">
         {plans.map((p) => {
           const price = yearly ? p.priceYearly : p.priceMonthly;
-          const vip = p.code === "VIP";
+          const vip = p.code === "MIHWAR_PRO";
           return (
             <section key={p.id} className={`bg-white border rounded-[14px] p-4 flex flex-col ${vip ? "border-gold2 shadow-s1" : "border-line"}`}>
               <div className="flex items-center justify-between">
@@ -79,9 +79,7 @@ export function PlansPage() {
                 <Button variant={vip ? "gold" : "primary"} className="mt-4 w-full" disabled={busy === p.id} onClick={() => void choose(p)}>
                   اشترك
                 </Button>
-              ) : (
-                <p className="mt-4 text-[12.5px] text-ink-3 text-center">الباقة الافتراضية بعد التجربة</p>
-              )}
+              ) : null}
             </section>
           );
         })}

@@ -11,6 +11,7 @@ import { logger } from "../../lib/logger.js";
 import * as google from "./google.service.js";
 import * as gen from "../generation/generation.service.js";
 import { MAX_UPLOAD_BYTES } from "../files/files.service.js";
+import { requireActiveAccess } from "../../middleware/subscription.js";
 
 export const integrationsRouter = Router();
 
@@ -69,6 +70,7 @@ integrationsRouter.post(
   requireAuth,
   requireRole("TEACHER"),
   requireWorkspaceMembership,
+  requireActiveAccess,
   expensiveRateLimit,
   validate({ body: requestGenerationSchema }),
   asyncHandler(async (req, res) => {
@@ -99,6 +101,7 @@ integrationsRouter.post(
   requireAuth,
   requireRole("TEACHER"),
   requireWorkspaceMembership,
+  requireActiveAccess,
   expensiveRateLimit,
   raw({ limit: MAX_UPLOAD_BYTES, type: () => true }),
   asyncHandler(async (req, res) => {

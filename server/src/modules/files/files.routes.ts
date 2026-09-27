@@ -3,6 +3,7 @@ import { z } from "zod";
 import { cuidSchema } from "@mihwar/shared";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireWorkspaceMembership } from "../../middleware/rbac.js";
+import { requireActiveAccess } from "../../middleware/subscription.js";
 import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { expensiveRateLimit } from "../../middleware/rateLimit.js";
@@ -22,6 +23,7 @@ const PURPOSES = ["MATERIAL", "FILE_ITEM", "GENERATED", "PROFILE"] as const;
 filesRouter.post(
   "/:workspaceId/upload",
   requireWorkspaceMembership,
+  requireActiveAccess,
   expensiveRateLimit,
   raw({ limit: service.MAX_UPLOAD_BYTES, type: () => true }),
   asyncHandler(async (req, res) => {

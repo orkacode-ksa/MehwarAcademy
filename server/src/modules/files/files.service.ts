@@ -47,7 +47,7 @@ export async function uploadFile(input: {
   const quota = ent.storageMb * 1024 * 1024;
   if (usage.storageBytes + input.data.length > quota) {
     const leftMb = Math.max(0, Math.floor((quota - usage.storageBytes) / (1024 * 1024)));
-    throw AppError.badRequest(`بلغت مساحة باقتك (${ent.storageMb} ميجابايت) — المتبقي ${leftMb} ميجابايت. رقِّ باقتك من «اشتراكي».`);
+    throw AppError.badRequest(`بلغت مساحة باقتك (${ent.storageMb} ميجابايت) — المتبقي ${leftMb} ميجابايت. رقِّ باقتك من «حسابي».`);
   }
 
   const storage = getStorageProvider();

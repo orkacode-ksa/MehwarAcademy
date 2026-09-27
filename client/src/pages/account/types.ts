@@ -1,7 +1,7 @@
 export interface Entitlements {
   planCode: string;
   planName: string;
-  status: "TRIAL" | "ACTIVE" | "FREE";
+  status: "TRIAL" | "ACTIVE" | "EXPIRED";
   periodEnd: string | null;
   maxCourses: number | null;
   storageMb: number;

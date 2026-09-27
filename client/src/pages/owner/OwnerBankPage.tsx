@@ -35,7 +35,7 @@ export function OwnerBankPage() {
   const { data, loading, error, reload } = useApi<Row[]>(`/owner/bank?status=${tab}`);
   return (
     <>
-      <PageHeader kicker="المالك" title="بنك المقررات" description="راجع ما نشره الأساتذة، وسعّره، وقرّر إتاحته في VIP." />
+      <PageHeader kicker="المالك" title="بنك المقررات" description="راجع ما نشره الأساتذة، وسعّره، وقرّر إتاحته في «محور برو»." />
       <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
         {TABS.map((k) => (
           <Button key={k} size="sm" variant={tab === k ? "primary" : "secondary"} onClick={() => setTab(k)}>
@@ -111,7 +111,7 @@ function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
         </Label>
       </div>
       <label className="flex items-center gap-2 mt-2 text-[13px] min-h-[44px]">
-        <input type="checkbox" checked={vip} onChange={(e) => setVip(e.target.checked)} className="w-4 h-4" /> مشمول في حصة VIP
+        <input type="checkbox" checked={vip} onChange={(e) => setVip(e.target.checked)} className="w-4 h-4" /> مشمول في حصة «محور برو»
       </label>
       <ErrorText>{err}</ErrorText>
       <div className="flex gap-2 flex-wrap mt-2">

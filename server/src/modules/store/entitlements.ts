@@ -4,15 +4,15 @@ import { prisma, prismaBase } from "../../lib/prisma.js";
  * ما يحقّ لمساحة الأستاذ الآن — مصدر واحد تقرأ منه كل الحدود (المقررات · التخزين · التوليد ·
  * البنك)، فلا يُفرض حدّ في مكان ويُنسى في آخر.
  *
- * التجربة (٣٠ يومًا من التسجيل) تعطي حدود VIP ليرى الأستاذ المنتج كاملًا؛ بعدها — أو عند
- * انتهاء الاشتراك المدفوع — ترجع المساحة للمجانية. لا حذف لأي بيانات عند النزول: الحدّ يمنع
- * **الإضافة** فقط.
+ * باقتان فقط: «محور» و«محور برو». لا باقة مجانية: التجربة (مدتها في إعدادات المالك) بحدود
+ * «محور برو»، وبعدها «منتهية» — البيانات محفوظة ومقروءة، والتعديل والإضافة يطلبان الاشتراك
+ * (`requireActiveAccess`).
  */
 export interface Entitlements {
   planId: string | null;
   planCode: string;
   planName: string;
-  status: "TRIAL" | "ACTIVE" | "FREE";
+  status: "TRIAL" | "ACTIVE" | "EXPIRED";
   periodEnd: Date | null;
   maxCourses: number | null;
   storageMb: number;
@@ -21,36 +21,60 @@ export interface Entitlements {
   bankCoursesUsed: number;
 }
 
-const FALLBACK_FREE = { id: null, code: "FREE", nameAr: "المجانية", maxCourses: 2, storageMb: 1024, generationsPerMonth: 0, bankCoursesPerYear: 0 };
+export const PLAN_CODES = { BASIC: "MIHWAR", PRO: "MIHWAR_PRO" } as const;
 
 export async function getEntitlements(workspaceId: string): Promise<Entitlements> {
   const sub = await prisma.subscription.findFirst({ where: { workspaceId } });
-  const plans = await prismaBase.plan.findMany({ where: { code: { in: ["FREE", "VIP"] } } });
-  const free = plans.find((p) => p.code === "FREE") ?? FALLBACK_FREE;
-  const vip = plans.find((p) => p.code === "VIP");
   const now = new Date();
-
-  const shape = (p: typeof free, status: Entitlements["status"], periodEnd: Date | null): Entitlements => ({
-    planId: p.id,
-    planCode: p.code,
-    planName: p.nameAr,
-    status,
-    periodEnd,
-    maxCourses: p.maxCourses,
-    storageMb: p.storageMb,
-    generationsPerMonth: p.generationsPerMonth,
-    bankCoursesPerYear: p.bankCoursesPerYear,
+  const base = {
+    planId: null,
+    periodEnd: null,
     bankCoursesUsed: sub?.bankCoursesUsed ?? 0,
-  });
+  };
 
   if (sub?.status === "ACTIVE" && sub.planId && sub.currentPeriodEnd && sub.currentPeriodEnd > now) {
     const plan = await prismaBase.plan.findUnique({ where: { id: sub.planId } });
-    if (plan) return shape(plan, "ACTIVE", sub.currentPeriodEnd);
+    if (plan) {
+      return {
+        ...base,
+        planId: plan.id,
+        planCode: plan.code,
+        planName: plan.nameAr,
+        status: "ACTIVE",
+        periodEnd: sub.currentPeriodEnd,
+        maxCourses: plan.maxCourses,
+        storageMb: plan.storageMb,
+        generationsPerMonth: plan.generationsPerMonth,
+        bankCoursesPerYear: plan.bankCoursesPerYear,
+      };
+    }
   }
-  if (sub?.status === "TRIALING" && sub.trialEndsAt && sub.trialEndsAt > now && vip) {
-    return { ...shape(vip, "TRIAL", sub.trialEndsAt), planName: `تجربة ${vip.nameAr}` };
+  if (sub?.status === "TRIALING" && sub.trialEndsAt && sub.trialEndsAt > now) {
+    const pro = await prismaBase.plan.findUnique({ where: { code: PLAN_CODES.PRO } });
+    return {
+      ...base,
+      planId: pro?.id ?? null,
+      planCode: PLAN_CODES.PRO,
+      planName: `تجربة ${pro?.nameAr ?? "محور برو"}`,
+      status: "TRIAL",
+      periodEnd: sub.trialEndsAt,
+      maxCourses: pro?.maxCourses ?? null,
+      storageMb: pro?.storageMb ?? 5120,
+      generationsPerMonth: pro?.generationsPerMonth ?? 30,
+      bankCoursesPerYear: pro?.bankCoursesPerYear ?? 0,
+    };
   }
-  return shape(free, "FREE", null);
+  return {
+    ...base,
+    planCode: "NONE",
+    planName: "بلا اشتراك",
+    status: "EXPIRED",
+    periodEnd: sub?.currentPeriodEnd ?? sub?.trialEndsAt ?? null,
+    maxCourses: 0,
+    storageMb: 0,
+    generationsPerMonth: 0,
+    bankCoursesPerYear: 0,
+  };
 }
 
 /** الاستهلاك الحالي مقابل الحدود — لشاشة «اشتراكي» ولرسائل «بلغت حدّ باقتك». */

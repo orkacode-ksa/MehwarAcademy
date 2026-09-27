@@ -4,6 +4,7 @@ import { Rail } from "../components/shell/Rail.js";
 import { BottomNav } from "../components/shell/BottomNav.js";
 import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
+import { SubscriptionBanner } from "../components/shell/SubscriptionBanner.js";
 import { roleOf } from "../nav/nav.js";
 import { logout } from "../hooks/useSession.js";
 
@@ -49,6 +50,7 @@ export function AppShell() {
       <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
         <div className="max-w-[1100px] mx-auto" id="main">
           <Topbar />
+          <SubscriptionBanner />
           <Outlet />
         </div>
       </main>

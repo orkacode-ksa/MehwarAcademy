@@ -66,7 +66,7 @@ export function BankPage() {
             </div>
             <div className="text-[12px] text-ink-2 mt-2">
               {formatNum(c.summary.topics ?? 0)} موضوعًا · {formatNum(c.summary.materials ?? 0)} مادة · {formatNum(c.summary.assessments ?? 0)} تقييمات
-              {c.vipIncluded && c.price > 0 ? " · مشمول في VIP" : ""}
+              {c.vipIncluded && c.price > 0 ? " · مشمول في «محور برو»" : ""}
             </div>
           </Link>
         ))}

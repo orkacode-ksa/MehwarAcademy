@@ -38,7 +38,7 @@ export function BankDetailPage() {
     try {
       const r = await api.post<{ granted: boolean; needsPurchase?: boolean; via?: string }>(`/store/bank/${id}/acquire/me`);
       if (r.granted) {
-        showToast(r.via === "VIP" ? "أُضيف من حصة VIP" : "أصبح المقرر لديك");
+        showToast(r.via === "VIP" ? "أُضيف من حصة «محور برو»" : "أصبح المقرر لديك");
         reload();
       } else {
         const o = await api.post<{ id: string }>("/store/orders", { kind: "BANK_COURSE", bankCourseId: id });
@@ -94,7 +94,7 @@ export function BankDetailPage() {
           </div>
         ) : (
           <Button variant="primary" size="lg" className="mt-4 w-full sm:w-auto" disabled={busy} onClick={() => void acquire()}>
-            {data.price === 0 ? "احصل عليه مجانًا" : data.vipIncluded ? "احصل عليه (من حصة VIP أو بالشراء)" : "اشترِ المقرر"}
+            {data.price === 0 ? "احصل عليه مجانًا" : data.vipIncluded ? "احصل عليه (من حصة «محور برو» أو بالشراء)" : "اشترِ المقرر"}
           </Button>
         )}
         <ErrorText>{err}</ErrorText>

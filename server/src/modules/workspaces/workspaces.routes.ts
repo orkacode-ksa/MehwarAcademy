@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.js";
 import { requireWorkspaceMembership } from "../../middleware/rbac.js";
+import { requireActiveAccess } from "../../middleware/subscription.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../lib/AppError.js";
 import { academicRouter } from "../academic/academic.routes.js";
@@ -12,9 +13,9 @@ export const workspacesRouter = Router();
 
 workspacesRouter.use(requireAuth);
 
-workspacesRouter.use("/:workspaceId/academic", requireWorkspaceMembership, academicRouter);
-workspacesRouter.use("/:workspaceId/teaching", requireWorkspaceMembership, teachingRouter);
-workspacesRouter.use("/:workspaceId", requireWorkspaceMembership, qualityRouter);
+workspacesRouter.use("/:workspaceId/academic", requireWorkspaceMembership, requireActiveAccess, academicRouter);
+workspacesRouter.use("/:workspaceId/teaching", requireWorkspaceMembership, requireActiveAccess, teachingRouter);
+workspacesRouter.use("/:workspaceId", requireWorkspaceMembership, requireActiveAccess, qualityRouter);
 
 workspacesRouter.get(
   "/",

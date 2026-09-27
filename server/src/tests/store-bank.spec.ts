@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import { createApp } from "../app.js";
-import { prismaBase } from "../lib/prisma.js";
+import { prismaBase, withExplicitTenantTx } from "../lib/prisma.js";
 import { env } from "../config/env.js";
 import { drainGeneration } from "../modules/generation/generation.service.js";
 import { resetExpensiveLimitForTests } from "../middleware/rateLimit.js";
@@ -61,7 +61,28 @@ describe("الاشتراك والدفع بالتحويل البنكي", () => {
 
   it("الأستاذ الجديد في تجربة بحدود VIP", async () => {
     const me = await a.get("/api/store/me/me");
-    expect(me.body.data.entitlements).toMatchObject({ status: "TRIAL", planCode: "VIP" });
+    expect(me.body.data.entitlements).toMatchObject({ status: "TRIAL", planCode: "MIHWAR_PRO" });
+  });
+
+  it("باقتان فقط: محور ومحور برو — ولا مجانية", async () => {
+    const plans = (await a.get("/api/store/plans")).body.data as { code: string; nameAr: string }[];
+    expect(plans.map((p) => p.nameAr)).toEqual(["محور", "محور برو"]);
+  });
+
+  it("بعد التجربة: القراءة مسموحة، والتعديل يطلب الاشتراك برسالة واضحة", async () => {
+    const me = await b.get("/api/auth/me");
+    const ws = me.body.data.workspaceMemberships[0].workspaceId;
+    const tenant = me.body.data.tenantId as string;
+    const setTrial = (days: number) =>
+      withExplicitTenantTx(tenant, (tx) => tx.subscription.updateMany({ where: { workspaceId: ws }, data: { trialEndsAt: new Date(Date.now() + days * 864e5) } }));
+    await setTrial(-1);
+    expect((await b.get("/api/store/me/me")).body.data.entitlements.status).toBe("EXPIRED");
+    expect((await b.get(`${W}/academic/courses`)).status).toBe(200);
+    const terms = (await b.get(`${W}/academic/terms`)).body.data;
+    const r = await b.post(`${W}/academic/courses`).send({ semesterId: terms[0].id, code: "X 1", nameAr: "مقرر", creditHours: 3 });
+    expect(r.status).toBe(402);
+    expect(r.body.error.message).toContain("انتهت فترة التجربة");
+    await setTrial(30);
   });
 
   it("المالك يضيف حسابًا بنكيًا — والآيبان يُتحقَّق منه", async () => {
@@ -73,7 +94,7 @@ describe("الاشتراك والدفع بالتحويل البنكي", () => {
 
   it("طلب ← إيصال ← مراجعة المالك ← تفعيل فوري", async () => {
     const plans = (await a.get("/api/store/plans")).body.data as { id: string; code: string }[];
-    const basic = plans.find((p) => p.code === "BASIC") as { id: string };
+    const basic = plans.find((p) => p.code === "MIHWAR") as { id: string };
     const o = await a.post("/api/store/orders").send({ kind: "PLAN", planId: basic.id, period: "MONTHLY" });
     expect(o.status).toBe(201);
     expect(o.body.data.number).toMatch(/^MH-\d{6}$/);
@@ -107,14 +128,14 @@ describe("الاشتراك والدفع بالتحويل البنكي", () => {
     expect((await a.post(`/api/owner/store/orders/${orderId}/review`).send({ decision: "APPROVE" })).status).toBe(403);
     expect((await owner.post(`/api/owner/store/orders/${orderId}/review`).send({ decision: "APPROVE" })).status).toBe(200);
     const me = await a.get("/api/store/me/me");
-    expect(me.body.data.entitlements).toMatchObject({ status: "ACTIVE", planCode: "BASIC" });
+    expect(me.body.data.entitlements).toMatchObject({ status: "ACTIVE", planCode: "MIHWAR" });
     const end = new Date(me.body.data.entitlements.periodEnd).getTime();
     expect(end - Date.now()).toBeGreaterThan(27 * 864e5);
   });
 
   it("الرفض بسبب يُقال للعميل", async () => {
     const plans = (await b.get("/api/store/plans")).body.data as { id: string; code: string }[];
-    const vip = plans.find((p) => p.code === "VIP") as { id: string };
+    const vip = plans.find((p) => p.code === "MIHWAR_PRO") as { id: string };
     const o = (await b.post("/api/store/orders").send({ kind: "PLAN", planId: vip.id, period: "YEARLY" })).body.data;
     expect(o.amount).toBe(990);
     const r = await owner.post(`/api/owner/store/orders/${o.id}/review`).send({ decision: "REJECT", reason: "لم يصل المبلغ" });

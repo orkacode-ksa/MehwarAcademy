@@ -6,7 +6,8 @@ import { randomToken, sha256Hex } from "../../lib/crypto.js";
 import { cacheDel } from "../../lib/redis.js";
 import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
-import { REFRESH_TOKEN_TTL_DAYS, TRIAL_DAYS, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES } from "../../config/constants.js";
+import { REFRESH_TOKEN_TTL_DAYS, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES } from "../../config/constants.js";
+import { getPlatformSettings } from "../platform/settings.js";
 import { logger } from "../../lib/logger.js";
 import { newJoinCode } from "../../lib/joinCode.js";
 import { DEFAULT_REGULATION } from "../owner/owner.service.js";
@@ -52,6 +53,7 @@ export async function registerUser(
   input: RegisterInput,
   ctx: { ip?: string; userAgent?: string },
 ): Promise<IssuedTokens & { userId: string }> {
+  const { trialDays } = await getPlatformSettings();
   // فحص عام للبريد رغم أن الفريدية صارت داخل المستأجر: التسجيل الذاتي يُنشئ **مستأجرًا
   // جديدًا** في كل مرة، فبلا هذا الفحص يصير البريد الواحد مصنعًا لمستأجرين بلا حدّ.
   // الانضمام لمستأجر قائم يتم بدعوة لا بتسجيل ذاتي (المرحلة ٨).
@@ -126,7 +128,7 @@ export async function registerUser(
           workspaceId: workspace.id,
           planCode: "MIHWAR",
           status: "TRIALING",
-          trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+          trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
         },
       });
     }
