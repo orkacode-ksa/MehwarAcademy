@@ -10,7 +10,19 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import type { BankAccount, Plan } from "../account/types.js";
 
-interface Integrations { storage: "r2" | "db"; writer: "claude" | "gemini" | null; voice: boolean; redis: boolean }
+interface Integrations { storage: "r2" | "db"; ai: boolean; voice: boolean; redis: boolean }
+interface PlatformSettings {
+  trialDays: number;
+  ai: { monthlyBudgetSar: number; priceInputPerM: number; priceOutputPerM: number; priceAudioPerM: number; assistantDailyLimit: number; scientificReview: boolean; maxSourcesPerCourse: number };
+  term: { autoCloseDaysAfterEnd: number };
+}
+interface Usage {
+  spentSar: number;
+  budgetSar: number;
+  byFeature: { feature: string; calls: number; costSar: number }[];
+  topUsers: { id?: string; fullName?: string; email?: string; calls: number; costSar: number }[];
+}
+const FEATURE: Record<string, string> = { GENERATION: "توليد المواد", ASSISTANT: "المساعد", BANK_REVIEW: "تقييم البنك", REGULATION_EXTRACT: "استخراج اللوائح" };
 
 /** إعدادات المالك: الحسابات البنكية · الباقات · حالة التكاملات. */
 export function OwnerSettingsPage() {
@@ -21,6 +33,9 @@ export function OwnerSettingsPage() {
   return (
     <>
       <PageHeader kicker="المالك" title="الإعدادات" />
+
+      <AiUsageCard />
+      <PlatformSettingsCard />
 
       <Card title="الحسابات البنكية" hint="تظهر للعميل في صفحة الدفع. أضف حسابًا أو عطّله دون حذفه.">
         <div className="grid gap-3">
@@ -46,7 +61,7 @@ export function OwnerSettingsPage() {
               التخزين <Chip tone={integ.storage === "r2" ? "teal" : "amber"}>{integ.storage === "r2" ? "Cloudflare R2" : "قاعدة البيانات (مؤقت)"}</Chip>
             </li>
             <li className="flex justify-between gap-2">
-              كاتب المواد (شرح · عرض) <Chip tone={integ.writer ? "teal" : "amber"}>{integ.writer === "claude" ? "Claude" : integ.writer === "gemini" ? "Gemini" : "ينتظر مفتاحًا"}</Chip>
+              محرّك التوليد والمساعد <Chip tone={integ.ai ? "teal" : "amber"}>{integ.ai ? "Gemini" : "ينتظر GEMINI_API_KEY"}</Chip>
             </li>
             <li className="flex justify-between gap-2">
               الصوت (بودكاست · درس مصوّر) <Chip tone={integ.voice ? "teal" : "amber"}>{integ.voice ? "Gemini TTS" : "ينتظر مفتاح Gemini"}</Chip>
@@ -189,5 +204,108 @@ function PlanForm({ plan, onSaved }: { plan: Plan; onSaved: () => void }) {
         <Icon name="chk" /> احفظ الباقة
       </Button>
     </div>
+  );
+}
+
+const sar = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} ر.س`;
+
+/** تكلفة المحرّك هذا الشهر مقابل السقف — أول ما يراه المالك في إعداداته. */
+function AiUsageCard() {
+  const { data } = useApi<Usage>("/owner/platform/usage");
+  if (!data) return null;
+  const pct = data.budgetSar > 0 ? Math.min(100, Math.round((data.spentSar / data.budgetSar) * 100)) : 100;
+  return (
+    <Card title="تكلفة المحرّك هذا الشهر" hint="محسوبة من كل نداء بأسعار الرموز أدناه. عند بلوغ السقف يتوقف التوليد والمساعد حتى أول الشهر.">
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <span className="text-[24px] font-semibold text-deep">{sar(data.spentSar)}</span>
+        <span className="text-[13px] text-ink-3">من سقف {sar(data.budgetSar)}</span>
+      </div>
+      <div className="h-2 rounded-full bg-line mt-2 overflow-hidden" aria-hidden>
+        <div className={`h-full rounded-full ${pct >= 90 ? "bg-crim" : pct >= 70 ? "bg-gold2" : "bg-teal"}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 mt-3 text-[13px]">
+        <div>
+          <div className="font-medium mb-1">حسب الميزة</div>
+          <ul className="grid gap-0.5">
+            {data.byFeature.map((f) => (
+              <li key={f.feature} className="flex justify-between gap-2">
+                <span>
+                  {FEATURE[f.feature] ?? f.feature} <span className="text-ink-3">({f.calls})</span>
+                </span>
+                <span>{sar(f.costSar)}</span>
+              </li>
+            ))}
+            {data.byFeature.length === 0 && <li className="text-ink-3">لا استهلاك بعد</li>}
+          </ul>
+        </div>
+        <div>
+          <div className="font-medium mb-1">الأعلى استهلاكًا</div>
+          <ul className="grid gap-0.5">
+            {data.topUsers.map((u, i) => (
+              <li key={u.id ?? i} className="flex justify-between gap-2">
+                <span className="truncate">{u.fullName ?? "—"}</span>
+                <span className="flex-none">{sar(u.costSar)}</span>
+              </li>
+            ))}
+            {data.topUsers.length === 0 && <li className="text-ink-3">—</li>}
+          </ul>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/** كل رقم يمسّ المال أو التجربة — يعدّله المالك بلا نشر. */
+function PlatformSettingsCard() {
+  const { data, reload } = useApi<PlatformSettings>("/owner/platform/settings");
+  const [v, setV] = useState<PlatformSettings | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const { showToast } = useToast();
+  useEffect(() => {
+    if (data) setV(structuredClone(data));
+  }, [data]);
+  if (!v) return null;
+  const num = (label: string, value: number, set: (n: number) => void, step = 1) => (
+    <Label text={label}>
+      <Input type="number" min={0} step={step} value={value} onChange={(e) => set(Number(e.target.value))} dir="ltr" />
+    </Label>
+  );
+  const ai = (patch: Partial<PlatformSettings["ai"]>) => setV({ ...v, ai: { ...v.ai, ...patch } });
+
+  async function save() {
+    setErr(null);
+    try {
+      await api.put("/owner/platform/settings", v);
+      showToast("حُفظت إعدادات المنصة");
+      reload();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "تعذّر الحفظ");
+    }
+  }
+
+  return (
+    <Card title="إعدادات المنصة" className="mt-4" hint="تسري فورًا على كل المستخدمين.">
+      <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
+        {num("مدة التجربة (يوم)", v.trialDays, (n) => setV({ ...v, trialDays: n }))}
+        {num("إقفال الفصل بعد نهايته (يوم)", v.term.autoCloseDaysAfterEnd, (n) => setV({ ...v, term: { autoCloseDaysAfterEnd: n } }))}
+        {num("سقف تكلفة المحرّك شهريًا (ر.س)", v.ai.monthlyBudgetSar, (n) => ai({ monthlyBudgetSar: n }))}
+        {num("رسائل المساعد لكل أستاذ يوميًا", v.ai.assistantDailyLimit, (n) => ai({ assistantDailyLimit: n }))}
+        {num("أقصى مصادر للمقرر", v.ai.maxSourcesPerCourse, (n) => ai({ maxSourcesPerCourse: n }))}
+      </div>
+      <div className="text-[12.5px] font-medium mt-4 mb-1">أسعار المليون رمز (ر.س) — من فاتورة المزوّد</div>
+      <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
+        {num("نص داخل", v.ai.priceInputPerM, (n) => ai({ priceInputPerM: n }), 0.01)}
+        {num("نص خارج", v.ai.priceOutputPerM, (n) => ai({ priceOutputPerM: n }), 0.01)}
+        {num("صوت خارج", v.ai.priceAudioPerM, (n) => ai({ priceAudioPerM: n }), 0.01)}
+      </div>
+      <label className="flex items-center gap-2 mt-3 text-[13px] min-h-[44px]">
+        <input type="checkbox" className="w-4 h-4" checked={v.ai.scientificReview} onChange={(e) => ai({ scientificReview: e.target.checked })} />
+        التحكيم العلمي لكل ما يُولَّد (أدق، ويقارب ضعف تكلفة الكتابة)
+      </label>
+      <ErrorText>{err}</ErrorText>
+      <Button variant="primary" size="sm" className="mt-2" onClick={() => void save()}>
+        <Icon name="chk" /> احفظ
+      </Button>
+    </Card>
   );
 }

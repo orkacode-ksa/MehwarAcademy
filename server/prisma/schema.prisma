@@ -152,6 +152,8 @@ model User {
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
+  /// إيقاف المالك للحساب (مخالفة · طلب الجامعة) — لا دخول حتى يُرفع، والجلسات القائمة تُبطَل.
+  suspendedAt      DateTime?
 
   foundingMember Boolean @default(false)
 

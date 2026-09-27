@@ -24,6 +24,7 @@ import * as service from "./owner.service.js";
 import * as store from "../store/store.service.js";
 import * as bank from "../bank/bank.service.js";
 import * as university from "../university/university.service.js";
+import * as users from "./users.service.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { kindsAvailable } from "../generation/generation.service.js";
 import { writerReady } from "../generation/engine.js";
@@ -426,6 +427,39 @@ ownerRouter.post(
   validate({ body: z.object({ name: z.string().trim().min(3).max(120).optional() }).strict() }),
   asyncHandler(async (req, res) => {
     await university.ownerApprove(actor(req), req.params.tenantId as string, req.body.name);
+    res.json({ success: true, data: { ok: true } });
+  }),
+);
+
+// ───────────────────────── المستخدمون والاشتراكات ─────────────────────────
+
+ownerRouter.get(
+  "/users",
+  asyncHandler(async (req, res) => {
+    const q = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 80) : "";
+    const page = Math.min(1000, Math.max(1, Number(req.query.page) || 1));
+    res.json({ success: true, data: await users.listUsers(q, page) });
+  }),
+);
+ownerRouter.post(
+  "/users/:id/subscription",
+  validate({
+    body: z.discriminatedUnion("action", [
+      z.object({ action: z.literal("EXTEND_TRIAL"), days: z.coerce.number().int().min(1).max(365) }).strict(),
+      z.object({ action: z.literal("ACTIVATE"), planId: z.string().min(1), months: z.coerce.number().int().min(1).max(36) }).strict(),
+      z.object({ action: z.literal("EXPIRE") }).strict(),
+    ]),
+  }),
+  asyncHandler(async (req, res) => {
+    await users.setSubscription(actor(req), req.params.id as string, req.body);
+    res.json({ success: true, data: { ok: true } });
+  }),
+);
+ownerRouter.post(
+  "/users/:id/suspend",
+  validate({ body: z.object({ suspended: z.boolean() }).strict() }),
+  asyncHandler(async (req, res) => {
+    await users.setSuspended(actor(req), req.params.id as string, req.body.suspended);
     res.json({ success: true, data: { ok: true } });
   }),
 );

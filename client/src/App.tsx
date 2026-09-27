@@ -30,6 +30,7 @@ import { OrderPage } from "./pages/account/OrderPage.js";
 import { CvPage } from "./pages/account/CvPage.js";
 import { UniversityPage } from "./pages/account/UniversityPage.js";
 import { SubmissionsPage } from "./pages/owner/SubmissionsPage.js";
+import { OwnerUsersPage } from "./pages/owner/OwnerUsersPage.js";
 import { BankPage } from "./pages/bank/BankPage.js";
 import { BankDetailPage } from "./pages/bank/BankDetailPage.js";
 import { CourseReportPage } from "./pages/faculty/CourseReportPage.js";
@@ -83,6 +84,7 @@ export function App() {
           <Route path="obank" element={<OwnerBankPage />} />
           <Route path="osettings" element={<OwnerSettingsPage />} />
           <Route path="osubmissions" element={<SubmissionsPage />} />
+          <Route path="ousers" element={<OwnerUsersPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -22,9 +22,10 @@ export const NAV: Record<Role, NavItem[]> = {
   ],
   student: [{ key: "scourses", icon: "book", label: "مقرراتي" }],
   dept: [{ key: "dhome", icon: "users", label: "القسم" }],
-  // المالك: التعقيد مسموح هنا وحده — ومع ذلك أربع وجهات لا أكثر.
+  // المالك: التعقيد مسموح هنا وحده — خمس وجهات تغطي كل شيء.
   admin: [
     { key: "institutions", icon: "grid", label: "الجامعات" },
+    { key: "ousers", icon: "users", label: "المستخدمون" },
     { key: "payments", icon: "card", label: "المدفوعات" },
     { key: "obank", icon: "box", label: "البنك" },
     { key: "osettings", icon: "gear", label: "الإعدادات" },
@@ -59,7 +60,7 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
   faculty: ["course", "plans", "orders", "cv", "university"],
   student: ["scourse"],
   dept: [],
-  admin: ["institutions", "payments", "obank", "osettings", "osubmissions"],
+  admin: ["institutions", "ousers", "payments", "obank", "osettings", "osubmissions"],
 };
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {

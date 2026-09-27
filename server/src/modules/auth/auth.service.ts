@@ -184,6 +184,9 @@ export async function loginUser(
     throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
   }
 
+  if (user.suspendedAt) {
+    throw AppError.forbidden("الحساب موقوف — راسل إدارة المنصة");
+  }
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     throw AppError.tooManyRequests("الحساب مقفل مؤقتًا بعد محاولات فاشلة متكررة");
   }
