@@ -27,7 +27,8 @@ COPY --from=build /repo/server/dist ./dist
 COPY --from=build /repo/server/prisma ./prisma
 COPY --from=build /repo/server/assets ./assets
 COPY --from=build /repo/server/package.json ./package.json
+COPY --from=build /repo/server/scripts ./scripts
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/index.js"]
+CMD ["sh", "./scripts/start.sh"]

@@ -108,7 +108,12 @@ UPDATE "subscriptions"     t SET "tenantId" = w."tenantId" FROM "workspaces" w W
 UPDATE "invoices"          t SET "tenantId" = w."tenantId" FROM "workspaces" w WHERE w."id" = t."workspaceId";
 UPDATE "payments"          t SET "tenantId" = i."tenantId" FROM "invoices" i WHERE i."id" = t."invoiceId";
 UPDATE "job_steps"         t SET "tenantId" = j."tenantId" FROM "generation_jobs" j WHERE j."id" = t."jobId";
+-- سجل التدقيق append-only بمُطلِق يرفض أي UPDATE — وهذه التعبئة لمرة واحدة هي الاستثناء
+-- الوحيد المشروع: تملأ عمودًا جديدًا ولا تمسّ ما سُجِّل. بدون تعطيل المُطلِق فشلت الهجرة على
+-- الإنتاج (P0001) فتوقّف كل نشر للخادم بعدها. التعطيل داخل معاملة الهجرة ويُعاد فورًا.
+ALTER TABLE "audit_logs" DISABLE TRIGGER "audit_logs_no_update";
 UPDATE "audit_logs"        t SET "tenantId" = w."tenantId" FROM "workspaces" w WHERE w."id" = t."workspaceId";
+ALTER TABLE "audit_logs" ENABLE TRIGGER "audit_logs_no_update";
 
 -- ─────────────── ٣) التشديد إلى NOT NULL (audit_logs يبقى اختياريًا عمدًا) ───────────────
 ALTER TABLE "academic_years"     ALTER COLUMN "tenantId" SET NOT NULL;
