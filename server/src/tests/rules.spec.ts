@@ -7,6 +7,7 @@ import {
   holidayOn,
   isEscalated,
   letterFor,
+  gradeStats,
   scheduledDates,
   weekdayOf,
 } from "../modules/rules/rules.js";
@@ -14,6 +15,8 @@ import {
 /** قواعد اللائحة دوالّ خالصة — تُختبر بأرقام الجامعة مباشرة بلا قاعدة بيانات. */
 
 const policy = { warnPercent: 15, banPercent: 25 };
+/** لائحة أم القرى: الحرمان إذا زاد الغياب بلا عذر عن ١٥٪ أو كله مع العذر عن ٢٥٪. */
+const uqu = { warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 };
 
 describe("قواعد الغياب", () => {
   it("النسبة من محاضرات الفصل كله لا مما مضى", () => {
@@ -21,13 +24,21 @@ describe("قواعد الغياب", () => {
     expect(absenceStatus(policy, 1, 20)).toMatchObject({ percent: 5, level: "OK" });
   });
 
-  it("التنبيه والحرمان عند حدود اللائحة بالضبط", () => {
+  it("«زادت عن» تعني أكبر من: بلوغ الحدّ بالضبط تنبيه لا حرمان", () => {
     expect(absenceStatus(policy, 3, 20).level).toBe("WARN"); // 15%
-    expect(absenceStatus(policy, 5, 20).level).toBe("BAN"); // 25%
+    expect(absenceStatus(policy, 5, 20).level).toBe("WARN"); // 25% بالضبط — لم تزد
+    expect(absenceStatus(policy, 6, 20).level).toBe("BAN"); // 30%
+  });
+
+  it("لائحة أم القرى: ١٥٪ بلا عذر · ٢٥٪ مع العذر", () => {
+    expect(absenceStatus(uqu, 3, 20).level).toBe("WARN"); // 15% بلا عذر — لم تزد
+    expect(absenceStatus(uqu, 4, 20).level).toBe("BAN"); // 20% بلا عذر
+    expect(absenceStatus(uqu, 2, 20, 3).level).toBe("WARN"); // 10% + العذر = 25% — لم تزد
+    expect(absenceStatus(uqu, 2, 20, 4).level).toBe("BAN"); // المجموع 30%
   });
 
   it("تغيير اللائحة يغيّر الحكم بلا تغيير شيفرة", () => {
-    expect(absenceStatus({ warnPercent: 10, banPercent: 20 }, 4, 20).level).toBe("BAN");
+    expect(absenceStatus({ warnPercent: 10, banPercent: 15 }, 4, 20).level).toBe("BAN");
   });
 
   it("شعبة بلا مواعيد لا تُنتج حرمانًا وهميًا", () => {
@@ -35,8 +46,9 @@ describe("قواعد الغياب", () => {
   });
 
   it("كم غيابًا بقي قبل الحرمان", () => {
-    expect(absencesUntilBan(policy, 2, 20)).toBe(3);
+    expect(absencesUntilBan(policy, 2, 20)).toBe(3); // حتى 5 = 25% مسموح
     expect(absencesUntilBan(policy, 7, 20)).toBe(0);
+    expect(absencesUntilBan(uqu, 1, 20, 2)).toBe(2); // بلا عذر حتى 3؛ والمجموع حتى 5
   });
 });
 
@@ -82,6 +94,11 @@ describe("المخالفات والتقديرات", () => {
     expect(isEscalated(2, 2)).toBe(true);
     expect(isEscalated(1, 2)).toBe(false);
     expect(isEscalated(9, undefined)).toBe(false);
+  });
+
+  it("الأعلى والأقل والمتوسط", () => {
+    expect(gradeStats([90, 50, 70])).toEqual({ max: 90, min: 50, avg: 70, count: 3 });
+    expect(gradeStats([])).toBeNull();
   });
 
   it("التقدير من سلّم الجامعة", () => {

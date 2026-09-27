@@ -88,6 +88,8 @@ export const createAssessmentSchema = z
     maxScore: z.coerce.number().positive().max(1000),
     weightPercent: z.coerce.number().min(0).max(100),
     instructions: z.string().trim().max(50_000).optional(),
+    answerKey: z.string().trim().max(50_000).optional(),
+    outcomes: z.array(z.string().max(10)).max(20).default([]),
     dueDate: z.coerce.date().optional(),
     isLab: z.boolean().default(false),
   })
@@ -166,6 +168,8 @@ export const learningOutcomeSchema = z.object({
   text: z.string().trim().min(2).max(500),
   teaching: shortText,
   assessment: shortText,
+  /** المستوى المستهدف ٪ — يُقارن به «المستوى الفعلي» في تقرير المقرر */
+  target: z.coerce.number().int().min(0).max(100).default(70),
 });
 export type LearningOutcome = z.infer<typeof learningOutcomeSchema>;
 
@@ -240,10 +244,12 @@ export const createMaterialSchema = z
     title: z.string().trim().min(2).max(200),
     url: z.string().trim().url("رابط غير صالح").max(1000).optional(),
     text: z.string().trim().max(50_000).optional(),
+    /** ملف مرفوع (عرض · صوت · فيديو · PDF) بدل الرابط */
+    fileId: z.string().cuid().optional(),
   })
   .strict()
-  .refine((m) => (m.kind === "TEXT" ? !!m.text : !!m.url), {
-    message: "أضف نص المادة أو رابطها",
+  .refine((m) => (m.kind === "TEXT" ? !!m.text : !!m.url || !!m.fileId), {
+    message: "أضف نص المادة أو رابطها أو ارفع ملفها",
     path: ["url"],
   });
 
@@ -267,6 +273,8 @@ export const updateAssessmentSchema = z
   .object({
     title: z.string().trim().min(2).max(150).optional(),
     instructions: z.string().trim().max(50_000).optional(),
+    answerKey: z.string().trim().max(50_000).optional(),
+    outcomes: z.array(z.string().max(10)).max(20).optional(),
     maxScore: z.coerce.number().positive().max(1000).optional(),
     weightPercent: z.coerce.number().min(0).max(100).optional(),
     dueDate: z.coerce.date().nullable().optional(),
@@ -282,5 +290,56 @@ export const joinSectionSchema = z
     fullName: z.string().trim().min(2).max(120),
     email: z.string().trim().toLowerCase().email().max(255),
     password: z.string().min(10).max(128),
+  })
+  .strict();
+
+
+// ───────────────────────── تقرير المقرر (نموذج NCAAA) ─────────────────────────
+
+/**
+ * ما يكتبه الأستاذ في تقرير المقرر. المحسوب (توزيع التقديرات · المستوى الفعلي للمخرجات ·
+ * المواضيع غير المغطّاة) لا يُخزَّن هنا — يُحسب عند العرض من بيانات المقرر.
+ */
+export const courseReportSchema = z
+  .object({
+    gradeComment: longText,
+    recommendations: longText,
+    /** أسباب المواضيع غير المغطّاة: topicTitle → { reason, impact, action } */
+    uncovered: z.record(z.object({ reason: shortText, impact: shortText, action: shortText })).default({}),
+    improvementActions: z.array(z.object({ action: shortText, achievement: shortText, comment: shortText })).max(20).default([]),
+    studentEvaluation: longText,
+    improvementPlan: z.array(z.object({ recommendation: shortText, action: shortText, support: shortText })).max(20).default([]),
+    coordinator: shortText,
+    location: z.enum(["", "MAIN", "BRANCH"]).default(""),
+  })
+  .strict();
+export type CourseReport = z.infer<typeof courseReportSchema>;
+
+// ───────────────────────── السيرة والنشاط العلمي ─────────────────────────
+
+export const facultyProfileSchema = z
+  .object({
+    rank: shortText,
+    specialization: shortText,
+    department: shortText,
+    college: shortText,
+    qualifications: longText,
+    bio: longText,
+    phone: shortText,
+  })
+  .strict();
+export type FacultyProfile = z.infer<typeof facultyProfileSchema>;
+
+export const ACTIVITY_TYPES = { RESEARCH: "بحث علمي", CONFERENCE: "ندوة أو مؤتمر", TRAINING: "دورة تدريبية", WORKSHOP: "ورشة تدريبية" } as const;
+export type ActivityType = keyof typeof ACTIVITY_TYPES;
+
+export const facultyActivitySchema = z
+  .object({
+    type: z.enum(["RESEARCH", "CONFERENCE", "TRAINING", "WORKSHOP"]),
+    title: z.string().trim().min(2).max(300),
+    venue: z.string().trim().max(200).optional(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD"),
+    hours: z.coerce.number().int().min(0).max(1000).optional(),
+    participation: z.string().trim().max(60).optional(),
   })
   .strict();

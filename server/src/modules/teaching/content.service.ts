@@ -2,6 +2,7 @@ import type { CourseSpec } from "@mihwar/shared";
 import { prisma, withTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
+import { assertCanAddCourse } from "../academic/limits.js";
 import { editBlockReason, gradingBlockReason, letterFor, type TermStatus } from "../rules/rules.js";
 
 /**
@@ -59,11 +60,16 @@ export async function listCourseMaterials(workspaceId: string, courseId: string)
 
 export async function createMaterial(
   workspaceId: string,
-  input: { topicId: string; kind: string; title: string; url?: string; text?: string },
+  input: { topicId: string; kind: string; title: string; url?: string; text?: string; fileId?: string },
 ) {
   const topic = await courseOfTopic(workspaceId, input.topicId);
   const blocked = editBlockReason(topic.course.semester.status as TermStatus);
   if (blocked) throw AppError.badRequest(blocked);
+  if (input.fileId) {
+    const f = await prisma.fileAsset.findFirst({ where: { id: input.fileId, workspaceId, deletedAt: null }, select: { id: true } });
+    if (!f) throw AppError.notFound("الملف غير موجود");
+    input = { ...input, url: `/api/files/${f.id}` };
+  }
   return prisma.lecture.create({
     data: {
       tenantId: requireTenantId(),
@@ -136,7 +142,7 @@ export async function sourcePack(workspaceId: string, topicId: string): Promise<
 export async function updateAssessment(
   workspaceId: string,
   assessmentId: string,
-  input: { title?: string; instructions?: string; maxScore?: number; weightPercent?: number; dueDate?: Date | null },
+  input: { title?: string; instructions?: string; answerKey?: string; outcomes?: string[]; maxScore?: number; weightPercent?: number; dueDate?: Date | null },
 ) {
   const a = await prisma.assessment.findFirst({ where: { id: assessmentId, workspaceId, deletedAt: null }, select: { id: true } });
   if (!a) throw AppError.notFound("التقييم غير موجود");
@@ -272,6 +278,7 @@ export async function cloneCourse(workspaceId: string, courseId: string, semeste
   if (!semester) throw AppError.badRequest("اختر فصلًا في التجهيز أو جاريًا");
   const clash = await prisma.course.findFirst({ where: { workspaceId, semesterId, code: source.code, deletedAt: null }, select: { id: true } });
   if (clash) throw AppError.conflict("لديك مقرر بهذا الرمز في ذلك الفصل");
+  await assertCanAddCourse(workspaceId);
 
   const reg = await prisma.regulation.findFirst({ select: { courseFileItems: true, absencePolicy: true } });
 
@@ -305,7 +312,7 @@ export async function cloneCourse(workspaceId: string, courseId: string, semeste
     }
     for (const a of source.assessments) {
       await tx.assessment.create({
-        data: { tenantId, workspaceId, courseId: course.id, title: a.title, type: a.type, maxScore: a.maxScore, weightPercent: a.weightPercent, instructions: a.instructions, isLab: a.isLab },
+        data: { tenantId, workspaceId, courseId: course.id, title: a.title, type: a.type, maxScore: a.maxScore, weightPercent: a.weightPercent, instructions: a.instructions, answerKey: a.answerKey, outcomes: a.outcomes, isLab: a.isLab },
       });
     }
     return { id: course.id };

@@ -31,6 +31,8 @@ export const TENANT_SCOPED_MODELS = [
   "GenerationJob",
   "JobStep",
   "FileAsset",
+  "FileBlob",
+  "FacultyActivity",
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];
@@ -63,6 +65,15 @@ export const UNSCOPED_MODELS = [
   "PasswordResetToken",
   "AuditLog",
   "WebhookEvent",
+  // المتجر على مستوى المنصة: الباقات والحسابات البنكية تخصّ المنصة كلها، وكتالوج البنك
+  // مشترك بين الجامعات، والطلبات يراجعها المالك عبر كل الجامعات. العزل بفلتر userId صريح
+  // في store.service.ts وbank.service.ts، ويفحصه اختبار المتجر.
+  "Plan",
+  "BankAccount",
+  "BankCourse",
+  "BankCourseAuthor",
+  // يُقرأ بمعرّف المستخدم من التوكن وحده، ويحمل رمزًا مشفّرًا لا يُرجَع لأي واجهة.
+  "GoogleConnection",
 ] as const;
 
 /**
@@ -74,4 +85,11 @@ export const UNSCOPED_MODELS = [
  *
  * القائمة مقصورة على هذا العنصر عمدًا: كل إضافة إليها قرار أمني يُراجَع، لا سطر يُضاف.
  */
-export const TENANT_FIELD_BUT_UNSCOPED = ["User"] as const;
+export const TENANT_FIELD_BUT_UNSCOPED = [
+  "User",
+  // الطلب يحمل مستأجر المشتري للتفعيل، لكن مراجعته عند المالك عبر كل الجامعات. كل قراءة
+  // للعميل مقيّدة بـ userId من التوكن (store.service.ts)، ومسارات المالك محروسة بدوره.
+  "Order",
+  // حق الوصول لمقرر البنك: مستوى المنصة (الكتالوج مشترك) مقيّد بـ userId من التوكن.
+  "BankCourseAccess",
+] as const;

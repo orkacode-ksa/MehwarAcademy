@@ -52,7 +52,7 @@ describe("التسجيل الذاتي يُنتج مساحة صالحة للعم�
     courseId = course.body.data.id;
     // البنود والسياسة نُسخت من اللائحة
     expect(course.body.data.fileItems.length).toBeGreaterThan(5);
-    expect(course.body.data.absencePolicy).toEqual({ warnPercent: 15, banPercent: 25 });
+    expect(course.body.data.absencePolicy).toEqual({ warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 });
   });
 });
 
@@ -82,7 +82,7 @@ describe("التوصيف وملف المقرر", () => {
   it("بند يدوي يُؤشَّر، وبند آلي يُرفض تأشيره", async () => {
     const manual = await teacher.patch(`${W}/quality-file`).send({ courseId, itemKey: "STUDENT_SAMPLES", completed: true });
     expect(manual.status).toBe(200);
-    const auto = await teacher.patch(`${W}/quality-file`).send({ courseId, itemKey: "GRADE_DISTRIBUTION", completed: true });
+    const auto = await teacher.patch(`${W}/quality-file`).send({ courseId, itemKey: "GRADE_STATS", completed: true });
     expect(auto.status).toBe(400);
     const unknown = await teacher.patch(`${W}/quality-file`).send({ courseId, itemKey: "NOPE", completed: true });
     expect(unknown.status).toBe(400);
@@ -193,8 +193,7 @@ describe("الخطوة ٣ — محاضرة اليوم والحضور", () => {
   });
 
   it("ملف المقرر يعكس الحضور، وتقييم الأداء يُحسب", async () => {
-    const file = await teacher.get(`${W}/courses/${courseId}/quality-file`);
-    expect(file.body.data.items.find((i: { key: string }) => i.key === "ATTENDANCE").done).toBe(true);
+    // بنود أم القرى لا تتضمّن «سجل الحضور»، فالحضور يظهر في مؤشر الأداء.
 
     const perf = await teacher.get(`${W}/performance`);
     expect(perf.status).toBe(200);

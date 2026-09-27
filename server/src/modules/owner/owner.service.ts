@@ -19,42 +19,46 @@ import { AppError } from "../../lib/AppError.js";
 
 /** لائحة افتراضية تُنشأ مع كل جامعة جديدة — نقطة انطلاق تُحرَّر، لا معيار مفروض. */
 export const DEFAULT_REGULATION: RegulationInput = {
+  // بنود ملف المقرر كما تطلبها وحدة الجودة في أم القرى — بترتيب منطقي: ما قبل الفصل، ثم
+  // الاختبارات ونماذجها، ثم النتائج، ثم التقارير.
   courseFileItems: [
     { key: "SPEC", label: "توصيف المقرر", required: true },
-    { key: "OUTCOMES", label: "مصفوفة مخرجات التعلّم", required: true },
-    { key: "LECTURES", label: "أرشيف المحاضرات", required: true },
-    { key: "ASSESSMENT_PLAN", label: "خطة التقييم", required: true },
-    { key: "EXAM_SAMPLES", label: "نماذج الاختبارات وإجاباتها", required: true },
-    { key: "GRADE_DISTRIBUTION", label: "توزيع الدرجات", required: true },
-    { key: "ATTENDANCE", label: "سجل الحضور", required: true },
-    { key: "QUESTION_BANK", label: "بنك الأسئلة", required: false },
-    { key: "STUDENT_SAMPLES", label: "نماذج من أعمال الطلبة", required: true },
+    { key: "CV", label: "السيرة الذاتية", required: true },
+    { key: "MIDTERM_EXAM", label: "الاختبار النصفي", required: true },
+    { key: "PRACTICAL_EXAM", label: "الاختبار العملي", required: true },
+    { key: "FINAL_EXAM", label: "الاختبار النهائي", required: true },
+    { key: "ANSWER_KEY", label: "نموذج الإجابة", required: true },
+    { key: "EXAM_STANDARDS", label: "تقرير عن مدى استيفاء اختبار المقرر للمعايير الاختبارية", required: true },
+    { key: "GRADE_STATS", label: "الأعلى والأقل والدرجة المتوسطة", required: true },
+    { key: "STUDENT_SAMPLES", label: "نموذج من أعمال الطلبة", required: true },
+    { key: "STUDENT_EVALUATION", label: "نتائج تقييم الطلبة (من موقع العضو)", required: true },
     { key: "COURSE_REPORT", label: "تقرير المقرر", required: true },
-    { key: "IMPROVEMENT", label: "خطة التحسين", required: false },
   ],
   gradeScheme: [
     { key: "COURSEWORK", label: "أعمال فصلية", weight: 30 },
     { key: "MIDTERM", label: "اختبار نصفي", weight: 30 },
     { key: "FINAL", label: "اختبار نهائي", weight: 40 },
   ],
+  // سلّم أم القرى (لائحة الدراسة والاختبارات) بأسمائه.
   letterGrades: [
-    { letter: "A+", min: 95 },
-    { letter: "A", min: 90 },
-    { letter: "B+", min: 85 },
-    { letter: "B", min: 80 },
-    { letter: "C+", min: 75 },
-    { letter: "C", min: 70 },
-    { letter: "D+", min: 65 },
-    { letter: "D", min: 60 },
-    { letter: "F", min: 0 },
+    { letter: "A+", min: 95, name: "ممتاز مرتفع" },
+    { letter: "A", min: 90, name: "ممتاز" },
+    { letter: "B+", min: 85, name: "جيد جداً مرتفع" },
+    { letter: "B", min: 80, name: "جيد جداً" },
+    { letter: "C+", min: 75, name: "جيد مرتفع" },
+    { letter: "C", min: 70, name: "جيد" },
+    { letter: "D+", min: 65, name: "مقبول مرتفع" },
+    { letter: "D", min: 60, name: "مقبول" },
+    { letter: "F", min: 0, name: "راسب" },
   ],
-  absencePolicy: { warnPercent: 15, banPercent: 25 },
+  // القاعدة التنفيذية للمادة ١٤: الحرمان إذا زاد الغياب بلا عذر عن ١٥٪ أو مع العذر عن ٢٥٪.
+  absencePolicy: { warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 },
   terminology: {},
   // المفتاح ABSENCE_BAN تُسجّله قاعدة الغياب آليًا؛ البقية يسجّلها الأستاذ.
   violationTypes: [
     { key: "ABSENCE_BAN", label: "حرمان بسبب الغياب", severity: "HIGH", action: "الحرمان من دخول الاختبار النهائي" },
     { key: "CHEATING", label: "غش في اختبار", severity: "HIGH", action: "رصد صفر في الاختبار والرفع للقسم", escalateAfter: 1 },
-    { key: "PLAGIARISM", label: "انتحال في واجب", severity: "MEDIUM", action: "رصد صفر في الواجب", escalateAfter: 2 },
+    { key: "PLAGIARISM", label: "انتحال في واجب أو بحث", severity: "MEDIUM", action: "رصد صفر في العمل", escalateAfter: 2 },
     { key: "MISCONDUCT", label: "إخلال بنظام القاعة", severity: "MEDIUM", action: "إنذار كتابي", escalateAfter: 3 },
     { key: "LATE_SUBMISSION", label: "تأخر في التسليم", severity: "LOW", action: "خصم حسب تقدير الأستاذ" },
   ],

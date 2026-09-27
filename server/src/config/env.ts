@@ -48,6 +48,21 @@ const envSchema = z.object({
 
   SENTRY_DSN: z.string().optional(),
 
+  /**
+   * ربط حساب Google للأستاذ (OAuth). النطاقات قابلة للتعديل بلا إصدار: `drive.file` لحفظ
+   * المخرجات في Drive الأستاذ، و`cloud-platform` لواجهة NotebookLM Enterprise إن كانت
+   * جامعته مشتركة فيها.
+   */
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_SCOPES: z
+    .string()
+    .default("openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/cloud-platform"),
+
+  /** أتمتة التوليد عبر n8n: عنوان Webhook الذي يستقبل المهام، وسرّ توقيع HMAC بين الطرفين. */
+  N8N_WEBHOOK_URL: z.string().url().optional(),
+  N8N_SHARED_SECRET: z.string().min(24).optional(),
+
   /** مسار صريح لملف Chromium التنفيذي — يُستخدم فقط إذا لم يُكتشف تلقائيًا عبر PLAYWRIGHT_BROWSERS_PATH */
   CHROMIUM_EXECUTABLE_PATH: z.string().optional(),
 });

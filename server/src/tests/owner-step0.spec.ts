@@ -59,7 +59,7 @@ describe("الخطوة ٠ — المالك", () => {
     expect(reg.status).toBe(200);
     expect(reg.body.data.gradeScheme).toHaveLength(3);
     expect(reg.body.data.courseFileItems.length).toBeGreaterThan(5);
-    expect(reg.body.data.absencePolicy).toEqual({ warnPercent: 15, banPercent: 25 });
+    expect(reg.body.data.absencePolicy).toEqual({ warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 });
   });
 
   it("يرفض لائحة مجموع أوزانها لا يساوي ١٠٠", async () => {

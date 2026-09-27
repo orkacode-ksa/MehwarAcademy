@@ -6,7 +6,6 @@ import { AppError } from "../../lib/AppError.js";
 import { academicRouter } from "../academic/academic.routes.js";
 import { teachingRouter } from "../teaching/teaching.routes.js";
 import { qualityRouter } from "../quality/quality.routes.js";
-import { generationRouter } from "../generation/generation.routes.js";
 import * as service from "./workspaces.service.js";
 
 export const workspacesRouter = Router();
@@ -15,7 +14,6 @@ workspacesRouter.use(requireAuth);
 
 workspacesRouter.use("/:workspaceId/academic", requireWorkspaceMembership, academicRouter);
 workspacesRouter.use("/:workspaceId/teaching", requireWorkspaceMembership, teachingRouter);
-workspacesRouter.use("/:workspaceId/generation", requireWorkspaceMembership, generationRouter);
 workspacesRouter.use("/:workspaceId", requireWorkspaceMembership, qualityRouter);
 
 workspacesRouter.get(

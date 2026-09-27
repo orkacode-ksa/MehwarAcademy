@@ -116,7 +116,8 @@ describe("٧ ملف المقرر والاستنساخ", () => {
   it("بنود الملف تعكس العمل: المخرجات والمواد والنماذج والرصد", async () => {
     const file = await teacher.get(`${W}/courses/${courseId}/quality-file`);
     const done = Object.fromEntries((file.body.data.items as { key: string; done: boolean }[]).map((i) => [i.key, i.done]));
-    expect(done).toMatchObject({ SPEC: true, OUTCOMES: true, LECTURES: true, ASSESSMENT_PLAN: true, EXAM_SAMPLES: true, GRADE_DISTRIBUTION: true });
+    // بنود أم القرى: التوصيف · الاختبار العملي (تقييم معمل بنصّه) · الإحصاءات بعد اكتمال الرصد
+    expect(done).toMatchObject({ SPEC: true, PRACTICAL_EXAM: true, GRADE_STATS: true, CV: false, ANSWER_KEY: false, FINAL_EXAM: false });
   });
 
   it("ملف المقرر يُبنى بمحتواه", async () => {
@@ -129,6 +130,7 @@ describe("٧ ملف المقرر والاستنساخ", () => {
     expect(html).toContain("يصف عضيات الخلية");
     expect(html).toContain("الغشاء البلازمي");
     expect(html).toContain("ارسم خلية نباتية");
+    expect(html).toContain("السيرة الذاتية");
   });
 
   it("ملف المقرر PDF يُصدَّر", async () => {

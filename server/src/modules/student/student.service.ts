@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
-import { absenceStatus, absencesUntilBan, scheduledDates, type AbsencePolicy, type Meeting } from "../rules/rules.js";
+import { absenceStatus, absencesUntilBan, scheduledDates, type Meeting } from "../rules/rules.js";
+import { policyOf, tally } from "../teaching/today.service.js";
 
 /**
  * شاشات الطالب — أبسط من الأستاذ: مقرراتي · مواد الموضوع · تقييماتي · درجاتي · غيابي.
@@ -93,7 +94,11 @@ export async function myCourse(studentId: string, courseId: string) {
       select: { id: true, title: true, type: true, maxScore: true, weightPercent: true, dueDate: true, instructions: true, isLab: true },
     }),
     prisma.grade.findMany({ where: { enrollmentId: enrollment.id }, select: { assessmentId: true, score: true } }),
-    prisma.attendance.count({ where: { enrollmentId: enrollment.id, status: "ABSENT" } }),
+    prisma.attendance.groupBy({
+      by: ["enrollmentId", "status"],
+      where: { enrollmentId: enrollment.id, status: { in: ["ABSENT", "EXCUSED"] } },
+      _count: { _all: true },
+    }),
     prisma.violation.findMany({
       where: { enrollmentId: enrollment.id, resolvedAt: null },
       select: { typeLabel: true, action: true, createdAt: true },
@@ -101,7 +106,8 @@ export async function myCourse(studentId: string, courseId: string) {
     prisma.regulation.findFirst({ select: { letterGrades: true } }),
   ]);
 
-  const policy = (course.absencePolicy as unknown as AbsencePolicy) ?? { warnPercent: 15, banPercent: 25 };
+  const policy = policyOf(course.absencePolicy);
+  const n = tally(absences).get(enrollment.id) ?? { absent: 0, excused: 0 };
   const planned = scheduledDates(
     iso(course.semester.startDate),
     iso(course.semester.endDate),
@@ -134,7 +140,7 @@ export async function myCourse(studentId: string, courseId: string) {
     assessments: myAssessments,
     total: Math.round(weighted * 100) / 100,
     graded: grades.length,
-    absence: { ...absenceStatus(policy, absences, planned), remaining: absencesUntilBan(policy, absences, planned), policy },
+    absence: { ...absenceStatus(policy, n.absent, planned, n.excused), remaining: absencesUntilBan(policy, n.absent, planned, n.excused), policy },
     violations,
     letterScale: reg?.letterGrades ?? [],
   };

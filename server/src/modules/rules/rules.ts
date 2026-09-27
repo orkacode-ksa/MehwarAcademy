@@ -26,7 +26,10 @@ export interface HolidayRange {
 
 export interface AbsencePolicy {
   warnPercent: number;
+  /** الحرمان إذا **زاد** الغياب بلا عذر عنها (أم القرى: ١٥٪). */
   banPercent: number;
+  /** الحرمان إذا زاد الغياب كله — بعذر وبلا عذر — عنها (أم القرى: ٢٥٪). اختياري. */
+  banPercentWithExcused?: number;
 }
 
 export type TermStatus = "PREP" | "ACTIVE" | "GRADING" | "CLOSED" | "ARCHIVED";
@@ -75,29 +78,42 @@ export function scheduledDates(
 export type AbsenceLevel = "OK" | "WARN" | "BAN";
 
 export interface AbsenceStatus {
+  /** الغياب بلا عذر */
   absences: number;
-  /** عدد محاضرات الفصل كاملًا — المقام الذي تنصّ عليه اللوائح عادةً. */
+  /** الغياب بعذر — لا يُحسب في النسبة الأولى، ويُحسب في نسبة «مع العذر» */
+  excused: number;
+  /** عدد محاضرات الفصل كاملًا — المقام الذي تنصّ عليه اللوائح. */
   planned: number;
   percent: number;
   level: AbsenceLevel;
 }
 
+const pct1 = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
+
 /**
- * حكم الغياب. النسبة من **محاضرات الفصل كله** لا مما مضى منه: طالب غاب محاضرة من
- * محاضرتين في الأسبوع الأول ليس غائبًا ٥٠٪.
+ * حكم الغياب بنصّ لائحة أم القرى (القاعدة التنفيذية للمادة ١٤): «يُحرم الطالب إذا **زادت**
+ * نسبة غيابه بعذر عن ٢٥٪ أو بدون عذر عن ١٥٪». «زادت» = أكبر من، لا يساوي.
+ * النسبة من **محاضرات الفصل كله** لا مما مضى منه.
  */
-export function absenceStatus(policy: AbsencePolicy, absences: number, planned: number): AbsenceStatus {
-  const percent = planned > 0 ? Math.round((absences / planned) * 1000) / 10 : 0;
-  const level: AbsenceLevel =
-    planned > 0 && percent >= policy.banPercent ? "BAN" : planned > 0 && percent >= policy.warnPercent ? "WARN" : "OK";
-  return { absences, planned, percent, level };
+export function absenceStatus(policy: AbsencePolicy, absences: number, planned: number, excused = 0): AbsenceStatus {
+  const percent = pct1(absences, planned);
+  const total = pct1(absences + excused, planned);
+  const banned =
+    planned > 0 &&
+    (percent > policy.banPercent || (policy.banPercentWithExcused !== undefined && total > policy.banPercentWithExcused));
+  const level: AbsenceLevel = banned ? "BAN" : planned > 0 && percent >= policy.warnPercent ? "WARN" : "OK";
+  return { absences, excused, planned, percent, level };
 }
 
-/** كم غيابًا بقي قبل الحرمان — ما يحتاج الطالب أن يعرفه فعلًا، لا النسبة وحدها. */
-export function absencesUntilBan(policy: AbsencePolicy, absences: number, planned: number): number {
+/** كم غيابًا (بلا عذر) بقي قبل الحرمان — ما يحتاج الطالب أن يعرفه فعلًا. */
+export function absencesUntilBan(policy: AbsencePolicy, absences: number, planned: number, excused = 0): number {
   if (planned === 0) return 0;
-  const limit = Math.ceil((policy.banPercent / 100) * planned);
-  return Math.max(0, limit - absences);
+  const byUnexcused = Math.floor((policy.banPercent / 100) * planned) - absences;
+  const byTotal =
+    policy.banPercentWithExcused !== undefined
+      ? Math.floor((policy.banPercentWithExcused / 100) * planned) - (absences + excused)
+      : Number.POSITIVE_INFINITY;
+  return Math.max(0, Math.min(byUnexcused, byTotal));
 }
 
 /** يُسجَّل الحضور في فصل «جارٍ» فقط. */
@@ -130,4 +146,11 @@ export function isEscalated(countForStudent: number, escalateAfter: number | und
 export function letterFor(total: number, scale: { letter: string; min: number }[]): string | null {
   const sorted = [...scale].sort((a, b) => b.min - a.min);
   return sorted.find((s) => total >= s.min)?.letter ?? null;
+}
+
+/** الأعلى والأقل والمتوسط — بند مستقل في ملف المقرر عند أم القرى. */
+export function gradeStats(totals: number[]): { max: number; min: number; avg: number; count: number } | null {
+  if (totals.length === 0) return null;
+  const sum = totals.reduce((a, b) => a + b, 0);
+  return { max: Math.max(...totals), min: Math.min(...totals), avg: Math.round((sum / totals.length) * 100) / 100, count: totals.length };
 }

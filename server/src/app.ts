@@ -69,7 +69,15 @@ export function createApp() {
   app.use(cookieParser());
 
   // مسارات webhooks تلتقط الجسم الخام قبل json parsing — تُسجَّل في routes.ts نفسها قبل هذا السطر إن لزم
-  app.use(express.json({ limit: JSON_BODY_LIMIT }));
+  // الجسم الخام محفوظ للتحقق من توقيع HMAC في ردود n8n — التوقيع على البايتات لا على JSON المُعاد بناؤه.
+  app.use(
+    express.json({
+      limit: JSON_BODY_LIMIT,
+      verify: (req, _res, buf) => {
+        (req as unknown as { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
 
   // فحوصات الصحة قبل بوابة سر Cloudflare عمدًا: مُراقب Railway الداخلي يضرب الحاوية
   // مباشرة بلا مرور بـ Cloudflare، ولا تكشف هذه المسارات أي تفاصيل بنية (الدستور §21).

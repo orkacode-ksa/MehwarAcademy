@@ -30,14 +30,14 @@ enum TenantStatus {
 /// `PLATFORM_TENANT_SLUG` — فيبقى `tenantId` غير قابل للعدم في كل مكان، وتبقى
 /// سياسات RLS موحّدة الشكل بلا حالة خاصة.
 model Tenant {
-  id     String       @id @default(cuid())
+  id       String       @id @default(cuid())
   /// مُحتفظ به من اليوم الأول: النطاق موحّد الآن، فيصير النطاق الفرعي لاحقًا إعدادًا لا هجرة.
-  slug   String       @unique
-  name   String
+  slug     String       @unique
+  name     String
   /// رمز انضمام أعضاء هيئة التدريس — يُعطيه المالك للأستاذ فيسجّل داخل جامعته
   /// (لائحتها وتقويمها) بدل مستأجر شخصي فارغ.
-  joinCode String?    @unique
-  status TenantStatus @default(TRIAL)
+  joinCode String?      @unique
+  status   TenantStatus @default(TRIAL)
 
   /// توجيه مزوّد الذكاء لكل مستأجر — جامعة ترفض مزوّدًا تُشغَّل على غيره بلا إعادة بناء.
   aiProvider         String?
@@ -155,6 +155,10 @@ model User {
   /// رئيس القسم: عضو هيئة تدريس يحتفظ بدوره ومقرراته، ويُضاف له عرض القسم للقراءة.
   /// علَم لا دور مستقل — تحويله إلى دور كان سيُسقط عنه شاشات تدريسه.
   isDeptHead Boolean @default(false)
+
+  /// بيانات السيرة الذاتية الثابتة (الرتبة · التخصص · المؤهلات · النبذة) — والمتغيّر منها
+  /// (بحوث · مؤتمرات · دورات) في `FacultyActivity`. منهما تُولَّد «السيرة الذاتية» في ملف المقرر.
+  profile Json @default("{}")
 
   createdAt DateTime  @default(now()) @updatedAt
   updatedAt DateTime  @updatedAt
@@ -323,6 +327,10 @@ model Subscription {
   readOnlyEndsAt           DateTime?
   frozenEndsAt             DateTime?
   productionMinutesBalance Int                @default(0)
+  /// الباقة الفعلية (جدول plans) — `planCode` القديم يبقى للتوافق.
+  planId                   String?
+  /// مقررات البنك المستعملة من حصة VIP في الدورة الحالية
+  bankCoursesUsed          Int                @default(0)
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
 
@@ -496,6 +504,10 @@ model Course {
   absencePolicy          Json      @default("{}")
   /// المقرر الذي استُنسخ منه هذا المقرر (الأرشفة والاستنساخ).
   clonedFromId           String?
+  /// مقرر البنك الذي أُضيف منه هذا المقرر (إن وُجد).
+  bankCourseId           String?
+  /// حقول تقرير المقرر (نموذج NCAAA) التي يكتبها الأستاذ — والمحسوب منها لا يُخزَّن.
+  report                 Json      @default("{}")
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   deletedAt              DateTime?
@@ -722,6 +734,10 @@ model Assessment {
   dueDate       DateTime?
   /// تقييم معمل (دليل · تقرير · نشاط · اختبار عملي) — يُعرض في قسم المعمل.
   isLab         Boolean        @default(false)
+  /// نموذج الإجابة — بند مستقل في ملف المقرر، ولا يراه الطالب أبدًا.
+  answerKey     String?
+  /// رموز مخرجات التعلّم التي يقيسها التقييم — منها يُحسب «المستوى الفعلي» لكل مخرج في تقرير المقرر.
+  outcomes      String[]       @default([])
   createdAt     DateTime       @default(now())
   deletedAt     DateTime?
 
@@ -764,6 +780,8 @@ model QualityFileItem {
   /// رُفض كل بند تضيفه جامعة. الصف يُنشأ عند أول تأشير يدوي، لا مسبقًا.
   itemKey     String
   completed   Boolean  @default(false)
+  /// مرفقات البند (FileAsset.id) — السيرة الذاتية، نماذج أعمال الطلبة، نتائج تقييم الطلبة…
+  fileIds     String[]  @default([])
   note        String?
   updatedAt   DateTime @updatedAt
 
@@ -810,6 +828,13 @@ model GenerationJob {
   estimatedCostRiyals Decimal           @default(0) @db.Decimal(8, 2)
   actualCostRiyals    Decimal           @default(0) @db.Decimal(8, 2)
   batchMode           Boolean           @default(true)
+  /// الموضوع المولَّد له (أتمتة n8n) ونوع المخرج المطلوب: TEXT · SLIDES · AUDIO · VIDEO
+  topicId             String?
+  outputKind          String?
+  /// المحرّك: NOTEBOOKLM (بحساب Google الأستاذ) · GEMINI (بمفتاح المنصة)
+  engine              String?
+  errorMessage        String?
+  resultLectureId     String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -854,10 +879,210 @@ model FileAsset {
   mimeType     String
   sizeBytes    Int
   uploadedById String
+  /// R2 = في التخزين الكائني · DB = في `file_blobs` (بديل مؤقت حتى تُضبط مفاتيح R2).
+  storage      String    @default("R2")
+  /// الغرض: MATERIAL · FILE_ITEM · GENERATED … لحساب الاستهلاك وللتنظيف.
+  purpose      String    @default("MATERIAL")
   createdAt    DateTime  @default(now())
   deletedAt    DateTime?
+
+  blob FileBlob?
 
   @@index([workspaceId])
   @@index([tenantId])
   @@map("file_assets")
+}
+
+/// محتوى الملف حين لا يكون التخزين الكائني مضبوطًا — حتى لا يضيع ملف على قرص Railway المؤقت.
+model FileBlob {
+  fileId   String    @id
+  tenantId String
+  data     Bytes
+  file     FileAsset @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("file_blobs")
+}
+
+/// نشاط علمي لعضو هيئة التدريس — مصدر السيرة الذاتية والتقرير السنوي للقسم.
+model FacultyActivity {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  /// RESEARCH · CONFERENCE · TRAINING · WORKSHOP
+  type          String
+  title         String
+  /// جهة النشر · مكان الانعقاد · جهة التنفيذ
+  venue         String?
+  date          DateTime @db.Date
+  hours         Int?
+  /// حضور · ورقة بحثية · مدرب …
+  participation String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("faculty_activities")
+}
+
+// ───────────────────────── المتجر: الباقات والدفع والبنك (مستوى المنصة) ─────────────────────────
+//
+// هذه الجداول **خارج عزل المستأجرين عمدًا**: الباقات وحسابات البنك وكتالوج البنك تخصّ المنصة
+// كلها، والطلبات يراجعها المالك عبر كل الجامعات. العزل هنا بفلتر userId/tenantId صريح في
+// طبقة الخدمة (انظر tenantScope.ts — UNSCOPED_MODELS).
+
+model Plan {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  nameAr              String
+  /// TEACHER · DEPARTMENT · STUDENT
+  audience            String   @default("TEACHER")
+  priceMonthly        Decimal  @db.Decimal(10, 2)
+  priceYearly         Decimal  @db.Decimal(10, 2)
+  /// حدود الباقة — null = بلا حد
+  maxCourses          Int?
+  storageMb           Int
+  generationsPerMonth Int
+  /// عدد مقررات البنك المشمولة سنويًا (VIP)
+  bankCoursesPerYear  Int      @default(0)
+  features            String[] @default([])
+  active              Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("plans")
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  bankName      String
+  accountName   String
+  iban          String
+  accountNumber String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("bank_accounts")
+}
+
+/// طلب شراء: اشتراك في باقة أو مقرر من البنك. الدفع حاليًا تحويل بنكي بإيصال يراجعه المالك.
+model Order {
+  id           String    @id @default(cuid())
+  /// رقم قصير يكتبه العميل في وصف التحويل — به يطابق المالك الحوالة بالطلب.
+  number       String    @unique
+  tenantId     String
+  userId       String
+  /// PLAN · BANK_COURSE
+  kind         String
+  planId       String?
+  /// MONTHLY · YEARLY
+  period       String?
+  bankCourseId String?
+  titleAr      String
+  amount       Decimal   @db.Decimal(10, 2)
+  /// AWAITING_PAYMENT · UNDER_REVIEW · APPROVED · REJECTED · CANCELED
+  status       String    @default("AWAITING_PAYMENT")
+  method       String    @default("BANK_TRANSFER")
+  payerName    String?
+  transferRef  String?
+  transferDate DateTime?
+  receiptMime  String?
+  receiptName  String?
+  receiptKey   String?
+  receiptData  Bytes?
+  submittedAt  DateTime?
+  reviewedById String?
+  reviewedAt   DateTime?
+  rejectReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+/// مقرر في البنك — **كتلة واحدة** تُباع وتُضاف: نسخة كاملة من المقرر (توصيف · فهرس · مواد ·
+/// تقييمات بنماذج إجاباتها) بلا طلاب ولا درجات.
+model BankCourse {
+  id             String   @id @default(cuid())
+  title          String
+  code           String
+  specialization String
+  university     String
+  description    String   @default("")
+  level          String   @default("")
+  /// 0 = مجاني
+  price          Decimal  @default(0) @db.Decimal(10, 2)
+  /// يُتاح بحصة VIP في الباقة
+  vipIncluded    Boolean  @default(true)
+  /// DRAFT · PENDING · PUBLISHED · REJECTED · ARCHIVED
+  status         String   @default("PENDING")
+  content        Json
+  /// ملخّص للعرض قبل الشراء: عدد المواضيع والمواد والتقييمات والمخرجات
+  summary        Json     @default("{}")
+  sourceCourseId String?
+  sourceTenantId String?
+  version        Int      @default(1)
+  importsCount   Int      @default(0)
+  reviewNote     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  authors  BankCourseAuthor[]
+  accesses BankCourseAccess[]
+
+  @@index([status, specialization])
+  @@map("bank_courses")
+}
+
+/// جدول المؤلفين: من أنشأ المقرر ومن عدّله ومتى — سجل لا يُحذف منه.
+model BankCourseAuthor {
+  id           String   @id @default(cuid())
+  bankCourseId String
+  userId       String
+  userName     String
+  university   String
+  /// CREATOR · EDITOR · REVIEWER
+  role         String
+  note         String?
+  version      Int
+  createdAt    DateTime @default(now())
+
+  bankCourse BankCourse @relation(fields: [bankCourseId], references: [id], onDelete: Cascade)
+
+  @@index([bankCourseId])
+  @@index([userId])
+  @@map("bank_course_authors")
+}
+
+/// حقّ الوصول لمقرر في البنك: بشراء · بحصة VIP · مجاني · مؤلفه.
+model BankCourseAccess {
+  id           String   @id @default(cuid())
+  bankCourseId String
+  userId       String
+  tenantId     String
+  /// PURCHASE · VIP · FREE · AUTHOR
+  via          String
+  orderId      String?
+  createdAt    DateTime @default(now())
+
+  bankCourse BankCourse @relation(fields: [bankCourseId], references: [id], onDelete: Cascade)
+
+  @@unique([bankCourseId, userId])
+  @@index([userId])
+  @@map("bank_course_access")
+}
+
+/// ربط حساب Google للأستاذ — رمز التحديث مشفّر (AES-256-GCM). منه تُشغَّل الأتمتة على حسابه.
+model GoogleConnection {
+  userId          String   @id
+  email           String
+  scopes          String
+  refreshTokenEnc String
+  connectedAt     DateTime @default(now())
+
+  @@map("google_connections")
 }

@@ -7,6 +7,10 @@ import {
   regulationSchema,
   termCreateSchema,
   termStatusSchema,
+  planSchema,
+  bankAccountSchema,
+  reviewOrderSchema,
+  bankReviewSchema,
 } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
@@ -16,6 +20,8 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { AppError } from "../../lib/AppError.js";
 import * as service from "./owner.service.js";
+import * as store from "../store/store.service.js";
+import * as bank from "../bank/bank.service.js";
 
 /**
  * مسارات المالك.
@@ -216,5 +222,107 @@ ownerRouter.patch(
       entityId: updated.id,
     });
     res.json({ success: true, data: updated });
+  }),
+);
+
+// ───────────────────────── المتجر: الباقات · الحسابات البنكية · المدفوعات · البنك ─────────────────────────
+
+ownerRouter.get(
+  "/store/summary",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await store.storeSummary() });
+  }),
+);
+ownerRouter.get(
+  "/store/plans",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await store.listPlans(true) });
+  }),
+);
+ownerRouter.post(
+  "/store/plans",
+  validate({ body: planSchema }),
+  asyncHandler(async (req, res) => {
+    res.status(201).json({ success: true, data: await store.upsertPlan(null, req.body) });
+  }),
+);
+ownerRouter.put(
+  "/store/plans/:id",
+  validate({ body: planSchema }),
+  asyncHandler(async (req, res) => {
+    const out = await store.upsertPlan(req.params.id as string, req.body);
+    await recordAudit({ userId: actor(req), action: "PLAN_UPDATED", entityType: "Plan", entityId: out.id as string });
+    res.json({ success: true, data: out });
+  }),
+);
+ownerRouter.get(
+  "/store/bank-accounts",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await store.listBankAccounts(true) });
+  }),
+);
+ownerRouter.post(
+  "/store/bank-accounts",
+  validate({ body: bankAccountSchema }),
+  asyncHandler(async (req, res) => {
+    const out = await store.upsertBankAccount(null, req.body);
+    await recordAudit({ userId: actor(req), action: "BANK_ACCOUNT_ADDED", entityType: "BankAccount", entityId: out.id });
+    res.status(201).json({ success: true, data: out });
+  }),
+);
+ownerRouter.put(
+  "/store/bank-accounts/:id",
+  validate({ body: bankAccountSchema }),
+  asyncHandler(async (req, res) => {
+    const out = await store.upsertBankAccount(req.params.id as string, req.body);
+    await recordAudit({ userId: actor(req), action: "BANK_ACCOUNT_UPDATED", entityType: "BankAccount", entityId: out.id });
+    res.json({ success: true, data: out });
+  }),
+);
+ownerRouter.delete(
+  "/store/bank-accounts/:id",
+  asyncHandler(async (req, res) => {
+    await store.removeBankAccount(req.params.id as string);
+    await recordAudit({ userId: actor(req), action: "BANK_ACCOUNT_REMOVED", entityType: "BankAccount", entityId: req.params.id as string });
+    res.status(204).send();
+  }),
+);
+ownerRouter.get(
+  "/store/orders",
+  asyncHandler(async (req, res) => {
+    const status = typeof req.query.status === "string" ? req.query.status : undefined;
+    res.json({ success: true, data: await store.listOrders(status) });
+  }),
+);
+ownerRouter.get(
+  "/store/orders/:id/receipt",
+  asyncHandler(async (req, res) => {
+    const out = await store.readReceipt(req.params.id as string);
+    if (out.kind === "redirect") return res.redirect(302, out.url);
+    res.setHeader("Content-Type", out.mime);
+    res.setHeader("Content-Disposition", "inline");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.send(out.data);
+  }),
+);
+ownerRouter.post(
+  "/store/orders/:id/review",
+  validate({ body: reviewOrderSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await store.reviewOrder(actor(req), req.params.id as string, req.body) });
+  }),
+);
+ownerRouter.get(
+  "/bank",
+  asyncHandler(async (req, res) => {
+    const status = typeof req.query.status === "string" ? req.query.status : undefined;
+    res.json({ success: true, data: await bank.ownerList(status) });
+  }),
+);
+ownerRouter.patch(
+  "/bank/:id",
+  validate({ body: bankReviewSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await bank.ownerReview(actor(req), req.params.id as string, req.body) });
   }),
 );

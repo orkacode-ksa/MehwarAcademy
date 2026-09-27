@@ -22,6 +22,8 @@ export interface FileItemStatus extends FileItemDef {
   done: boolean;
   /** AUTO = يُحسب من البيانات · MANUAL = يؤشّره الأستاذ. */
   mode: "AUTO" | "MANUAL";
+  /** مرفقات البند — رفع ملف يُكمل أي بند (نسخة جاهزة من موقع الجامعة مثلًا). */
+  fileIds: string[];
   /** سطر يشرح للأستاذ لماذا البند ناقص وما الذي يُكمله. */
   hint: string;
   note: string | null;
@@ -42,13 +44,36 @@ export interface CourseFacts {
   gradesExpected: number;
   sessionsHeld: number;
   sessionsDueSoFar: number;
+  hasLab: boolean;
+  exams: { type: string; isLab: boolean; hasContent: boolean; hasAnswer: boolean }[];
+  profileReady: boolean;
+  reportWritten: boolean;
   semester: { status: string; gradeLockAt: Date | null; startDate: Date; endDate: Date };
 }
 
 type AutoRule = (f: Omit<CourseFacts, "fileItems" | "setup">) => { done: boolean; hint: string };
 
 /** مصادر البنود المعروفة. المفاتيح هي مفاتيح اللائحة الافتراضية (owner.service.ts). */
+const examOf = (f: Omit<CourseFacts, "fileItems" | "setup">, type: string) => f.exams.filter((e) => e.type === type && !e.isLab && e.hasContent);
+const gradesDone = (f: Omit<CourseFacts, "fileItems" | "setup">) => f.gradesExpected > 0 && f.gradesEntered >= f.gradesExpected;
+
 const AUTO_RULES: Record<string, AutoRule> = {
+  // ── بنود أم القرى ──
+  CV: (f) => ({ done: f.profileReady, hint: "أكمل بياناتك في «حسابي ← سيرتي» فتُولَّد السيرة، أو ارفع سيرتك" }),
+  MIDTERM_EXAM: (f) => ({ done: examOf(f, "MIDTERM").length > 0, hint: "أضف الاختبار النصفي بأسئلته في خطوة التقييمات" }),
+  FINAL_EXAM: (f) => ({ done: examOf(f, "FINAL").length > 0, hint: "أضف الاختبار النهائي بأسئلته في خطوة التقييمات" }),
+  PRACTICAL_EXAM: (f) =>
+    f.hasLab
+      ? { done: f.exams.some((e) => e.isLab && e.hasContent), hint: "أضف تقييم معمل بأسئلته (الاختبار العملي)" }
+      : { done: true, hint: "لا ينطبق — المقرر بلا معمل" },
+  ANSWER_KEY: (f) => {
+    const withContent = f.exams.filter((e) => e.hasContent && ["MIDTERM", "FINAL"].includes(e.type) || (e.isLab && e.hasContent));
+    return {
+      done: withContent.length > 0 && withContent.every((e) => e.hasAnswer),
+      hint: "اكتب نموذج الإجابة لكل اختبار (نصفي · نهائي · عملي)",
+    };
+  },
+  GRADE_STATS: (f) => ({ done: gradesDone(f), hint: `يُحسب تلقائياً بعد اكتمال الرصد (${f.gradesEntered} من ${f.gradesExpected})` }),
   SPEC: (f) => ({ done: isSpecComplete(f.spec), hint: "أكمل التوصيف: الوصف ومخرج تعلّم واحد ومرجع أساسي" }),
   OUTCOMES: (f) => ({
     done: (f.spec.outcomes?.length ?? 0) > 0 && f.topics > 0 && f.topicsWithOutcomes === f.topics,
@@ -67,8 +92,8 @@ const AUTO_RULES: Record<string, AutoRule> = {
   }),
   ATTENDANCE: (f) => ({ done: f.sessionsHeld > 0, hint: "سجّل حضور محاضراتك من «محاضرة اليوم»" }),
   COURSE_REPORT: (f) => ({
-    done: f.gradesExpected > 0 && f.gradesEntered >= f.gradesExpected,
-    hint: "يُولَّد التقرير آليًا بعد اكتمال الرصد",
+    done: gradesDone(f) && f.reportWritten,
+    hint: gradesDone(f) ? "اكتب تعليقك على النتائج في «تقرير المقرر» — الباقي محسوب" : "يكتمل بعد الرصد وكتابة تعليقك على النتائج",
   }),
 };
 
@@ -81,7 +106,8 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
         where: { deletedAt: null },
         select: { learningOutcomes: true, _count: { select: { lectures: { where: { deletedAt: null } } } } },
       },
-      assessments: { where: { deletedAt: null }, select: { id: true, instructions: true } },
+      assessments: { where: { deletedAt: null }, select: { id: true, type: true, isLab: true, instructions: true, answerKey: true } },
+      workspace: { select: { owner: { select: { profile: true } } } },
       sections: { where: { deletedAt: null }, select: { id: true, meetings: true } },
       qualityItems: true,
     },
@@ -108,6 +134,8 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
   );
 
   const spec = (course.spec ?? {}) as Partial<CourseSpec>;
+  const profile = (course.workspace.owner.profile ?? {}) as { rank?: string; specialization?: string };
+  const report = (course.report ?? {}) as { gradeComment?: string };
   const base = {
     courseId: course.id,
     spec,
@@ -121,6 +149,15 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
     gradesExpected: enrollments * course.assessments.length,
     sessionsHeld,
     sessionsDueSoFar,
+    hasLab: course.hasLab,
+    exams: course.assessments.map((a) => ({
+      type: a.type,
+      isLab: a.isLab,
+      hasContent: (a.instructions ?? "").trim().length > 0,
+      hasAnswer: (a.answerKey ?? "").trim().length > 0,
+    })),
+    profileReady: !!profile.rank?.trim() && !!profile.specialization?.trim(),
+    reportWritten: (report.gradeComment ?? "").trim().length > 0,
     semester: {
       status: course.semester.status,
       gradeLockAt: course.semester.gradeLockAt,
@@ -133,16 +170,19 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
   const fileItems: FileItemStatus[] = ((course.fileItems as unknown as FileItemDef[]) ?? []).map((item) => {
     const rule = AUTO_RULES[item.key];
     const row = manual.get(item.key);
+    const fileIds = row?.fileIds ?? [];
+    const attached = fileIds.length > 0;
     if (rule) {
       const r = rule(base);
-      return { ...item, done: r.done, mode: "AUTO", hint: r.hint, note: row?.note ?? null };
+      return { ...item, done: r.done || attached, mode: "AUTO", hint: r.hint, note: row?.note ?? null, fileIds };
     }
     return {
       ...item,
-      done: row?.completed ?? false,
+      done: (row?.completed ?? false) || attached,
       mode: "MANUAL",
-      hint: "أشّر عليه حين يكتمل",
+      hint: "ارفع الملف، أو أشّر عليه حين يكتمل",
       note: row?.note ?? null,
+      fileIds,
     };
   });
 

@@ -1,54 +1,72 @@
 import { Router, raw } from "express";
-import fs from "node:fs/promises";
-import path from "node:path";
+import { z } from "zod";
+import { cuidSchema } from "@mihwar/shared";
 import { requireAuth } from "../../middleware/auth.js";
+import { requireWorkspaceMembership } from "../../middleware/rbac.js";
+import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { AppError } from "../../lib/AppError.js";
 import { expensiveRateLimit } from "../../middleware/rateLimit.js";
+import { AppError } from "../../lib/AppError.js";
+import * as service from "./files.service.js";
+import { getEntitlements, getUsage } from "../store/entitlements.js";
 
+/**
+ * الملفات: الرفع عبر الخادم (جسم خام + اسم الملف في ترويسة) — مسار واحد يعمل مع R2 ومع
+ * وضع قاعدة البيانات، بلا multipart. والتنزيل: تحويل لرابط R2 مؤقت، أو بثّ من القاعدة.
+ */
 export const filesRouter = Router();
+filesRouter.use(requireAuth);
 
-const MOCK_UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
-const MAX_MOCK_UPLOAD_BYTES = 5 * 1024 * 1024;
+const PURPOSES = ["MATERIAL", "FILE_ITEM", "GENERATED", "PROFILE"] as const;
 
-function safeFileName(objectKey: string): string {
-  return objectKey.replace(/\//g, "__");
-}
-
-// PUBLIC: مسار الوضع الوهمي للتخزين — بديل مؤقت لحين ربط تخزين كائني حقيقي (انظر storage.provider.ts)
-// يلتقط الجسم الخام بغض النظر عن Content-Type — لا يعتمد على تجاوز express.json() ضمنيًا
-filesRouter.put(
-  "/mock-upload/:objectKey",
-  requireAuth,
+filesRouter.post(
+  "/:workspaceId/upload",
+  requireWorkspaceMembership,
   expensiveRateLimit,
-  raw({ limit: MAX_MOCK_UPLOAD_BYTES, type: () => true }),
+  raw({ limit: service.MAX_UPLOAD_BYTES, type: () => true }),
   asyncHandler(async (req, res) => {
-    await fs.mkdir(MOCK_UPLOAD_DIR, { recursive: true });
-    const objectKey = decodeURIComponent(req.params.objectKey ?? "");
-    if (!objectKey) throw AppError.badRequest("مفتاح الملف مطلوب");
-    if (!Buffer.isBuffer(req.body)) throw AppError.badRequest("جسم الطلب غير صالح");
-
-    const filePath = path.join(MOCK_UPLOAD_DIR, safeFileName(objectKey));
-    const resolved = path.resolve(filePath);
-    if (!resolved.startsWith(path.resolve(MOCK_UPLOAD_DIR))) throw AppError.badRequest("مسار غير صالح");
-
-    await fs.writeFile(resolved, req.body);
-    res.status(200).json({ success: true });
+    if (!req.auth || !req.workspaceId) throw AppError.unauthorized();
+    if (!Buffer.isBuffer(req.body)) throw AppError.badRequest("لم يصل ملف");
+    const purpose = String(req.query.purpose ?? "MATERIAL");
+    if (!PURPOSES.includes(purpose as (typeof PURPOSES)[number])) throw AppError.badRequest("غرض غير معروف");
+    const fileName = decodeURIComponent(req.header("X-File-Name") ?? "file");
+    const mimeType = (req.header("Content-Type") ?? "").split(";")[0]?.trim() ?? "";
+    const file = await service.uploadFile({ workspaceId: req.workspaceId, userId: req.auth.userId, purpose, fileName, mimeType, data: req.body });
+    res.status(201).json({ success: true, data: file });
   }),
 );
 
 filesRouter.get(
-  "/mock-download/:objectKey",
-  requireAuth,
+  "/:workspaceId/usage",
+  requireWorkspaceMembership,
   asyncHandler(async (req, res) => {
-    const objectKey = decodeURIComponent(req.params.objectKey ?? "");
-    const filePath = path.join(MOCK_UPLOAD_DIR, safeFileName(objectKey));
-    const resolved = path.resolve(filePath);
-    if (!resolved.startsWith(path.resolve(MOCK_UPLOAD_DIR))) throw AppError.badRequest("مسار غير صالح");
+    const ws = req.workspaceId as string;
+    const [ent, usage] = await Promise.all([getEntitlements(ws), getUsage(ws)]);
+    res.json({ success: true, data: { entitlements: ent, usage } });
+  }),
+);
 
-    const fileName = path.basename(resolved).replace(/["\r\n]/g, "");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+filesRouter.delete(
+  "/:workspaceId/:fileId",
+  requireWorkspaceMembership,
+  validate({ params: z.object({ fileId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    await service.removeFile(req.workspaceId as string, req.params.fileId as string);
+    res.status(204).send();
+  }),
+);
+
+/** تنزيل — لأي مستخدم في الجامعة نفسها (العزل بـ RLS). */
+filesRouter.get(
+  "/:fileId",
+  validate({ params: z.object({ fileId: cuidSchema }) }),
+  asyncHandler(async (req, res) => {
+    const out = await service.readFile(req.params.fileId as string);
+    if (out.kind === "redirect") return res.redirect(302, out.url);
+    res.setHeader("Content-Type", out.file.mimeType);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(out.file.originalName)}`);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.sendFile(resolved);
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(out.data);
   }),
 );

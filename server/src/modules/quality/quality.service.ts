@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
 import { computePerformance, loadCourseFacts } from "../academic/courseFile.js";
+import { describeFiles } from "../files/files.service.js";
 
 type UpdateQualityItemInput = z.infer<typeof updateQualityItemSchema>;
 
@@ -11,8 +12,10 @@ type UpdateQualityItemInput = z.infer<typeof updateQualityItemSchema>;
 export async function getQualityFile(workspaceId: string, courseId: string) {
   const facts = await loadCourseFacts(workspaceId, courseId);
   const required = facts.fileItems.filter((i) => i.required);
+  const files = await describeFiles(facts.fileItems.flatMap((i) => i.fileIds));
+  const byId = new Map(files.map((f) => [f.id, f]));
   return {
-    items: facts.fileItems,
+    items: facts.fileItems.map((i) => ({ ...i, files: i.fileIds.map((id) => byId.get(id)).filter(Boolean) })),
     requiredDone: required.filter((i) => i.done).length,
     requiredTotal: required.length,
   };
@@ -78,3 +81,19 @@ const DEFAULT_KPIS: { key: PerformanceKpiKey; weight: number }[] = [
   { key: "ATTENDANCE_LOGGED", weight: 25 },
   { key: "GRADES_ON_TIME", weight: 20 },
 ];
+
+/** إرفاق ملف مرفوع ببند من ملف المقرر (أو فكّه). الإرفاق يُكمل البند. */
+export async function setItemFile(workspaceId: string, input: { courseId: string; itemKey: string; fileId: string; attach: boolean }) {
+  const facts = await loadCourseFacts(workspaceId, input.courseId);
+  if (!facts.fileItems.some((i) => i.key === input.itemKey)) throw AppError.badRequest("البند ليس في ملف هذا المقرر");
+  const file = await prisma.fileAsset.findFirst({ where: { id: input.fileId, workspaceId, deletedAt: null }, select: { id: true } });
+  if (!file) throw AppError.notFound("الملف غير موجود");
+  const row = await prisma.qualityFileItem.findFirst({ where: { courseId: input.courseId, itemKey: input.itemKey } });
+  const current = row?.fileIds ?? [];
+  const next = input.attach ? [...new Set([...current, file.id])] : current.filter((id) => id !== file.id);
+  return prisma.qualityFileItem.upsert({
+    where: { courseId_itemKey: { courseId: input.courseId, itemKey: input.itemKey } },
+    create: { tenantId: requireTenantId(), workspaceId, courseId: input.courseId, itemKey: input.itemKey, fileIds: next },
+    update: { fileIds: next },
+  });
+}

@@ -35,13 +35,17 @@ export const gradeComponentSchema = z.object({
 export const letterGradeSchema = z.object({
   letter: z.string().min(1).max(4),
   min: z.number().min(0).max(100),
+  /// الاسم كما في اللائحة (ممتاز مرتفع · جيد جداً …)
+  name: z.string().max(30).optional(),
 });
 
 export const absencePolicySchema = z.object({
   /** نسبة الغياب التي يُنبَّه عندها الطالب */
   warnPercent: z.number().int().min(1).max(100),
-  /** نسبة الحرمان */
+  /** نسبة الحرمان — للغياب **بلا عذر**، ويُحرم الطالب إذا **زاد** عنها */
   banPercent: z.number().int().min(1).max(100),
+  /** نسبة الحرمان للغياب كله **مع العذر** (أم القرى: ٢٥٪). غيابها = لا يُحسب العذر. */
+  banPercentWithExcused: z.number().int().min(1).max(100).optional(),
 });
 
 /** درجة المخالفة — ثلاث لا أكثر: ما يزيد يصير تصنيفًا لا يُستعمل. */

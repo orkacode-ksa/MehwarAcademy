@@ -24,13 +24,25 @@ import {
  * المحاضرات المعقودة (أول موضوع لم يُدرَّس) ماذا لديه الآن. الأستاذ يضغط «ابدأ» فقط.
  */
 
-const DEFAULT_POLICY: AbsencePolicy = { warnPercent: 15, banPercent: 25 };
+const DEFAULT_POLICY: AbsencePolicy = { warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 };
 
-function policyOf(raw: unknown): AbsencePolicy {
+export function policyOf(raw: unknown): AbsencePolicy {
   const p = raw as Partial<AbsencePolicy> | null;
   return p && typeof p.warnPercent === "number" && typeof p.banPercent === "number"
-    ? { warnPercent: p.warnPercent, banPercent: p.banPercent }
+    ? { warnPercent: p.warnPercent, banPercent: p.banPercent, banPercentWithExcused: p.banPercentWithExcused }
     : DEFAULT_POLICY;
+}
+
+/** عدّ الغياب بلا عذر وبعذر لكل طالب من groupBy([enrollmentId, status]). */
+export function tally(rows: { enrollmentId: string; status: string; _count: { _all: number } }[]) {
+  const map = new Map<string, { absent: number; excused: number }>();
+  for (const r of rows) {
+    const cur = map.get(r.enrollmentId) ?? { absent: 0, excused: 0 };
+    if (r.status === "ABSENT") cur.absent += r._count._all;
+    else if (r.status === "EXCUSED") cur.excused += r._count._all;
+    map.set(r.enrollmentId, cur);
+  }
+  return map;
 }
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -240,25 +252,29 @@ export async function getSessionRoster(workspaceId: string, sectionId: string, d
       select: { id: true, universityIdNumber: true, student: { select: { fullName: true } } },
       orderBy: { student: { fullName: "asc" } },
     }),
-    prisma.attendance.groupBy({ by: ["enrollmentId"], where: { sectionId, status: "ABSENT" }, _count: { _all: true } }),
+    prisma.attendance.groupBy({
+      by: ["enrollmentId", "status"],
+      where: { sectionId, status: { in: ["ABSENT", "EXCUSED"] } },
+      _count: { _all: true },
+    }),
     prisma.attendance.findMany({ where: { sectionId, date: new Date(date) }, select: { enrollmentId: true, status: true } }),
     prisma.classSession.findFirst({
       where: { sectionId, date: new Date(date) },
       select: { id: true, endedAt: true, topic: { select: { id: true, title: true, learningOutcomes: true } } },
     }),
   ]);
-  const absMap = new Map(absences.map((a) => [a.enrollmentId, a._count._all]));
+  const absMap = tally(absences);
   const markMap = new Map(todayMarks.map((m) => [m.enrollmentId, m.status]));
 
   const rows: RosterRow[] = enrollments.map((e) => {
-    const n = absMap.get(e.id) ?? 0;
+    const n = absMap.get(e.id) ?? { absent: 0, excused: 0 };
     return {
       enrollmentId: e.id,
       fullName: e.student.fullName,
       universityIdNumber: e.universityIdNumber,
       status: markMap.get(e.id) ?? null,
-      absence: absenceStatus(policy, n, planned),
-      remaining: absencesUntilBan(policy, n, planned),
+      absence: absenceStatus(policy, n.absent, planned, n.excused),
+      remaining: absencesUntilBan(policy, n.absent, planned, n.excused),
     };
   });
 
@@ -324,16 +340,17 @@ export async function saveAttendance(
       update: {},
     });
 
-    const counts = await tx.attendance.groupBy({
-      by: ["enrollmentId"],
-      where: { tenantId, sectionId: input.sectionId, status: "ABSENT", enrollmentId: { in: entries.map((e) => e.enrollmentId) } },
+    const grouped = await tx.attendance.groupBy({
+      by: ["enrollmentId", "status"],
+      where: { tenantId, sectionId: input.sectionId, status: { in: ["ABSENT", "EXCUSED"] }, enrollmentId: { in: entries.map((e) => e.enrollmentId) } },
       _count: { _all: true },
     });
     const out: { enrollmentId: string; fullName: string; level: "WARN" | "BAN"; percent: number }[] = [];
-    for (const c of counts) {
-      const st = absenceStatus(policy, c._count._all, planned);
+    for (const [enrollmentId, n] of tally(grouped)) {
+      const st = absenceStatus(policy, n.absent, planned, n.excused);
       if (st.level === "OK") continue;
-      out.push({ enrollmentId: c.enrollmentId, fullName: names.get(c.enrollmentId) ?? "", level: st.level, percent: st.percent });
+      const c = { enrollmentId };
+      out.push({ enrollmentId, fullName: names.get(enrollmentId) ?? "", level: st.level, percent: st.percent });
       if (st.level === "BAN") {
         const already = await tx.violation.findFirst({
           where: { tenantId, enrollmentId: c.enrollmentId, courseId: section.courseId, typeKey: "ABSENCE_BAN", resolvedAt: null },

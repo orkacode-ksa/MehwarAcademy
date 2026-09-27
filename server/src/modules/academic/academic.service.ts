@@ -18,6 +18,7 @@ import { randomToken } from "../../lib/crypto.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { editBlockReason } from "../rules/rules.js";
 import { newJoinCode } from "../../lib/joinCode.js";
+import { assertCanAddCourse } from "./limits.js";
 
 type CreateCourseInput = z.infer<typeof createCourseSchema>;
 type CreateSectionInput = z.infer<typeof createSectionSchema>;
@@ -145,6 +146,7 @@ export async function createCourse(workspaceId: string, input: CreateCourseInput
     select: { id: true },
   });
   if (clash) throw AppError.conflict("لديك مقرر بهذا الرمز في هذا الفصل");
+  await assertCanAddCourse(workspaceId);
 
   // بنود ملف المقرر وسياسة الغياب تُنسخ كالتوزيع تمامًا — ملف مقرر جارٍ لا يتغيّر تحت يد
   // صاحبه لأن الجامعة عدّلت لائحتها. (كانت البنود قائمة ثابتة في الشيفرة بمفاتيح لا تطابق
