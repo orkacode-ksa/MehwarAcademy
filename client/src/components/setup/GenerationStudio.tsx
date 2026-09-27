@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useRef, useState } from "react";
 import { GENERATION_KINDS, SOURCE_MIME, type GenerationKind } from "@mihwar/shared";
 import { api, ApiError, uploadRaw } from "../../api/client.js";
@@ -11,7 +12,16 @@ import { formatNum } from "../../lib/numerals.js";
 
 interface Source { id: string; title: string; mimeType: keyof typeof SOURCE_MIME; sizeBytes: number; readable: boolean }
 export interface StudioTopic { id: string; title: string; lectures: { kind: string }[] }
-export interface GenStatus { enabled: boolean; kinds: Record<GenerationKind, boolean>; quota: number; used: number }
+export interface GenStatus {
+  enabled: boolean;
+  kinds: Record<GenerationKind, boolean>;
+  quota: number;
+  used: number;
+  walletHalalas: number;
+  estimates: Record<GenerationKind, number>;
+}
+
+const sar = (h: number) => `${formatNum((h / 100).toFixed(2))} ر.س`;
 
 const HINTS: Record<GenerationKind, string> = {
   TEXT: "محاضرة مكتوبة: أهداف · شرح · جدول مقارنة · أخطاء شائعة · أسئلة مراجعة بإجاباتها",
@@ -39,6 +49,11 @@ export function GenerationStudio({ courseId, topics, gen, onStarted }: { courseI
   const missing = topics.filter((t) => !t.lectures.some((l) => l.kind === kind));
   const chosen = pick ? topics.filter((t) => pick.has(t.id)) : missing;
   const left = Math.max(0, gen.quota - gen.used);
+  // ما يتجاوز الحصة يُعرض بتكلفته التقديرية قبل البدء — لا خصم من الرصيد بلا موافقة صريحة.
+  const fromQuota = Math.min(left, chosen.length);
+  const beyond = chosen.length - fromQuota;
+  const per = gen.estimates[kind] ?? 0;
+  const affordable = per > 0 ? Math.min(beyond, Math.floor(gen.walletHalalas / per)) : 0;
 
   async function upload(files: FileList) {
     const list = [...files];
@@ -54,19 +69,21 @@ export function GenerationStudio({ courseId, topics, gen, onStarted }: { courseI
     reload();
   }
 
-  async function start() {
+  async function start(useWallet: boolean) {
     if (chosen.length === 0) return showToast("كل المواضيع فيها هذا النوع — احذف ما تريد إعادة توليده أولًا");
     setBusy(true);
     try {
-      const r = await api.post<{ started: number; skippedExisting: number; skippedQuota: number }>("/integrations/generation/me", {
+      const r = await api.post<{ started: number; skippedExisting: number; skippedQuota: number; fromWallet: number }>("/integrations/generation/me", {
         courseId,
         topicIds: chosen.map((t) => t.id),
         kind,
+        useWallet,
         ...(brief.trim() ? { instructions: brief.trim() } : {}),
       });
       const notes = [
         r.skippedExisting ? `${formatNum(r.skippedExisting)} موجود مسبقًا` : "",
-        r.skippedQuota ? `${formatNum(r.skippedQuota)} يتجاوز حصتك` : "",
+        r.fromWallet ? `${formatNum(r.fromWallet)} من رصيدك` : "",
+        r.skippedQuota ? `${formatNum(r.skippedQuota)} لم يبدأ — ${useWallet ? "الرصيد لا يكفي" : "يتجاوز حصتك"}` : "",
       ].filter(Boolean);
       showToast(r.started ? `بدأ توليد ${formatNum(r.started)} — يصل كلٌّ في موضوعه خلال دقائق${notes.length ? ` (${notes.join(" · ")})` : ""}` : `لم يبدأ شيء: ${notes.join(" · ")}`);
       setPick(null);
@@ -197,13 +214,43 @@ export function GenerationStudio({ courseId, topics, gen, onStarted }: { courseI
         )}
       </section>
 
-      <div className="flex items-center gap-3 flex-wrap mt-4">
-        <Button variant="gold" disabled={busy || chosen.length === 0 || left === 0} onClick={() => void start()}>
-          <Icon name="sparks" /> {busy ? "يبدأ…" : `ولّد ${GENERATION_KINDS[kind]} لـ ${formatNum(chosen.length)} موضوع`}
-        </Button>
-        <span className="text-[12px] text-ink-3">
-          المتبقي من حصتك هذا الشهر: {formatNum(left)} من {formatNum(gen.quota)}
-        </span>
+      <div className="mt-4 grid gap-2">
+        <div className="text-[12px] text-ink-3">
+          حصتك هذا الشهر: {formatNum(left)} من {formatNum(gen.quota)} · رصيدك: {sar(gen.walletHalalas)}
+        </div>
+        {beyond > 0 && chosen.length > 0 && (
+          <p className="text-[12.5px] rounded-[10px] border border-gold2/40 bg-gold2/10 px-3 py-2 leading-6">
+            {fromQuota > 0 ? `${formatNum(fromQuota)} من حصتك، و` : ""}
+            {formatNum(beyond)} من رصيدك — يُحجز تقديرًا {sar(beyond * per)} ويُخصم الفعلي فقط ويُردّ الباقي؛ وما يفشل يُردّ كاملًا.
+            {affordable < beyond && (
+              <>
+                {" "}
+                رصيدك يكفي {formatNum(affordable)} فقط.{" "}
+                <Link to="/account#wallet" className="text-deep font-semibold">
+                  اشحن رصيدك ←
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {beyond === 0 ? (
+            <Button variant="gold" disabled={busy || chosen.length === 0} onClick={() => void start(false)}>
+              <Icon name="sparks" /> {busy ? "يبدأ…" : `ولّد ${GENERATION_KINDS[kind]} لـ ${formatNum(chosen.length)} موضوع`}
+            </Button>
+          ) : (
+            <>
+              <Button variant="gold" disabled={busy || fromQuota + affordable === 0} onClick={() => void start(true)}>
+                <Icon name="sparks" /> {busy ? "يبدأ…" : `ولّد ${formatNum(fromQuota + affordable)} (${formatNum(affordable)} من رصيدي)`}
+              </Button>
+              {fromQuota > 0 && (
+                <Button variant="secondary" disabled={busy} onClick={() => void start(false)}>
+                  من حصتي فقط ({formatNum(fromQuota)})
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </Card>
   );

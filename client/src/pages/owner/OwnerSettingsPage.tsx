@@ -9,6 +9,7 @@ import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import type { BankAccount, Plan } from "../account/types.js";
+import { WalletSettingsCard } from "./WalletSettingsCard.js";
 
 interface Integrations { storage: "r2" | "db"; ai: boolean; voice: boolean; redis: boolean }
 interface PlatformSettings {
@@ -40,6 +41,7 @@ export function OwnerSettingsPage() {
 
       <AiUsageCard />
       <PlatformSettingsCard />
+      <WalletSettingsCard />
       <AnnouncementsCard />
 
       <Card title="الحسابات البنكية" hint="تظهر للعميل في صفحة الدفع. أضف حسابًا أو عطّله دون حذفه.">
@@ -280,7 +282,10 @@ function PlatformSettingsCard() {
   async function save() {
     setErr(null);
     try {
-      await api.put("/owner/platform/settings", v);
+      if (!v) return;
+      // حقول هذه البطاقة فقط فوق أحدث نسخة — لا تمسح ما حُفظ في بطاقتي الإعلانات والرصيد
+      const fresh = await api.get<PlatformSettings>("/owner/platform/settings");
+      await api.put("/owner/platform/settings", { ...fresh, trialDays: v.trialDays, contactEmail: v.contactEmail, ai: v.ai, term: v.term });
       showToast("حُفظت إعدادات المنصة");
       reload();
     } catch (e) {

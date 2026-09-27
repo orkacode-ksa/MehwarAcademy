@@ -9,6 +9,7 @@ import { env } from "../config/env.js";
 import { drainGeneration } from "../modules/generation/generation.service.js";
 import { resetExpensiveLimitForTests } from "../middleware/rateLimit.js";
 import { resetSettingsCache } from "../modules/platform/settings.js";
+import { creditTopUp } from "../modules/wallet/wallet.service.js";
 import { closeDueTerms } from "../jobs/termCloser.js";
 
 /**
@@ -564,6 +565,36 @@ describe("التوليد داخل المنصة — مصادر المقرر وم�
     expect(deck.slides[1].start).toBeGreaterThan(0.5);
     expect(deck.slides[1].start).toBeLessThan(1);
   }, 30_000);
+
+  it("بعد حصة الباقة: عرض من الرصيد بموافقة صريحة، حجز ثم خصم التكلفة الفعلية وردّ الفرق", async () => {
+    const me = (await a.get("/api/auth/me")).body.data;
+    const ws = me.workspaceMemberships[0].workspaceId as string;
+    await resetExpensiveLimitForTests(me.id);
+    const plans = await prismaBase.plan.findMany({ select: { id: true, generationsPerMonth: true } });
+    await prismaBase.plan.updateMany({ data: { generationsPerMonth: 0 } });
+    try {
+      const t2 = (await a.post(`${W}/teaching/topics`).send({ courseId: aCourse, title: "قانون نيوتن الثاني" })).body.data as { id: string };
+      const offer = await a.post(G).send({ courseId: aCourse, topicIds: [t2.id], kind: "TEXT" });
+      expect(offer.body.data).toMatchObject({ started: 0, walletOffer: { count: 1, estimateHalalas: 50 } });
+      // بموافقته ورصيده صفر: رفض واضح بلا خصم
+      expect((await a.post(G).send({ courseId: aCourse, topicIds: [t2.id], kind: "TEXT", useWallet: true })).status).toBe(400);
+
+      await creditTopUp(me.tenantId, ws, `test-${Date.now()}`, 1000, "اختبار");
+      const r = await a.post(G).send({ courseId: aCourse, topicIds: [t2.id], kind: "TEXT", useWallet: true });
+      expect(r.body.data).toMatchObject({ started: 1, fromWallet: 1, fromQuota: 0 });
+      expect((await a.get(`/api/store/wallet/${ws}`)).body.data.balance).toBe(950); // المحجوز قبل التشغيل
+      await drainGeneration();
+      const job = await withExplicitTenantTx(me.tenantId, (tx) => tx.generationJob.findUniqueOrThrow({ where: { id: r.body.data.jobIds[0] } }));
+      expect(job.status).toBe("SUCCEEDED");
+      expect(job.chargedHalalas).toBeGreaterThan(0);
+      expect(job.chargedHalalas).toBeLessThanOrEqual(50);
+      const w = (await a.get(`/api/store/wallet/${ws}`)).body.data;
+      expect(w.balance).toBe(1000 - job.chargedHalalas);
+      expect(w.entries.find((e: { kind: string }) => e.kind === "GENERATION")).toMatchObject({ amount: -job.chargedHalalas });
+    } finally {
+      for (const p of plans) await prismaBase.plan.update({ where: { id: p.id }, data: { generationsPerMonth: p.generationsPerMonth } });
+    }
+  });
 
   it("التكلفة: كل نداء مسجّل، وبلوغ سقف الشهر يوقف التوليد برسالة محايدة", async () => {
     const usage = (await owner.get("/api/owner/platform/usage")).body.data;

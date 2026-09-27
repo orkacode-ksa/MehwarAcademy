@@ -43,6 +43,8 @@ export type BankAccountInput = z.infer<typeof bankAccountSchema>;
 export const createOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("PLAN"), planId: z.string().min(1), period: z.enum(["MONTHLY", "YEARLY"]) }).strict(),
   z.object({ kind: z.literal("BANK_COURSE"), bankCourseId: z.string().min(1) }).strict(),
+  /** شحن الرصيد — بمبلغ من الباقات التي يحددها المالك فقط (يُتحقق في الخادم) */
+  z.object({ kind: z.literal("CREDIT"), amount: z.coerce.number().int().min(10).max(10_000) }).strict(),
 ]);
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
@@ -111,6 +113,8 @@ export const requestGenerationSchema = z
     topicIds: z.array(z.string().min(1)).min(1).max(80),
     kind: z.enum(["TEXT", "SLIDES", "AUDIO", "VIDEO"]),
     instructions: z.string().trim().max(1500).optional(),
+    /** ما يتجاوز حصة الباقة يُدفع من الرصيد — بموافقة صريحة من الأستاذ لا تلقائيًا */
+    useWallet: z.boolean().optional(),
   })
   .strict();
 export type RequestGenerationInput = z.infer<typeof requestGenerationSchema>;

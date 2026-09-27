@@ -16,6 +16,7 @@ import { ProfileCard } from "./settings/ProfileCard.js";
 import { SecurityCard } from "./settings/SecurityCard.js";
 import { OrdersCard, PlanCard, type Store } from "./settings/PlanCards.js";
 import { A11yCard, LanguageCard } from "./settings/PrefsCards.js";
+import { WalletCard } from "./settings/WalletCard.js";
 
 /**
  * حسابي = الإعدادات. بطاقات عناوين مطويّة، تُفتح واحدة فقط في كل مرة:
@@ -61,6 +62,9 @@ export function AccountPage() {
             e ? `${e.planName} · ${e.status === "TRIAL" ? "تجربة" : e.status === "ACTIVE" ? "مفعّلة" : "منتهية"}${e.periodEnd ? ` حتى ${fmtDate(e.periodEnd)}` : ""}` : "",
             store.data ? <PlanCard data={store.data} /> : <p className="text-sm text-ink-3">جارٍ التحميل…</p>,
           )}
+        {teacher &&
+          user.workspaceMemberships[0] &&
+          card("wallet", "card", "رصيدي", "لما يتجاوز حصة باقتك من التوليد", <WalletCard workspaceId={user.workspaceMemberships[0].workspaceId} />)}
         {teacher &&
           (store.data?.orders.length ?? 0) > 0 &&
           card("orders", "card", "طلباتي", `${formatNum(store.data?.orders.length ?? 0)} طلب`, <OrdersCard orders={store.data?.orders ?? []} />)}

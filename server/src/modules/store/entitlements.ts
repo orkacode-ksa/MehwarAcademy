@@ -85,7 +85,8 @@ export async function getUsage(workspaceId: string) {
   const [courses, storage, generations] = await Promise.all([
     prisma.course.count({ where: { workspaceId, deletedAt: null } }),
     prisma.fileAsset.aggregate({ where: { workspaceId, deletedAt: null, purpose: { not: "UNIVERSITY" } }, _sum: { sizeBytes: true } }),
-    prisma.generationJob.count({ where: { workspaceId, createdAt: { gte: since }, status: { not: "FAILED" } } }),
+    // حصة الباقة وحدها: ما دُفع من الرصيد والفاشل والملغى لا يُحسب منها
+    prisma.generationJob.count({ where: { workspaceId, createdAt: { gte: since }, paidBy: "QUOTA", status: { notIn: ["FAILED", "CANCELED"] } } }),
   ]);
   return { courses, storageBytes: storage._sum.sizeBytes ?? 0, generationsThisMonth: generations };
 }

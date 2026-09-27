@@ -42,8 +42,8 @@ export function OrderPage() {
       )}
       {o.status === "APPROVED" && (
         <Card title="تم التفعيل" hint="شكرًا لك. طلبك مفعّل الآن.">
-          <Link to={o.kind === "PLAN" ? "/account" : "/bank"}>
-            <Button variant="primary">{o.kind === "PLAN" ? "حسابي" : "إلى البنك"}</Button>
+          <Link to={o.kind === "PLAN" ? "/account" : o.kind === "CREDIT" ? "/account#wallet" : "/bank"}>
+            <Button variant="primary">{o.kind === "PLAN" ? "حسابي" : o.kind === "CREDIT" ? "رصيدي" : "إلى البنك"}</Button>
           </Link>
         </Card>
       )}

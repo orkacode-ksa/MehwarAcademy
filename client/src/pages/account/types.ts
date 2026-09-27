@@ -17,7 +17,7 @@ export interface Usage {
 export interface Order {
   id: string;
   number: string;
-  kind: "PLAN" | "BANK_COURSE";
+  kind: "PLAN" | "BANK_COURSE" | "CREDIT";
   titleAr: string;
   amount: number;
   status: "AWAITING_PAYMENT" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "CANCELED";

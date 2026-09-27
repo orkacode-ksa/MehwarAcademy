@@ -15,6 +15,7 @@ import { assertBudget, recordUsage } from "../platform/aiBudget.js";
 import { newMeter, narrateSlides, reviewJson, reviewText, secondsOf, speakDialogue, tidy, toWav, voiceReady, write, writeJson, writerReady, type Meter, type Source } from "./engine.js";
 import { extractText } from "./extract.js";
 import { notify } from "../notifications/notify.js";
+import { reserveForJob, settleJob, toHalalas } from "../wallet/wallet.service.js";
 import { renderSlidesHtml, type Slide } from "./slides.js";
 
 /**
@@ -39,16 +40,31 @@ export function kindsAvailable(): Record<GenerationKind, boolean> {
 }
 
 export async function generationStatus(workspaceId: string) {
-  const [ent, usage] = await Promise.all([getEntitlements(workspaceId), getUsage(workspaceId)]);
+  const [ent, usage, wallet, settings] = await Promise.all([
+    getEntitlements(workspaceId),
+    getUsage(workspaceId),
+    prisma.wallet.findUnique({ where: { workspaceId }, select: { balance: true } }),
+    getPlatformSettings(),
+  ]);
   const kinds = kindsAvailable();
-  return { enabled: kinds.TEXT, kinds, quota: ent.generationsPerMonth, used: usage.generationsThisMonth };
+  return {
+    enabled: kinds.TEXT,
+    kinds,
+    quota: ent.generationsPerMonth,
+    used: usage.generationsThisMonth,
+    walletHalalas: wallet?.balance ?? 0,
+    estimates: Object.fromEntries(Object.entries(settings.wallet.estimateSar).map(([k, v]) => [k, toHalalas(v)])),
+  };
 }
 
 async function markStale(workspaceId: string) {
-  await prisma.generationJob.updateMany({
+  const stale = await prisma.generationJob.findMany({
     where: { workspaceId, status: { in: ["PENDING", "RUNNING"] }, updatedAt: { lt: new Date(Date.now() - STALE_MS) } },
-    data: { status: "FAILED", errorMessage: "انقطع التوليد — أعد المحاولة" },
+    select: { id: true, tenantId: true, workspaceId: true, paidBy: true, reservedHalalas: true },
   });
+  if (stale.length === 0) return;
+  await prisma.generationJob.updateMany({ where: { id: { in: stale.map((j) => j.id) } }, data: { status: "FAILED", errorMessage: "انقطع التوليد — أعد المحاولة" } });
+  for (const j of stale) await settleJob(j, null);
 }
 
 // ───────────────────────── المصادر ─────────────────────────
@@ -189,21 +205,17 @@ export async function requestGeneration(workspaceId: string, userId: string, inp
   const skip = new Set([...existing.map((e) => e.topicId), ...running.map((r) => r.topicId as string)]);
   const todo = topics.filter((t) => !skip.has(t.id));
 
-  const [ent, usage] = await Promise.all([getEntitlements(workspaceId), getUsage(workspaceId)]);
+  const [ent, usage, settings] = await Promise.all([getEntitlements(workspaceId), getUsage(workspaceId), getPlatformSettings()]);
   const left = Math.max(0, ent.generationsPerMonth - usage.generationsThisMonth);
-  if (todo.length > 0 && left === 0) {
-    throw AppError.badRequest(
-      ent.generationsPerMonth === 0
-        ? `باقتك (${ent.planName}) لا تشمل التوليد — رقِّها من «حسابي»`
-        : `استهلكت توليدات هذا الشهر (${ent.generationsPerMonth}) — تتجدّد أول الشهر أو رقِّ باقتك`,
-    );
-  }
-  const accepted = todo.slice(0, left);
+  const fromQuota = todo.slice(0, left);
+  const beyond = todo.slice(left);
+  const estimate = toHalalas(settings.wallet.estimateSar[input.kind]);
 
   const tenantId = requireTenantId();
-  const ids: string[] = [];
-  for (const t of accepted) {
-    const job = await prisma.generationJob.create({
+  const course = await prisma.course.findUnique({ where: { id: input.courseId }, select: { nameAr: true } });
+  const titles = new Map((await prisma.topic.findMany({ where: { id: { in: beyond.map((t) => t.id) } }, select: { id: true, title: true } })).map((t) => [t.id, t.title]));
+  const newJob = (topicId: string) =>
+    prisma.generationJob.create({
       data: {
         tenantId,
         workspaceId,
@@ -211,15 +223,44 @@ export async function requestGeneration(workspaceId: string, userId: string, inp
         createdById: userId,
         type: input.kind === "AUDIO" ? "PODCAST" : input.kind === "VIDEO" ? "VIDEO_RENDER" : input.kind === "SLIDES" ? "SLIDES" : "LECTURE_SCRIPT",
         status: "PENDING",
-        topicId: t.id,
+        topicId,
         outputKind: input.kind,
         instructions: input.instructions || null,
       },
     });
-    ids.push(job.id);
-    enqueue(() => runWithTenant({ tenantId, userId }, () => run(job.id)));
+
+  const ids: string[] = [];
+  for (const t of fromQuota) ids.push((await newJob(t.id)).id);
+
+  // ما بعد الحصة: من الرصيد بموافقته — حجز قبل التشغيل، ويتوقف عند أول مادة لا يكفيها الرصيد.
+  let fromWallet = 0;
+  if (input.useWallet) {
+    for (const t of beyond) {
+      const job = await newJob(t.id);
+      const note = `${GENERATION_KINDS[input.kind]}: ${titles.get(t.id) ?? ""} — ${course?.nameAr ?? ""}`;
+      if (!(await reserveForJob(workspaceId, job.id, estimate, note))) {
+        await prisma.generationJob.update({ where: { id: job.id }, data: { status: "CANCELED", errorMessage: "الرصيد لا يكفي" } });
+        break;
+      }
+      ids.push(job.id);
+      fromWallet++;
+    }
   }
-  return { started: ids.length, skippedExisting: topics.length - todo.length, skippedQuota: todo.length - accepted.length, jobIds: ids };
+  if (ids.length === 0 && todo.length > 0 && input.useWallet) {
+    throw AppError.badRequest("رصيدك لا يكفي — اشحنه من «حسابي» ← رصيدي");
+  }
+  for (const id of ids) enqueue(() => runWithTenant({ tenantId, userId }, () => run(id)));
+  const remaining = todo.length - ids.length;
+  return {
+    started: ids.length,
+    fromQuota: fromQuota.length,
+    fromWallet,
+    skippedExisting: topics.length - todo.length,
+    skippedQuota: remaining,
+    jobIds: ids,
+    /** ما لم يبدأ وتقدير تكلفته من الرصيد — لتعرض الواجهة «أكمل من رصيدك (≈ X ر.س)» بموافقة صريحة */
+    walletOffer: remaining > 0 && !input.useWallet ? { count: remaining, estimateHalalas: remaining * estimate } : null,
+  };
 }
 
 // ── طابور بسيط داخل العملية ──
@@ -256,12 +297,15 @@ async function run(jobId: string) {
       where: { id: jobId },
       data: { status: "SUCCEEDED", resultLectureId: lectureId, engine: AI_MODELS.heavy, actualCostRiyals: new Prisma.Decimal(cost.toFixed(2)) },
     });
+    await settleJob(job, toHalalas(cost));
   } catch (err) {
     logger.error({ err, jobId }, "فشل التوليد");
     // ما استُهلك قبل الفشل يُسجَّل على المنصة، والمهمة الفاشلة لا تُحتسب من حصة الأستاذ.
     await recordUsage({ tenantId: job.tenantId, userId: job.createdById, feature: "GENERATION", meter }).catch(() => undefined);
     const msg = err instanceof AppError ? err.message : "تعذّر التوليد الآن — حاول مرة أخرى بعد قليل";
     await prisma.generationJob.update({ where: { id: jobId }, data: { status: "FAILED", errorMessage: msg } }).catch(() => undefined);
+    // الفاشلة لا تُحسب على الأستاذ: يُردّ حجز رصيدها كاملًا.
+    await settleJob(job, null).catch((e: unknown) => logger.error({ err: e, jobId }, "تعذّر ردّ حجز الرصيد"));
   }
   await announceBatch(job).catch((err: unknown) => logger.warn({ err, jobId }, "تعذّر إشعار اكتمال التوليد"));
 }

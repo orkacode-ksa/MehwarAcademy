@@ -9,6 +9,7 @@ import { expensiveRateLimit } from "../../middleware/rateLimit.js";
 import { AppError } from "../../lib/AppError.js";
 import * as store from "./store.service.js";
 import * as bank from "../bank/bank.service.js";
+import { walletOf } from "../wallet/wallet.service.js";
 import { getEntitlements, getUsage } from "./entitlements.js";
 
 /**
@@ -39,6 +40,15 @@ storeRouter.get(
     const ws = req.workspaceId as string;
     const [entitlements, usage, orders] = await Promise.all([getEntitlements(ws), getUsage(ws), store.myOrders(who(req).userId)]);
     res.json({ success: true, data: { entitlements, usage, orders } });
+  }),
+);
+
+/** رصيدي: الرصيد وحركاته وباقات الشحن بتفصيل «تدفع ← رسم الخدمة ← يصل رصيدك». */
+storeRouter.get(
+  "/wallet/:workspaceId",
+  requireWorkspaceMembership,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await walletOf(req.workspaceId as string) });
   }),
 );
 

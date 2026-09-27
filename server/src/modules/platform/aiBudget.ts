@@ -67,7 +67,11 @@ export async function usageReport() {
     getPlatformSettings(),
   ]);
   const users = await prismaBase.user.findMany({ where: { id: { in: byUser.map((u) => u.userId) } }, select: { id: true, fullName: true, email: true } });
+  const costByKind = await prismaBase.$queryRaw<{ kind: string; n: number; avgSar: number; maxSar: number }[]>`
+    SELECT * FROM mihwar_generation_cost_by_kind(${new Date(Date.now() - 30 * 864e5)}::timestamp)`;
   return {
+    /** الفعلي لكل نوع مادة (٣٠ يومًا) مقابل التقدير المحجوز من الرصيد — ليُضبط التقدير */
+    costByKind: costByKind.map((k) => ({ ...k, estimateSar: settings.wallet.estimateSar[k.kind as keyof typeof settings.wallet.estimateSar] ?? null })),
     spentSar: spent,
     budgetSar: settings.ai.monthlyBudgetSar,
     byFeature: byFeature.map((f) => ({ feature: f.feature, calls: f._count, costSar: Number(f._sum.costSar ?? 0) })),

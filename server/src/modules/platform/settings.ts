@@ -28,6 +28,27 @@ export const platformSettingsSchema = z
       })
       .strict()
       .default({}),
+    /**
+     * الرصيد المدفوع مقدمًا: ما يتجاوز حصة الباقة الشهرية من التوليد يُخصم من محفظة الأستاذ.
+     * الشحن بمبالغ ثابتة؛ يُقتطع منها رسم الخدمة والباقي رصيد استخدام يُخصم بالتكلفة الفعلية.
+     */
+    wallet: z
+      .object({
+        feePercent: z.coerce.number().min(0).max(90).default(25),
+        packs: z.array(z.coerce.number().int().min(10).max(10_000)).min(1).max(6).default([80, 150, 300]),
+        /** ما يُحجز من الرصيد قبل توليد مادة (ر.س) — يُردّ الفرق بعد معرفة التكلفة الفعلية */
+        estimateSar: z
+          .object({
+            TEXT: z.coerce.number().min(0.05).max(100).default(0.5),
+            SLIDES: z.coerce.number().min(0.05).max(100).default(0.5),
+            AUDIO: z.coerce.number().min(0.05).max(100).default(1.5),
+            VIDEO: z.coerce.number().min(0.05).max(100).default(1.5),
+          })
+          .strict()
+          .default({}),
+      })
+      .strict()
+      .default({}),
     term: z
       .object({
         /** يُقفل الفصل آليًا بعد نهايته بهذه الأيام (مهلة الرصد)، ما لم يُقفله المالك قبلها. */

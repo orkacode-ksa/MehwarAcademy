@@ -4,6 +4,8 @@ import { prismaBase, withExplicitTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { notify, notifyOwners } from "../notifications/notify.js";
+import { breakdown, creditTopUp } from "../wallet/wallet.service.js";
+import { getPlatformSettings } from "../platform/settings.js";
 import { recordAudit } from "../../lib/auditLog.js";
 
 /**
@@ -71,7 +73,16 @@ async function newOrderNumber(): Promise<string> {
 export async function createOrder(user: { userId: string; tenantId: string }, input: CreateOrderInput) {
   let titleAr: string;
   let amount: number;
-  if (input.kind === "PLAN") {
+  let credit: { creditHalalas: number; feeHalalas: number } | null = null;
+  if (input.kind === "CREDIT") {
+    // المبلغ من باقات الشحن التي حددها المالك فقط — لا مبلغ حرّ يرسله العميل.
+    const { wallet } = await getPlatformSettings();
+    if (!wallet.packs.includes(input.amount)) throw AppError.badRequest("اختر مبلغًا من باقات الشحن");
+    const b = breakdown(input.amount, wallet.feePercent);
+    amount = input.amount;
+    credit = { creditHalalas: b.credit, feeHalalas: b.fee };
+    titleAr = `شحن رصيد ${input.amount} ر.س`;
+  } else if (input.kind === "PLAN") {
     const plan = await prismaBase.plan.findFirst({ where: { id: input.planId, active: true } });
     if (!plan) throw AppError.notFound("الباقة غير متاحة");
     amount = Number(input.period === "YEARLY" ? plan.priceYearly : plan.priceMonthly);
@@ -93,7 +104,7 @@ export async function createOrder(user: { userId: string; tenantId: string }, in
       userId: user.userId,
       status: { in: ["AWAITING_PAYMENT", "UNDER_REVIEW"] },
       kind: input.kind,
-      ...(input.kind === "PLAN" ? { planId: input.planId, period: input.period } : { bankCourseId: input.bankCourseId }),
+      ...(input.kind === "PLAN" ? { planId: input.planId, period: input.period } : input.kind === "BANK_COURSE" ? { bankCourseId: input.bankCourseId } : { amount: input.amount }),
     },
   });
   if (open) return orderOut(open);
@@ -109,6 +120,7 @@ export async function createOrder(user: { userId: string; tenantId: string }, in
       bankCourseId: input.kind === "BANK_COURSE" ? input.bankCourseId : null,
       titleAr,
       amount,
+      ...(credit ?? {}),
     },
   });
   return orderOut(order);
@@ -264,6 +276,11 @@ export async function reviewOrder(ownerId: string, orderId: string, decision: { 
       if (sub) await tx.subscription.update({ where: { id: sub.id }, data });
       else await tx.subscription.create({ data: { ...data, tenantId: o.tenantId, workspaceId: ws.id, planCode: "MIHWAR" } });
     });
+  } else if (o.kind === "CREDIT") {
+    if (!o.creditHalalas) throw AppError.badRequest("طلب شحن ناقص");
+    const ws = await withExplicitTenantTx(o.tenantId, (tx) => tx.workspace.findFirst({ where: { ownerId: o.userId, tenantId: o.tenantId, deletedAt: null }, select: { id: true } }));
+    if (!ws) throw AppError.badRequest("لا مساحة عمل لهذا المستخدم");
+    await creditTopUp(o.tenantId, ws.id, o.id, o.creditHalalas, `شحن ${Number(o.amount)} ر.س (طلب ${o.number})`);
   } else if (o.kind === "BANK_COURSE" && o.bankCourseId) {
     await prismaBase.bankCourseAccess.upsert({
       where: { bankCourseId_userId: { bankCourseId: o.bankCourseId, userId: o.userId } },
@@ -276,8 +293,13 @@ export async function reviewOrder(ownerId: string, orderId: string, decision: { 
   await recordAudit({ userId: ownerId, tenantId: o.tenantId, action: "ORDER_APPROVED", entityType: "Order", entityId: o.id, after: { amount: Number(o.amount), kind: o.kind } });
   await notify(o.tenantId, [o.userId], {
     kind: "ORDER_APPROVED",
-    title: o.kind === "PLAN" ? "اعتُمد اشتراكك — باقتك مفعّلة الآن" : "اعتُمد شراء المقرر — أضِفه لفصلك من البنك",
-    link: o.kind === "PLAN" ? "/plans" : o.bankCourseId ? `/bank/${o.bankCourseId}` : `/orders/${o.id}`,
+    title:
+      o.kind === "PLAN"
+        ? "اعتُمد اشتراكك — باقتك مفعّلة الآن"
+        : o.kind === "CREDIT"
+          ? `أُضيف ${((o.creditHalalas ?? 0) / 100).toFixed(2)} ر.س إلى رصيدك`
+          : "اعتُمد شراء المقرر — أضِفه لفصلك من البنك",
+    link: o.kind === "PLAN" ? "/plans" : o.kind === "CREDIT" ? "/account#wallet" : o.bankCourseId ? `/bank/${o.bankCourseId}` : `/orders/${o.id}`,
   });
   return { status: "APPROVED" };
 }
@@ -287,10 +309,21 @@ export async function storeSummary() {
   const since = new Date();
   since.setUTCDate(1);
   since.setUTCHours(0, 0, 0, 0);
-  const [pending, approved] = await Promise.all([
+  const [pending, approved, fees, liability] = await Promise.all([
     prismaBase.order.count({ where: { status: "UNDER_REVIEW" } }),
     prismaBase.order.aggregate({ where: { status: "APPROVED", reviewedAt: { gte: since } }, _sum: { amount: true }, _count: true }),
+    prismaBase.order.aggregate({ where: { status: "APPROVED", kind: "CREDIT", reviewedAt: { gte: since } }, _sum: { feeHalalas: true, creditHalalas: true } }),
+    prismaBase.$queryRaw<{ total: bigint }[]>`SELECT mihwar_wallet_liability() AS total`,
   ]);
-  return { pendingReview: pending, monthRevenue: Number(approved._sum.amount ?? 0), monthOrders: approved._count };
+  return {
+    pendingReview: pending,
+    monthRevenue: Number(approved._sum.amount ?? 0),
+    monthOrders: approved._count,
+    /** من الشحن هذا الشهر: رسوم الخدمة (إيراد صافٍ لك) وما صار رصيدًا للأساتذة */
+    monthCreditFees: (fees._sum.feeHalalas ?? 0) / 100,
+    monthCreditLoaded: (fees._sum.creditHalalas ?? 0) / 100,
+    /** أرصدة غير مستهلكة: مال قبضته والتزام استخدام قائم — لا تعدّه ربحًا */
+    walletLiability: Number(liability[0]?.total ?? 0) / 100,
+  };
 }
 

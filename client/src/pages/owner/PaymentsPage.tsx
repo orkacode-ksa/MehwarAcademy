@@ -31,16 +31,22 @@ const TABS = [
 export function PaymentsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("UNDER_REVIEW");
   const { data, loading, error, reload } = useApi<OwnerOrder[]>(`/owner/store/orders?status=${tab}`);
-  const { data: summary, reload: reloadSummary } = useApi<{ pendingReview: number; monthRevenue: number; monthOrders: number }>("/owner/store/summary");
+  const { data: summary, reload: reloadSummary } = useApi<{ pendingReview: number; monthRevenue: number; monthOrders: number; monthCreditFees: number; monthCreditLoaded: number; walletLiability: number }>(
+    "/owner/store/summary",
+  );
 
   return (
     <>
       <PageHeader kicker="المالك" title="المدفوعات" description="التحويلات البنكية: تأكّد من وصول المبلغ ثم اعتمد." />
-      <div className="grid grid-cols-3 gap-3 mb-4 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 [&>*]:min-w-0">
         {[
           ["بانتظار مراجعتك", formatNum(summary?.pendingReview ?? 0)],
-          ["إيراد هذا الشهر", sar(summary?.monthRevenue ?? 0)],
+          ["مقبوض هذا الشهر", sar(summary?.monthRevenue ?? 0)],
           ["طلبات مُفعَّلة هذا الشهر", formatNum(summary?.monthOrders ?? 0)],
+          ["رسوم خدمة الشحن (صافي لك)", sar(summary?.monthCreditFees ?? 0)],
+          ["شُحن رصيدًا للأساتذة", sar(summary?.monthCreditLoaded ?? 0)],
+          // مال مقبوض لم يُستهلك بعد: التزام تشغيل قائم، لا ربح — يُحتفظ بما يغطيه
+          ["أرصدة غير مستهلكة (التزام)", sar(summary?.walletLiability ?? 0)],
         ].map(([l, v]) => (
           <div key={l} className="bg-surface border border-line rounded-[14px] p-3 text-center">
             <div className="text-[18px] font-semibold text-deep">{v}</div>

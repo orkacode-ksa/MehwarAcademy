@@ -855,6 +855,11 @@ model GenerationJob {
   instructions        String?
   errorMessage        String?
   resultLectureId     String?
+  /// QUOTA = من حصة الباقة الشهرية · WALLET = من رصيد الأستاذ
+  paidBy              String            @default("QUOTA")
+  /// المحجوز من الرصيد قبل التشغيل، والمخصوم فعلًا بعده (هللة)
+  reservedHalalas     Int               @default(0)
+  chargedHalalas      Int               @default(0)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -1016,6 +1021,10 @@ model Order {
   reviewedById String?
   reviewedAt   DateTime?
   rejectReason String?
+  /// طلب شحن رصيد (CREDIT): ما يُضاف للمحفظة ورسوم الخدمة بالهللة — يُثبَّتان عند إنشاء الطلب،
+  /// فتغيير نسبة الرسوم لاحقًا لا يمسّ طلبًا قائمًا.
+  creditHalalas Int?
+  feeHalalas    Int?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -1215,4 +1224,36 @@ model UserAvatar {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_avatars")
+}
+
+/// محفظة الأستاذ (لكل مساحة عمل) — الرصيد بالهللة عددًا صحيحًا لا كسورًا عشرية.
+/// لا يُعدَّل إلا بتحديث مشروط ذرّي (balance >= المبلغ) مع قيد في الدفتر في المعاملة نفسها.
+model Wallet {
+  id          String   @id @default(cuid())
+  tenantId    String
+  workspaceId String   @unique
+  balance     Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("wallets")
+}
+
+/// دفتر المحفظة — إضافة فقط. TOPUP (+) شحن معتمد · RESERVE (−) حجز قبل التوليد ·
+/// REFUND (+) ردّ الفرق بعد التوليد أو كله عند الفشل · ADJUST (±) تصحيح يدوي من المالك.
+model WalletEntry {
+  id           String   @id @default(cuid())
+  tenantId     String
+  workspaceId  String
+  kind         String
+  amount       Int
+  balanceAfter Int
+  orderId      String?
+  jobId        String?
+  note         String   @default("")
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([tenantId])
+  @@map("wallet_entries")
 }
