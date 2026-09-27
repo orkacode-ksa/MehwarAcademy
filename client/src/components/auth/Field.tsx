@@ -19,7 +19,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ l
         <input
           ref={ref}
           id={inputId}
-          className={`w-full border rounded-[11px] px-3.5 py-2.5 bg-white text-ink ${
+          className={`w-full border rounded-[11px] px-3.5 py-2.5 bg-surface text-ink ${
             error ? "border-crim" : "border-line"
           } ${trailing ? "pe-14" : ""} ${className}`}
           aria-invalid={!!error}
@@ -45,7 +45,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(funct
   return (
     <div className="mb-3.5">
       <label className="block text-xs font-medium text-ink-2 mb-1.5">{label}</label>
-      <select ref={ref} className={`w-full border rounded-[11px] px-3.5 py-2.5 bg-white text-ink ${error ? "border-crim" : "border-line"} ${className}`} {...rest}>
+      <select ref={ref} className={`w-full border rounded-[11px] px-3.5 py-2.5 bg-surface text-ink ${error ? "border-crim" : "border-line"} ${className}`} {...rest}>
         {children}
       </select>
       {error && <p className="text-[11.5px] text-crim mt-1">{error}</p>}

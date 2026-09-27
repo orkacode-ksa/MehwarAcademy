@@ -9,16 +9,16 @@ type Tint = "mint" | "lav" | "peach" | "sky" | "none";
  * (الجداول والاستيراد والحضور) — بلا زجاج ولا تدرّج هناك مطلقًا.
  */
 const VARIANT: Record<Variant, string> = {
-  card: "bg-white border border-line rounded-rlg shadow-s1",
+  card: "bg-surface border border-line rounded-rlg shadow-s1",
   glass: "bg-[var(--glass)] backdrop-blur-[14px] border border-[var(--glass-br)] rounded-rlg shadow-s1",
-  work: "bg-white border border-line rounded-rsm",
+  work: "bg-surface border border-line rounded-rsm",
 };
 
 const TINT: Record<Tint, string> = {
-  mint: "bg-gradient-to-br from-mint to-[#F4FAF6]",
-  lav: "bg-gradient-to-br from-lav to-[#FBF7F1]",
-  peach: "bg-gradient-to-br from-peach to-[#FDF8F0]",
-  sky: "bg-gradient-to-br from-sky to-[#F4F8F5]",
+  mint: "bg-gradient-to-br from-mint to-surface",
+  lav: "bg-gradient-to-br from-lav to-surface",
+  peach: "bg-gradient-to-br from-peach to-surface",
+  sky: "bg-gradient-to-br from-sky to-surface",
   none: "",
 };
 

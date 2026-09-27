@@ -42,7 +42,7 @@ export function PaymentsPage() {
           ["إيراد هذا الشهر", sar(summary?.monthRevenue ?? 0)],
           ["طلبات مُفعَّلة هذا الشهر", formatNum(summary?.monthOrders ?? 0)],
         ].map(([l, v]) => (
-          <div key={l} className="bg-white border border-line rounded-[14px] p-3 text-center">
+          <div key={l} className="bg-surface border border-line rounded-[14px] p-3 text-center">
             <div className="text-[18px] font-semibold text-deep">{v}</div>
             <div className="text-[11.5px] text-ink-3">{l}</div>
           </div>

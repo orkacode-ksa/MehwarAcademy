@@ -91,7 +91,7 @@ export function IndexStep({ course, onChanged }: { course: Course; onChanged: ()
                       onClick={() => void toggleOutcome(t, o.code)}
                       dir="ltr"
                       className={`min-w-[44px] min-h-[32px] px-2 rounded-full text-[11.5px] font-semibold border ${
-                        on ? "bg-teal/[.14] border-teal/40 text-[#2C6B52]" : "bg-white border-line text-ink-3"
+                        on ? "bg-teal/[.14] border-teal/40 text-teal-text" : "bg-surface border-line text-ink-3"
                       }`}
                     >
                       {o.code}

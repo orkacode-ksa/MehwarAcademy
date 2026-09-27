@@ -18,11 +18,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 const VARIANT: Record<Variant, string> = {
   primary: "border-transparent bg-deep text-white shadow-s1 hover:bg-deep2 hover:-translate-y-px hover:shadow-s2",
-  secondary: "border-line bg-white/75 text-ink hover:bg-white hover:border-[#C6D3CB]",
+  secondary: "border-line bg-surface/75 text-ink hover:bg-surface hover:border-line-strong",
   text: "border-transparent text-deep px-[11px] hover:bg-deep/[.06]",
-  teal: "border-transparent bg-teal text-white hover:bg-[#26a094]",
-  gold: "border-transparent bg-gold2 text-[#22190C] font-semibold hover:bg-gold3 hover:-translate-y-0.5",
-  ghostLight: "border-white/[.34] bg-transparent text-white hover:bg-white/10 hover:border-white/50",
+  teal: "border-transparent bg-teal text-white hover:bg-teal/90",
+  gold: "border-transparent bg-gold2 text-on-gold font-semibold hover:bg-gold3 hover:-translate-y-0.5",
+  ghostLight: "border-white/[.34] bg-transparent text-white hover:bg-surface/10 hover:border-white/50",
 };
 
 const SIZE: Record<Size, string> = {

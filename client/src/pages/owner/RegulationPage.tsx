@@ -90,7 +90,7 @@ export function RegulationPage() {
         }
       />
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mb-4 flex flex-wrap items-center gap-2">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mb-4 flex flex-wrap items-center gap-2">
         <span className="text-[13px] text-ink-2 flex-1 min-w-[200px]">ابدأ من ملفات أساتذة الجامعة، أو من قالب جاهز — ثم راجع واحفظ.</span>
         <Button variant="gold" size="sm" disabled={busy} onClick={() => void extract()}>
           <Icon name="sparks" /> املأ من ملفات الأساتذة
@@ -111,7 +111,7 @@ export function RegulationPage() {
 
       {issue && <div className="mb-4 rounded-[11px] border border-crim/40 bg-crim/[.06] px-3.5 py-2.5 text-[13px] text-crim">{issue}</div>}
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mb-4">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mb-4">
         <h2 className="font-semibold text-[15px] mb-1">بنود ملف المقرر</h2>
         <p className="text-[12.5px] text-ink-3 mb-3">تتولّد منها قائمة «ما ينقص» في كل مقرر.</p>
         <div className="grid gap-2">
@@ -124,7 +124,7 @@ export function RegulationPage() {
                   items[i] = { ...item, label: e.target.value };
                   patch({ courseFileItems: items });
                 }}
-                className="flex-1 min-w-0 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+                className="flex-1 min-w-0 border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]"
               />
               <label className="flex items-center gap-1.5 text-[12.5px] text-ink-2 flex-none">
                 <input
@@ -166,7 +166,7 @@ export function RegulationPage() {
         </Button>
       </section>
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mb-4">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mb-4">
         <div className="flex items-baseline justify-between mb-1">
           <h2 className="font-semibold text-[15px]">توزيع الدرجات</h2>
           <span className={`text-[12.5px] font-medium ${weightTotal === 100 ? "text-teal" : "text-crim"}`}>
@@ -184,7 +184,7 @@ export function RegulationPage() {
                   list[i] = { ...c, label: e.target.value };
                   patch({ gradeScheme: list });
                 }}
-                className="flex-1 min-w-0 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+                className="flex-1 min-w-0 border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]"
               />
               <input
                 type="number"
@@ -196,7 +196,7 @@ export function RegulationPage() {
                   list[i] = { ...c, weight: Number(e.target.value) };
                   patch({ gradeScheme: list });
                 }}
-                className="w-20 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px] flex-none"
+                className="w-20 border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px] flex-none"
               />
               <button
                 type="button"
@@ -221,7 +221,7 @@ export function RegulationPage() {
         </Button>
       </section>
 
-      <section className="bg-white border border-line rounded-[14px] p-4">
+      <section className="bg-surface border border-line rounded-[14px] p-4">
         <h2 className="font-semibold text-[15px] mb-1">سياسة الغياب</h2>
         <p className="text-[12.5px] text-ink-3 mb-3">تُحسب عليها تنبيهات الغياب والحرمان.</p>
         <div className="flex flex-wrap gap-4">
@@ -233,7 +233,7 @@ export function RegulationPage() {
               max={100}
               value={form.absencePolicy.warnPercent}
               onChange={(e) => patch({ absencePolicy: { ...form.absencePolicy, warnPercent: Number(e.target.value) } })}
-              className="w-28 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+              className="w-28 border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]"
             />
           </label>
           <label className="block">
@@ -244,13 +244,13 @@ export function RegulationPage() {
               max={100}
               value={form.absencePolicy.banPercent}
               onChange={(e) => patch({ absencePolicy: { ...form.absencePolicy, banPercent: Number(e.target.value) } })}
-              className="w-28 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+              className="w-28 border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]"
             />
           </label>
         </div>
       </section>
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mt-4">
         <h2 className="font-semibold text-[15px] mb-1">أنواع المخالفات</h2>
         <p className="text-[12.5px] text-ink-3 mb-3">
           ما يسجّله الأستاذ على الطالب، بدرجته وإجرائه. «التصعيد بعد» = عدد مرات النوع نفسه التي تُعلَّم بعدها المخالفة مُصعَّدة.
@@ -265,15 +265,15 @@ export function RegulationPage() {
             };
             return (
               <div key={v.key} className="border border-line2 rounded-[12px] p-3 grid gap-2 sm:grid-cols-[1.4fr_1fr_1.6fr_90px_44px] sm:items-center [&>*]:min-w-0">
-                <input value={v.label} onChange={(e) => update({ label: e.target.value })} aria-label="اسم المخالفة" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
-                <select value={v.severity} onChange={(e) => update({ severity: e.target.value as typeof v.severity })} aria-label="الدرجة" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]">
+                <input value={v.label} onChange={(e) => update({ label: e.target.value })} aria-label="اسم المخالفة" className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
+                <select value={v.severity} onChange={(e) => update({ severity: e.target.value as typeof v.severity })} aria-label="الدرجة" className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]">
                   {VIOLATION_SEVERITIES.map((sv) => (
                     <option key={sv} value={sv}>
                       {SEVERITY_LABEL[sv]}
                     </option>
                   ))}
                 </select>
-                <input value={v.action ?? ""} onChange={(e) => update({ action: e.target.value || undefined })} placeholder="الإجراء" aria-label="الإجراء" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+                <input value={v.action ?? ""} onChange={(e) => update({ action: e.target.value || undefined })} placeholder="الإجراء" aria-label="الإجراء" className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
                 <input
                   type="number"
                   min={1}
@@ -281,7 +281,7 @@ export function RegulationPage() {
                   onChange={(e) => update({ escalateAfter: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="تصعيد"
                   aria-label="التصعيد بعد"
-                  className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]"
+                  className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]"
                 />
                 {v.key === "ABSENCE_BAN" ? (
                   <span />
@@ -309,7 +309,7 @@ export function RegulationPage() {
         </Button>
       </section>
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mt-4">
         <h2 className="font-semibold text-[15px] mb-1">مخالفات أعضاء هيئة التدريس</h2>
         <p className="text-[12.5px] text-ink-3 mb-3">
           من لائحة الجامعة. اربط المخالفة بمؤشر محسوب فيرى الأستاذ التزامه بها آليًا في «أدائي»؛ وغير المربوطة تُعرض للاطلاع.
@@ -323,9 +323,9 @@ export function RegulationPage() {
             };
             return (
               <div key={v.key} className="grid gap-2 sm:grid-cols-[1fr_160px_200px_44px] items-center border-b border-line2 pb-2 [&>*]:min-w-0">
-                <input value={v.label} aria-label="نص المخالفة" onChange={(e) => set({ label: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
-                <input value={v.category} aria-label="الفئة" placeholder="الفئة" onChange={(e) => set({ category: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13px]" />
-                <select value={v.check} aria-label="المؤشر المرتبط" onChange={(e) => set({ check: e.target.value as PerformanceKpiKey | "" })} className="border border-line rounded-[10px] px-2 py-2 bg-white text-[13px]">
+                <input value={v.label} aria-label="نص المخالفة" onChange={(e) => set({ label: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
+                <input value={v.category} aria-label="الفئة" placeholder="الفئة" onChange={(e) => set({ category: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]" />
+                <select value={v.check} aria-label="المؤشر المرتبط" onChange={(e) => set({ check: e.target.value as PerformanceKpiKey | "" })} className="border border-line rounded-[10px] px-2 py-2 bg-surface text-[13px]">
                   <option value="">بلا رصد آلي</option>
                   {(Object.keys(PERFORMANCE_KPIS) as PerformanceKpiKey[]).map((k) => (
                     <option key={k} value={k}>
@@ -355,7 +355,7 @@ export function RegulationPage() {
         </Button>
       </section>
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mt-4">
         <div className="flex items-baseline justify-between mb-1">
           <h2 className="font-semibold text-[15px]">مؤشرات تقييم الأداء</h2>
           <span className={`text-[12.5px] font-medium ${kpiTotal === 100 || form.performanceKpis.length === 0 ? "text-teal" : "text-crim"}`}>
@@ -382,7 +382,7 @@ export function RegulationPage() {
                     const others = form.performanceKpis.filter((k) => k.key !== key);
                     patch({ performanceKpis: weight > 0 ? [...others, { key, weight }] : others });
                   }}
-                  className="w-20 border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px] flex-none"
+                  className="w-20 border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px] flex-none"
                 />
               </div>
             );

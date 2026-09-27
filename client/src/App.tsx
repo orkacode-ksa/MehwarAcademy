@@ -28,6 +28,7 @@ import { AccountPage } from "./pages/account/AccountPage.js";
 import { NotificationsPage } from "./pages/common/NotificationsPage.js";
 import { FacultyHomePage } from "./pages/faculty/HomePage.js";
 import { TasksPage } from "./pages/faculty/TasksPage.js";
+import { LegalPage } from "./pages/legal/LegalPage.js";
 import { PlansPage } from "./pages/account/PlansPage.js";
 import { OrderPage } from "./pages/account/OrderPage.js";
 import { CvPage } from "./pages/account/CvPage.js";
@@ -52,6 +53,7 @@ export function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/guide" element={<GuidePage />} />
+        <Route path="/legal/:doc" element={<LegalPage />} />
         <Route path="/showcase" element={<ShowcasePage />} />
 
         <Route element={<AppShell />}>

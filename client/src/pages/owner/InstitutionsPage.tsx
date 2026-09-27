@@ -56,14 +56,14 @@ export function InstitutionsPage() {
       <PageHeader kicker="المالك" title="الجامعات" description="كل جامعة مستأجر مستقل بلائحته وتقويمه." />
       <PendingSubmissions />
 
-      <form onSubmit={create} className="bg-white border border-line rounded-[14px] p-4 mb-6 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form onSubmit={create} className="bg-surface border border-line rounded-[14px] p-4 mb-6 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <label className="block">
           <span className="block text-xs font-medium text-ink-2 mb-1.5">اسم الجامعة</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-line rounded-[11px] px-3.5 py-2.5 bg-white" placeholder="جامعة أم القرى" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-line rounded-[11px] px-3.5 py-2.5 bg-surface" placeholder="جامعة أم القرى" />
         </label>
         <label className="block">
           <span className="block text-xs font-medium text-ink-2 mb-1.5">المعرّف</span>
-          <input value={slug} onChange={(e) => setSlug(e.target.value)} dir="ltr" className="w-full border border-line rounded-[11px] px-3.5 py-2.5 bg-white text-start" placeholder="uqu" />
+          <input value={slug} onChange={(e) => setSlug(e.target.value)} dir="ltr" className="w-full border border-line rounded-[11px] px-3.5 py-2.5 bg-surface text-start" placeholder="uqu" />
         </label>
         <Button type="submit" variant="primary" disabled={busy}>
           <Icon name="plus" /> إضافة
@@ -77,7 +77,7 @@ export function InstitutionsPage() {
 
       <div className="grid gap-3">
         {data?.map((inst) => (
-          <div key={inst.id} className="bg-white border border-line rounded-[14px] p-4">
+          <div key={inst.id} className="bg-surface border border-line rounded-[14px] p-4">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="min-w-0">
                 <div className="font-semibold text-[15px] truncate">{inst.name}</div>
@@ -138,7 +138,7 @@ function PendingSubmissions() {
   if (!count) return null;
   return (
     <Link to="/osubmissions" className="mb-4 flex items-center gap-3 rounded-[14px] border border-gold2/40 bg-gold2/[.08] p-3.5 text-[13.5px] min-h-[48px]">
-      <Icon name="file" className="w-5 h-5 text-[#7C6134] flex-none" />
+      <Icon name="file" className="w-5 h-5 text-gold-text flex-none" />
       <span className="flex-1">
         {formatNum(count)} ملفًا من لوائح الجامعات بانتظار مراجعتك ({formatNum(data?.length ?? 0)} جامعة)
       </span>

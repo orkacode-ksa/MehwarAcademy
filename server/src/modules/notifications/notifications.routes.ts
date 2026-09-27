@@ -3,6 +3,23 @@ import { requireAuth } from "../../middleware/auth.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../lib/AppError.js";
 import * as service from "./notifications.service.js";
+import { getPlatformSettings } from "../platform/settings.js";
+import { raw } from "express";
+import { changePasswordSchema, profileUpdateSchema, userPrefsSchema } from "@mihwar/shared";
+import { validate } from "../../middleware/validate.js";
+import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
+import { clearAuthCookies } from "../../lib/cookies.js";
+import * as account from "../account/account.service.js";
+
+/** معلومات عامة بلا دخول (صفحات الخصوصية والشروط): بريد الدعم فقط. */
+export const publicRouter = Router();
+publicRouter.get(
+  "/contact",
+  asyncHandler(async (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json({ success: true, data: { email: (await getPlatformSettings()).contactEmail } });
+  }),
+);
 
 /** ما يخص المستخدم نفسه أيًّا كان دوره: إشعاراته وشريط النظام. */
 export const meRouter = Router();
@@ -27,5 +44,60 @@ meRouter.get(
   asyncHandler(async (req, res) => {
     const a = who(req);
     res.json({ success: true, data: await service.strip(a.tenantId, a.role) });
+  }),
+);
+
+// ── حسابي: البيانات الشخصية · التفضيلات · الصورة · كلمة المرور ──
+meRouter.put(
+  "/profile",
+  validate({ body: profileUpdateSchema }),
+  asyncHandler(async (req, res) => {
+    await account.updateProfile(who(req).userId, req.body);
+    res.json({ success: true, data: null });
+  }),
+);
+meRouter.put(
+  "/prefs",
+  validate({ body: userPrefsSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await account.updatePrefs(who(req).userId, req.body) });
+  }),
+);
+meRouter.post(
+  "/password",
+  sensitiveRateLimit((req) => (req as { auth?: { userId: string } }).auth?.userId),
+  validate({ body: changePasswordSchema }),
+  asyncHandler(async (req, res) => {
+    await account.changePassword(who(req).userId, req.body.current, req.body.next);
+    clearAuthCookies(res);
+    res.json({ success: true, data: null });
+  }),
+);
+meRouter.post(
+  "/avatar",
+  raw({ limit: account.AVATAR_MAX + 1024, type: () => true }),
+  asyncHandler(async (req, res) => {
+    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    res.json({ success: true, data: { avatarUrl: await account.setAvatar(who(req).userId, body) } });
+  }),
+);
+meRouter.delete(
+  "/avatar",
+  asyncHandler(async (req, res) => {
+    await account.removeAvatar(who(req).userId);
+    res.json({ success: true, data: null });
+  }),
+);
+/** صورة صاحب الجلسة وحده — تُخزَّن في متصفحه (الرابط يحمل النسخة). */
+meRouter.get(
+  "/avatar",
+  asyncHandler(async (req, res) => {
+    const a = await account.readAvatar(who(req).userId);
+    if (!a) throw AppError.notFound("لا صورة");
+    res.setHeader("Content-Type", a.mime);
+    res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Security-Policy", "default-src 'none'");
+    res.send(a.data);
   }),
 );

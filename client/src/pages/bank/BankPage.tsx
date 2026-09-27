@@ -41,7 +41,7 @@ export function BankPage() {
               type="button"
               aria-pressed={spec === s.name}
               onClick={() => setSpec(s.name)}
-              className={`min-h-[36px] px-3 rounded-full text-[12.5px] border ${spec === s.name ? "bg-deep text-white border-deep" : "bg-white border-line text-ink-2"}`}
+              className={`min-h-[36px] px-3 rounded-full text-[12.5px] border ${spec === s.name ? "bg-deep text-white border-deep" : "bg-surface border-line text-ink-2"}`}
             >
               {s.name || "الكل"}
               {s.count ? ` · ${formatNum(s.count)}` : ""}
@@ -54,7 +54,7 @@ export function BankPage() {
       {data?.courses.length === 0 && <p className="text-sm text-ink-3 py-8 text-center">لا مقررات منشورة {q || spec ? "بهذا البحث" : "بعد"}.</p>}
       <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
         {data?.courses.map((c) => (
-          <Link key={c.id} to={`/bank/${c.id}`} className="block bg-white border border-line rounded-[14px] p-4 hover:border-[#C6D3CB] hover:shadow-s1">
+          <Link key={c.id} to={`/bank/${c.id}`} className="block bg-surface border border-line rounded-[14px] p-4 hover:border-line-strong hover:shadow-s1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="font-semibold text-[15px] truncate">{c.title}</div>

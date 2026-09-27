@@ -5,6 +5,7 @@ import {
   BookOpen,
   Calendar,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
@@ -13,8 +14,10 @@ import {
   CreditCard,
   Download,
   Ellipsis,
+  Eye,
   FileText,
   FlaskConical,
+  Globe,
   GraduationCap,
   LayoutGrid,
   Lock,
@@ -83,6 +86,9 @@ export type IconName =
   | "sparks"
   | "user"
   | "megaphone"
+  | "globe"
+  | "eye"
+  | "chevd"
   | "more";
 
 const MAP: Record<Exclude<IconName, "logo">, LucideIcon> = {
@@ -122,6 +128,9 @@ const MAP: Record<Exclude<IconName, "logo">, LucideIcon> = {
   sparks: Sparkles,
   user: User,
   megaphone: Megaphone,
+  globe: Globe,
+  eye: Eye,
+  chevd: ChevronDown,
   more: Ellipsis,
 };
 

@@ -67,4 +67,70 @@
   --sky-rgb: 228 237 232;
   --ink3-text-rgb: 100 114 104;
   --gold-text-rgb: 133 101 57;
+
+  /* رموز كانت ألوانًا صلبة مبعثرة في المكوّنات (#2C6B52 · #963C34 · #C6D3CB · #FAFCFA …) —
+     صارت رموزًا ليقلبها النمط الداكن مع غيرها بدل أن تبقى فاتحة فوق خلفية داكنة. */
+  --teal-text-rgb: 44 107 82;
+  --crim-text-rgb: 150 60 52;
+  --line-strong-rgb: 198 211 203;
+  --paper-rgb: 248 251 248;
+  --on-gold-rgb: 34 25 12;
+  /* الأخضر العميق نصًّا (روابط وأرقام) — في الفاتح هو --deep نفسه، وفي الداكن أفتح منه ليُقرأ */
+  --deep-text-rgb: 15 71 57;
+  color-scheme: light;
+}
+
+/* ── النمط الداكن ──
+   ليس «عكس ألوان»: أسطح خضراء-رمادية داكنة (لا أسود صافٍ يُتعب العين مع النص الأبيض)،
+   والأخضر المصمت للأزرار يبقى داكنًا بما يكفي لنص أبيض (تباين ≥ 4.5)، بينما الأخضر
+   المستخدم نصًّا (text-deep) يُفتَّح ليُقرأ على السطح الداكن. */
+:root[data-theme="dark"] {
+  --canvas: #0e1412;
+  --surface: #161f1b;
+  --glass: rgba(22, 31, 27, 0.78);
+  --glass-br: rgba(255, 255, 255, 0.06);
+  --deep: #1c6f55;
+  --deep2: #23805f;
+  --deep3: #2a8f6c;
+  --teal: #4fb389;
+  --crim: #e0776c;
+  --ink: #e4ece8;
+  --ink2: #b4c1bb;
+  --ink3: #7f8d87;
+  --line: #2a3531;
+  --line2: #1f2925;
+  --s1: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --s2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --s3: 0 18px 50px rgba(0, 0, 0, 0.55);
+
+  --canvas-rgb: 14 20 18;
+  --surface-rgb: 22 31 27;
+  --deep-rgb: 28 111 85;
+  --deep2-rgb: 35 128 95;
+  --deep3-rgb: 42 143 108;
+  --teal-rgb: 79 179 137;
+  --crim-rgb: 224 119 108;
+  --ink-rgb: 228 236 232;
+  --ink2-rgb: 180 193 187;
+  --ink3-rgb: 127 141 135;
+  --line-rgb: 42 53 49;
+  --line2-rgb: 31 41 37;
+  --mint-rgb: 27 46 38;
+  --lav-rgb: 45 40 31;
+  --peach-rgb: 48 39 26;
+  --sky-rgb: 26 38 34;
+  --ink3-text-rgb: 150 165 158;
+  --gold-text-rgb: 214 175 115;
+  --teal-text-rgb: 111 201 160;
+  --crim-text-rgb: 240 150 140;
+  --line-strong-rgb: 62 78 71;
+  --paper-rgb: 19 27 24;
+  --deep-text-rgb: 120 205 168;
+  color-scheme: dark;
+}
+/* text-deep (روابط · أرقام · أيقونات) يقرأ رمز النص لا رمز التعبئة */
+:root[data-theme="dark"] .text-deep,
+:root[data-theme="dark"] .hover\:text-deep:hover,
+:root[data-theme="dark"] .group:hover .group-hover\:text-deep {
+  color: rgb(var(--deep-text-rgb));
 }

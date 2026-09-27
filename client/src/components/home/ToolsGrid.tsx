@@ -26,7 +26,7 @@ const TOOLS: Tool[] = [
 
 export function ToolsGrid() {
   return (
-    <div className="grid grid-cols-2 min-[820px]:grid-cols-4 gap-2.5 sm:gap-3">
+    <div className="tools-grid grid grid-cols-2 min-[820px]:grid-cols-4 gap-2.5 sm:gap-3">
       {TOOLS.map((t) => (
         <Link
           key={t.to}

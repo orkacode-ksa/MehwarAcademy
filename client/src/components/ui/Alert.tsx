@@ -5,9 +5,9 @@ type Tone = "amber" | "teal" | "crimson";
 
 /** يطابق .alert + .aa/.at/.ac من البروتوتايب */
 const TONE: Record<Tone, { box: string; ic: string }> = {
-  amber: { box: "bg-gold2/[.09] border-gold2/30", ic: "bg-gold2/[.18] text-[#7C6134]" },
-  teal: { box: "bg-teal/[.08] border-teal/[.26]", ic: "bg-teal/[.14] text-[#2C6B52]" },
-  crimson: { box: "bg-crim/[.06] border-crim/[.22]", ic: "bg-crim/[.12] text-[#963C34]" },
+  amber: { box: "bg-gold2/[.09] border-gold2/30", ic: "bg-gold2/[.18] text-gold-text" },
+  teal: { box: "bg-teal/[.08] border-teal/[.26]", ic: "bg-teal/[.14] text-teal-text" },
+  crimson: { box: "bg-crim/[.06] border-crim/[.22]", ic: "bg-crim/[.12] text-crim-text" },
 };
 
 interface AlertProps {

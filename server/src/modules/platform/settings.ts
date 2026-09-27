@@ -9,6 +9,8 @@ import { prismaBase } from "../../lib/prisma.js";
 export const platformSettingsSchema = z
   .object({
     trialDays: z.coerce.number().int().min(0).max(365).default(30),
+    /** بريد الدعم المعلن في «عن مِحوَر» وسياسة الخصوصية — فارغ = لا يُعرض. */
+    contactEmail: z.string().trim().email().max(120).nullable().default(null),
     ai: z
       .object({
         /** سقف إنفاق المحرّك في الشهر (ر.س). عند بلوغه يتوقف التوليد والمساعد حتى أول الشهر. */

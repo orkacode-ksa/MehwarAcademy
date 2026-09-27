@@ -183,7 +183,7 @@ export function ShowcasePage() {
             <TableScroll minWidth={520}>
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-[#FAFCFA]">
+                  <tr className="bg-paper">
                     <th className="text-end px-3 py-2 text-[11px] font-semibold text-ink-2 border-b border-line whitespace-nowrap">
                       الرقم الجامعي
                     </th>
@@ -191,7 +191,7 @@ export function ShowcasePage() {
                       الاسم
                     </th>
                     <th className="px-3 py-2 text-[11px] font-semibold text-ink-2 border-b border-line whitespace-nowrap">نصفي</th>
-                    <th className="px-3 py-2 text-[11px] font-semibold text-ink-2 border-b border-line whitespace-nowrap bg-[#EAF0EA]">
+                    <th className="px-3 py-2 text-[11px] font-semibold text-ink-2 border-b border-line whitespace-nowrap bg-line-2">
                       المجموع
                     </th>
                   </tr>
@@ -201,7 +201,7 @@ export function ShowcasePage() {
                     <TdId>٤٤٤١٠١٢٣٨</TdId>
                     <td className="px-3 py-2 border-b border-line-2 text-[13px]">عبدالرحمن سالم الزهراني</td>
                     <TdNum>١٩</TdNum>
-                    <TdNum className="bg-[#F2F6F2] font-semibold text-deep">٨٨</TdNum>
+                    <TdNum className="bg-paper font-semibold text-deep">٨٨</TdNum>
                   </tr>
                 </tbody>
               </table>

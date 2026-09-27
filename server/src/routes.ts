@@ -10,7 +10,7 @@ import { integrationsRouter } from "./modules/integrations/integrations.routes.j
 import { profileRouter } from "./modules/profile/profile.routes.js";
 import { universityRouter } from "./modules/university/university.routes.js";
 import { assistantRouter } from "./modules/assistant/assistant.routes.js";
-import { meRouter } from "./modules/notifications/notifications.routes.js";
+import { meRouter, publicRouter } from "./modules/notifications/notifications.routes.js";
 
 export const router = Router();
 
@@ -27,3 +27,4 @@ router.use("/profile", profileRouter);
 router.use("/university", universityRouter);
 router.use("/assistant", assistantRouter);
 router.use("/me", meRouter);
+router.use("/public", publicRouter);

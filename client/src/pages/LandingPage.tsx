@@ -65,7 +65,7 @@ export function LandingPage() {
         />
         <div className="relative max-w-[1160px] mx-auto px-4 sm:px-[26px] text-center">
           <Reveal>
-            <span className="inline-flex items-center gap-2 px-[15px] py-1.5 rounded-full bg-white/10 border border-white/20 text-[12.5px] font-medium mb-6">
+            <span className="inline-flex items-center gap-2 px-[15px] py-1.5 rounded-full bg-surface/10 border border-white/20 text-[12.5px] font-medium mb-6">
               <Icon name="sparks" className="w-4 h-4 text-gold3" /> منصة عربية لإدارة المقرر الأكاديمي وملف الجودة
             </span>
           </Reveal>
@@ -95,14 +95,14 @@ export function LandingPage() {
           <p className="text-xs text-white/60 mt-4">دون بطاقة ائتمانية · إلغاء في أي وقت · وصول الطلاب مجاني دائماً</p>
 
           <Reveal className="mt-[46px] pb-0">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-t-[22px] p-3 pb-0 shadow-[0_-8px_60px_rgba(0,0,0,.2)]">
-              <div className="flex items-center gap-1.5 px-[15px] py-[11px] bg-white rounded-t-[13px] border-b border-line">
+            <div className="bg-surface/10 backdrop-blur-md border border-white/20 rounded-t-[22px] p-3 pb-0 shadow-[0_-8px_60px_rgba(0,0,0,.2)]">
+              <div className="flex items-center gap-1.5 px-[15px] py-[11px] bg-surface rounded-t-[13px] border-b border-line">
                 <i className="w-2.5 h-2.5 rounded-full bg-line" />
                 <i className="w-2.5 h-2.5 rounded-full bg-line" />
                 <i className="w-2.5 h-2.5 rounded-full bg-line" />
                 <span className="text-[11.5px] text-ink-3 ms-2.5">لوحة عضو هيئة التدريس</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-5 bg-white">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-5 bg-surface">
                 {COURSES.slice(0, 3).map((c) => (
                   <div key={c.id} className="flex gap-3.5 items-center p-3.5 rounded-rmd border border-line text-start text-ink">
                     <CourseRing syllabus={c.syl} quality={c.q} assessments={c.as} size={78} />
@@ -155,7 +155,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="py-[52px] sm:py-[78px] bg-white border-y border-line" id="how">
+      <section className="py-[52px] sm:py-[78px] bg-surface border-y border-line" id="how">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
             <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">آلية العمل</span>
@@ -203,7 +203,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="py-[52px] sm:py-[78px] bg-white border-y border-line" id="price">
+      <section className="py-[52px] sm:py-[78px] bg-surface border-y border-line" id="price">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
             <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">الاشتراك</span>

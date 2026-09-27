@@ -24,7 +24,7 @@ interface DataTableProps<T> {
   empty?: string;
 }
 
-const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-[#FAFCFA] border-b border-line whitespace-nowrap sticky top-0 z-[2]";
+const th = "px-3 py-2 text-[11px] font-semibold text-ink-2 bg-paper border-b border-line whitespace-nowrap sticky top-0 z-[2]";
 
 /**
  * جدول بيانات بوضعين.
@@ -49,7 +49,7 @@ export function DataTable<T>({ rows, columns, rowKey, minWidth = 640, maxHeight,
     return (
       <div className="grid gap-2 p-2.5">
         {rows.map((row) => (
-          <div key={rowKey(row)} className="rounded-rmd border border-line bg-white p-3">
+          <div key={rowKey(row)} className="rounded-rmd border border-line bg-surface p-3">
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
                 {title && <div className="text-[13px] font-semibold">{title.cell(row)}</div>}
@@ -88,7 +88,7 @@ export function DataTable<T>({ rows, columns, rowKey, minWidth = 640, maxHeight,
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={rowKey(row)} className="hover:bg-[#F9FBF9]">
+              <tr key={rowKey(row)} className="hover:bg-paper">
                 {columns.map((c) => (
                   <td
                     key={c.key}

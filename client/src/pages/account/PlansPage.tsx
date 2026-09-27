@@ -33,7 +33,7 @@ export function PlansPage() {
   return (
     <>
       <PageHeader title="الباقات" description="الأسعار شاملة الضريبة. الدفع بتحويل بنكي، والتفعيل فور التأكّد من وصول المبلغ." />
-      <div className="inline-flex rounded-[12px] border border-line bg-white p-1 mb-4" role="group" aria-label="مدة الاشتراك">
+      <div className="inline-flex rounded-[12px] border border-line bg-surface p-1 mb-4" role="group" aria-label="مدة الاشتراك">
         {[false, true].map((y) => (
           <button
             key={String(y)}
@@ -53,7 +53,7 @@ export function PlansPage() {
           const price = yearly ? p.priceYearly : p.priceMonthly;
           const vip = p.code === "MIHWAR_PRO";
           return (
-            <section key={p.id} className={`bg-white border rounded-[14px] p-4 flex flex-col ${vip ? "border-gold2 shadow-s1" : "border-line"}`}>
+            <section key={p.id} className={`bg-surface border rounded-[14px] p-4 flex flex-col ${vip ? "border-gold2 shadow-s1" : "border-line"}`}>
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold text-[16px]">{p.nameAr}</h2>
                 {vip && <span className="text-[11px] font-semibold text-gold-text">الأكثر قيمة</span>}

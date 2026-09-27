@@ -71,7 +71,7 @@ export function CoursesPage() {
           <Link
             key={c.id}
             to={`/course/${c.id}`}
-            className="block bg-white border border-line rounded-[14px] p-4 hover:border-[#C6D3CB] hover:shadow-s1 transition-all"
+            className="block bg-surface border border-line rounded-[14px] p-4 hover:border-line-strong hover:shadow-s1 transition-all"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -111,7 +111,7 @@ export function CoursesPage() {
 
 interface Suggestion { code: string; nameAr: string; creditHours: number | null; hasLab: boolean | null }
 
-const field = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px]";
+const field = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface text-[13.5px]";
 
 /**
  * مقرر جديد بأقل كتابة: الفصل يُختار وحده إن كان واحدًا، والساعات أزرار، والرمز والاسم
@@ -176,7 +176,7 @@ function NewCourseForm({
   const term = terms.find((t) => t.id === v.semesterId);
 
   return (
-    <section className="bg-white border border-line rounded-[14px] p-4 mb-5">
+    <section className="bg-surface border border-line rounded-[14px] p-4 mb-5">
       <h2 className="font-semibold text-[15px] mb-3">مقرر جديد</h2>
 
       {terms.length === 0 ? (

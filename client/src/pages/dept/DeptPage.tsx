@@ -37,7 +37,7 @@ export function DeptPage() {
               ["اكتمل تجهيزها", data.summary.ready],
               ["اكتمل ملفها", data.summary.filesComplete],
             ].map(([label, n]) => (
-              <div key={label} className="bg-white border border-line rounded-[14px] p-3.5 text-center">
+              <div key={label} className="bg-surface border border-line rounded-[14px] p-3.5 text-center">
                 <div className="text-[22px] font-semibold text-deep">{formatNum(n as number)}</div>
                 <div className="text-[12px] text-ink-3">{label}</div>
               </div>
@@ -63,7 +63,7 @@ export function DeptPage() {
             ))}
           </div>
 
-          <p className="mt-5 rounded-[11px] border border-line bg-white px-3.5 py-3 text-[12.5px] text-ink-2 leading-6">
+          <p className="mt-5 rounded-[11px] border border-line bg-surface px-3.5 py-3 text-[12.5px] text-ink-2 leading-6">
             <b>ما لا تعرضه هذه الشاشة:</b> درجة أي طالب · كشف أي شعبة · محتوى المحاضرات · مؤشر أداء الأستاذ. هذا وعد مكتوب
             لأعضاء هيئة التدريس.
           </p>

@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
+import { assetUrl } from "../../api/client.js";
 import { SystemStrip } from "./SystemStrip.js";
 import { greetingFor } from "../../mock/session.js";
 import { initialOf, logout, useSession } from "../../hooks/useSession.js";
@@ -31,7 +32,7 @@ export function Topbar() {
       <div className="flex items-center gap-3 mt-3.5">
         <Link to="/account" aria-label="حسابي — تعديل الملف الشخصي" className="relative flex-none group">
           {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" className="w-11 h-11 rounded-full object-cover shadow-s1" />
+            <img src={assetUrl(user.avatarUrl)} alt="" className="w-11 h-11 rounded-full object-cover shadow-s1" />
           ) : (
             <span aria-hidden className="w-11 h-11 rounded-full grid place-items-center text-white font-semibold text-[14px] bg-gradient-to-br from-deep to-deep3 shadow-s1">
               {name ? initialOf(name) : ""}
@@ -61,7 +62,7 @@ export function Topbar() {
           </button>
           {canBack && (
             <button type="button" aria-label="رجوع" className={iconBtn} onClick={() => navigate(-1)}>
-              <Icon name="arrl" className="w-[18px] h-[18px]" />
+              <Icon name="arr" className="w-[18px] h-[18px]" />
             </button>
           )}
         </div>

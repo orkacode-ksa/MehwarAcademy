@@ -68,7 +68,7 @@ export function TodayPage() {
       {error && <p className="text-sm text-crim">{error}</p>}
 
       {data && data.lectures.length === 0 && (
-        <section className="bg-white border border-line rounded-[14px] p-6 text-center">
+        <section className="bg-surface border border-line rounded-[14px] p-6 text-center">
           <p className="text-[14.5px] font-medium">{data.reason}</p>
           {data.next && (
             <p className="text-[13px] text-ink-3 mt-2">
@@ -89,7 +89,7 @@ export function TodayPage() {
         {data?.lectures.map((l) => {
           const done = !!l.session?.endedAt;
           return (
-            <section key={l.sectionId} className="bg-white border border-line rounded-[14px] p-4">
+            <section key={l.sectionId} className="bg-surface border border-line rounded-[14px] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-[12.5px] text-ink-3">
@@ -221,7 +221,7 @@ function SessionView({ lecture, onClose }: { lecture: Lecture; onClose: () => vo
 
       {data && (
         <>
-          <section className="bg-white border border-line rounded-[14px] p-4">
+          <section className="bg-surface border border-line rounded-[14px] p-4">
             <div className="flex items-baseline justify-between gap-3 mb-3">
               <h2 className="font-semibold text-[15px]">① الحضور</h2>
               <span className="text-[12.5px] text-ink-3">
@@ -251,7 +251,7 @@ function SessionView({ lecture, onClose }: { lecture: Lecture; onClose: () => vo
                         setSaved(false);
                       }}
                       className={`w-full min-h-[48px] flex items-center gap-3 border rounded-[10px] px-3 py-2 text-start transition-colors ${
-                        s === "ABSENT" ? "border-crim/40 bg-crim/[.05]" : "border-line2 bg-white hover:bg-deep/[.03]"
+                        s === "ABSENT" ? "border-crim/40 bg-crim/[.05]" : "border-line2 bg-surface hover:bg-deep/[.03]"
                       }`}
                     >
                       <span className="flex-1 min-w-0">
@@ -293,7 +293,7 @@ function SessionView({ lecture, onClose }: { lecture: Lecture; onClose: () => vo
             )}
           </section>
 
-          <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+          <section className="bg-surface border border-line rounded-[14px] p-4 mt-4">
             <h2 className="font-semibold text-[15px] mb-2">② المادة</h2>
             {!data.session?.topic && <p className="text-[13px] text-ink-3">لا موضوع مرتبط بهذه المحاضرة.</p>}
             {data.session?.topic && (materials?.length ?? 0) === 0 && (

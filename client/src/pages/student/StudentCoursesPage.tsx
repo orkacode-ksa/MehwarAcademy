@@ -25,7 +25,7 @@ export function StudentCoursesPage() {
       {data?.length === 0 && <p className="text-sm text-ink-3 py-8 text-center">لست مسجّلاً في مقرر بعد.</p>}
       <div className="grid gap-3 [&>*]:min-w-0">
         {data?.map((c) => (
-          <Link key={c.courseId} to={`/scourse/${c.courseId}`} className="block bg-white border border-line rounded-[14px] p-4 hover:border-[#C6D3CB] hover:shadow-s1">
+          <Link key={c.courseId} to={`/scourse/${c.courseId}`} className="block bg-surface border border-line rounded-[14px] p-4 hover:border-line-strong hover:shadow-s1">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-semibold text-[15.5px] truncate">{c.nameAr}</div>

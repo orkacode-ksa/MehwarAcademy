@@ -80,21 +80,21 @@ export function CalendarPage() {
 
       {issue && <div className="mb-4 rounded-[11px] border border-crim/40 bg-crim/[.06] px-3.5 py-2.5 text-[13px] text-crim">{issue}</div>}
 
-      <section className="bg-white border border-line rounded-[14px] p-4 mb-5">
+      <section className="bg-surface border border-line rounded-[14px] p-4 mb-5">
         <h2 className="font-semibold text-[15px] mb-3">سنة أكاديمية</h2>
         {/* لكل حقل عنوانه: ثلاثة حقول تاريخ متجاورة بلا عناوين تجعل المستخدم يخمّن أيّها أيّ. */}
         <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
           <label className="block min-w-0">
             <span className="block text-[11.5px] text-ink-3 mb-1">اسم السنة</span>
-            <input value={year.label} onChange={(e) => setYear({ ...year, label: e.target.value })} placeholder="1447هـ" className="w-full border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+            <input value={year.label} onChange={(e) => setYear({ ...year, label: e.target.value })} placeholder="1447هـ" className="w-full border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
           </label>
           <label className="block">
             <span className="block text-[11.5px] text-ink-3 mb-1">البداية</span>
-            <input type="date" value={year.startDate} onChange={(e) => setYear({ ...year, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+            <input type="date" value={year.startDate} onChange={(e) => setYear({ ...year, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
           </label>
           <label className="block">
             <span className="block text-[11.5px] text-ink-3 mb-1">النهاية</span>
-            <input type="date" value={year.endDate} onChange={(e) => setYear({ ...year, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+            <input type="date" value={year.endDate} onChange={(e) => setYear({ ...year, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
           </label>
           <Button variant="secondary" onClick={addYear}><Icon name="plus" /> أضف السنة</Button>
         </div>
@@ -108,7 +108,7 @@ export function CalendarPage() {
 
           <div className="grid gap-3">
             {y.semesters.map((t) => (
-              <div key={t.id} className="bg-white border border-line rounded-[14px] p-4">
+              <div key={t.id} className="bg-surface border border-line rounded-[14px] p-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <div className="font-semibold text-[14.5px]">{t.label}</div>
@@ -194,10 +194,10 @@ function HolidayForm({ onAdd }: { onAdd: (body: { label: string; startDate: stri
   const complete = v.label.length >= 2 && v.startDate !== "" && v.endDate !== "";
   return (
     <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center mt-2.5">
-      <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} placeholder="إجازة منتصف الفصل" className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13px] min-w-0" />
-      <input type="date" value={v.startDate} onChange={(e) => setV({ ...v, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13px]" />
-      <input type="date" value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13px]" />
-      <select value={v.kind} onChange={(e) => setV({ ...v, kind: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13px]">
+      <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} placeholder="إجازة منتصف الفصل" className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px] min-w-0" />
+      <input type="date" value={v.startDate} onChange={(e) => setV({ ...v, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]" />
+      <input type="date" value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]" />
+      <select value={v.kind} onChange={(e) => setV({ ...v, kind: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]">
         <option value="HOLIDAY">إجازة</option>
         <option value="EXAMS">اختبارات</option>
       </select>
@@ -248,24 +248,24 @@ function TermForm({
   }
 
   return (
-    <div className="mt-3 bg-white border border-line rounded-[14px] p-4">
+    <div className="mt-3 bg-surface border border-line rounded-[14px] p-4">
       <h3 className="font-semibold text-[14px] mb-3">فصل جديد في {yearLabel}</h3>
       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
         <label className="block min-w-0">
           <span className="block text-[11.5px] text-ink-3 mb-1">اسم الفصل</span>
-          <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} placeholder="الفصل الأول" className="w-full border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+          <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} placeholder="الفصل الأول" className="w-full border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
         </label>
         <label className="block">
           <span className="block text-[11.5px] text-ink-3 mb-1">البداية</span>
-          <input type="date" value={v.startDate} onChange={(e) => setV({ ...v, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+          <input type="date" value={v.startDate} onChange={(e) => setV({ ...v, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
         </label>
         <label className="block">
           <span className="block text-[11.5px] text-ink-3 mb-1">النهاية</span>
-          <input type="date" value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+          <input type="date" value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
         </label>
         <label className="block">
           <span className="block text-[11.5px] text-ink-3 mb-1">قفل الرصد</span>
-          <input type="date" value={v.gradeLockAt} onChange={(e) => setV({ ...v, gradeLockAt: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+          <input type="date" value={v.gradeLockAt} onChange={(e) => setV({ ...v, gradeLockAt: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
         </label>
         <Button variant="secondary" onClick={() => void submit()}>
           <Icon name="plus" /> أضف الفصل

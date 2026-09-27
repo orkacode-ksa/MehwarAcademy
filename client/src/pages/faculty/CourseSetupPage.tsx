@@ -75,7 +75,7 @@ export function CourseSetupPage() {
                     ? "border-deep bg-deep text-white"
                     : s.done
                       ? "border-teal/40 bg-teal/[.10] text-ink"
-                      : "border-line bg-white text-ink-2"
+                      : "border-line bg-surface text-ink-2"
                 }`}
               >
                 <div className={`text-[11px] ${active ? "text-white/75" : "text-ink-3"}`}>

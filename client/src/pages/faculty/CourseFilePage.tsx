@@ -46,7 +46,7 @@ export function CourseFilePage() {
 
       <ul className="grid gap-2">
         {data?.items.map((i) => (
-          <li key={i.key} className="bg-white border border-line rounded-[12px] p-3.5 flex items-start gap-3">
+          <li key={i.key} className="bg-surface border border-line rounded-[12px] p-3.5 flex items-start gap-3">
             <span className={`mt-0.5 w-6 h-6 rounded-full grid place-items-center flex-none text-[12px] ${i.done ? "bg-teal text-white" : "bg-line text-ink-3"}`}>
               {i.done ? "✓" : ""}
             </span>

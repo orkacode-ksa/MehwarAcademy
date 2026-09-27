@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import type { UserPrefs } from "@mihwar/shared";
 import { api } from "../api/client.js";
+import { apply } from "../lib/prefs.js";
 
 export interface SessionUser {
   id: string;
@@ -10,6 +12,8 @@ export interface SessionUser {
   tenantId: string;
   /** صورة الملف الشخصي — رابط ملف أو null (تُعرض الأحرف الأولى بدلها) */
   avatarUrl?: string | null;
+  phone?: string | null;
+  prefs?: UserPrefs;
   workspaceMemberships: { workspaceId: string }[];
 }
 
@@ -23,7 +27,14 @@ export interface SessionUser {
 let shared: Promise<SessionUser | null> | null = null;
 
 function load(): Promise<SessionUser | null> {
-  shared ??= api.get<SessionUser>("/auth/me").catch(() => null);
+  shared ??= api
+    .get<SessionUser>("/auth/me")
+    .then((u) => {
+      // تفضيلات الحساب تغلب المحفوظ في هذا المتصفح — اختارها على جهاز آخر فتتبعه هنا.
+      if (u?.prefs) apply(u.prefs);
+      return u;
+    })
+    .catch(() => null);
   return shared;
 }
 
@@ -32,9 +43,24 @@ export function resetSession(): void {
   shared = null;
 }
 
+/** بعد تعديل الاسم أو الصورة: يُعاد جلب المستخدم ويُبلَّغ كل من يعرضه (الرأس). */
+const listeners = new Set<(u: SessionUser | null) => void>();
+export async function refreshSession(): Promise<void> {
+  shared = null;
+  const u = await load();
+  listeners.forEach((f) => f(u));
+}
+
 export function useSession(): { user: SessionUser | null; loading: boolean } {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    listeners.add(setUser);
+    return () => {
+      listeners.delete(setUser);
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;

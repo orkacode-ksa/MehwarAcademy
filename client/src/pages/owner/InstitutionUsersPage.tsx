@@ -24,7 +24,7 @@ export function InstitutionUsersPage() {
       {data && teachers.length === 0 && <p className="text-sm text-ink-3">لا أعضاء بعد — أعطِ الأساتذة رمز الجامعة ليسجّلوا به.</p>}
       <ul className="grid gap-2">
         {teachers.map((u) => (
-          <li key={u.id} className="bg-white border border-line rounded-[12px] p-3.5 flex items-center gap-3 flex-wrap">
+          <li key={u.id} className="bg-surface border border-line rounded-[12px] p-3.5 flex items-center gap-3 flex-wrap">
             <span className="flex-1 min-w-0">
               <span className="block text-[14px] font-medium truncate">{u.fullName}</span>
               <span className="block text-[12px] text-ink-3 truncate" dir="ltr">

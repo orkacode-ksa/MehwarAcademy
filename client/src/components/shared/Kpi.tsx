@@ -1,7 +1,7 @@
 /** يطابق .kpi من البروتوتايب */
 export function Kpi({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-rlg border border-line bg-white p-[17px_19px]">
+    <div className="rounded-rlg border border-line bg-surface p-[17px_19px]">
       <div className="text-[11px] text-ink-3 font-medium mb-1.5">{label}</div>
       <div className="font-mono text-[25px] font-semibold tracking-tight leading-none text-ink">{value}</div>
     </div>

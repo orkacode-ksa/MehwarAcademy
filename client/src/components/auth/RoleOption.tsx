@@ -17,7 +17,7 @@ export function RoleOption({ icon, title, description, selected, onSelect }: Rol
       onClick={onSelect}
       aria-pressed={selected}
       className={`w-full text-start p-[18px] rounded-rmd border-[1.5px] flex items-center gap-3.5 transition-colors ${
-        selected ? "border-teal bg-gradient-to-br from-mint to-white shadow-[0_0_0_3px_rgba(62,142,110,.1)]" : "border-line bg-white hover:border-[#BFD0C6]"
+        selected ? "border-teal bg-gradient-to-br from-mint to-surface shadow-[0_0_0_3px_rgba(62,142,110,.1)]" : "border-line bg-surface hover:border-line-strong"
       }`}
     >
       <span className={`w-[42px] h-[42px] rounded-[13px] grid place-items-center flex-none ${selected ? "bg-teal text-white" : "bg-deep/[.06] text-deep"}`}>

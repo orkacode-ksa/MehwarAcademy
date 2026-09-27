@@ -79,6 +79,7 @@ export const UNSCOPED_MODELS = [
   "GoogleConnection",
   // إعدادات المنصة يملكها المالك وحده، ولا تحمل مستأجرًا.
   "PlatformSetting",
+  "UserAvatar",
 ] as const;
 
 /**

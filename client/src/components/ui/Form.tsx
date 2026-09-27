@@ -4,7 +4,7 @@ import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAt
  * عناصر النماذج داخل المنصة — تسمية لكل حقل دائمًا (lessons §٣.١٠: ثلاثة حقول تاريخ بلا
  * عناوين جعلت المستخدم يخمّن)، وأهداف لمس ≥44px.
  */
-const base = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-white text-[13.5px] min-h-[44px]";
+const base = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface text-[13.5px] min-h-[44px]";
 
 export function Label({ text, children, className = "" }: { text: string; children: ReactNode; className?: string }) {
   return (
@@ -34,7 +34,7 @@ export function Select({ className = "", children, ...rest }: SelectHTMLAttribut
 /** بطاقة قسم — الوحدة البصرية لكل مهمة في الشاشة. */
 export function Card({ title, hint, children, className = "", aside }: { title?: string; hint?: string; children: ReactNode; className?: string; aside?: ReactNode }) {
   return (
-    <section className={`bg-white border border-line rounded-[14px] p-4 ${className}`}>
+    <section className={`bg-surface border border-line rounded-[14px] p-4 ${className}`}>
       {(title || aside) && (
         <div className="flex items-baseline justify-between gap-3">
           {title && <h2 className="font-semibold text-[15px]">{title}</h2>}

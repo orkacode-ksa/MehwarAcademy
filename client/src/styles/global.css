@@ -154,3 +154,24 @@ svg {
     transition: none !important;
   }
 }
+
+/* ── سهولة الوصول (من «حسابي») — تُضبط على <html> قبل أول رسم (public/prefs-boot.js) ── */
+/* خط العناوين مطفأ: العناوين بخط النص نفسه */
+:root[data-heading="plain"] h1,
+:root[data-heading="plain"] h2,
+:root[data-heading="plain"] .dsp,
+:root[data-heading="plain"] .font-amiri {
+  font-family: "IBM Plex Sans Arabic", system-ui, sans-serif;
+}
+/* حجم الخط: أحجام المكوّنات بالبكسل، فتكبير rem لا يصل إليها — التكبير على الجذر كله
+   (نص وأزرار ومسافات معًا، كتكبير المتصفح) يحفظ التناسب ولا يكسر التخطيط. */
+#root {
+  zoom: var(--ui-zoom, 1);
+}
+/* بأكبر مستويين للخط على الجوال: عمود واحد للشبكات الثنائية، وإلا قُصّت التسميات */
+@media (max-width: 639px) {
+  :root[data-fs="3"] .tools-grid,
+  :root[data-fs="4"] .tools-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -72,8 +72,8 @@ export function CourseHomePage() {
       )}
       <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
         {tasks.map((t) => (
-          <Link key={t.to} to={t.to} className="flex items-center gap-3 bg-white border border-line rounded-[14px] p-4 hover:border-[#C6D3CB] hover:shadow-s1 transition-all min-h-[76px]">
-            <span className={`w-10 h-10 rounded-xl grid place-items-center flex-none ${t.tone === "ok" ? "bg-teal/[.14] text-[#2C6B52]" : "bg-deep/[.07] text-deep"}`}>
+          <Link key={t.to} to={t.to} className="flex items-center gap-3 bg-surface border border-line rounded-[14px] p-4 hover:border-line-strong hover:shadow-s1 transition-all min-h-[76px]">
+            <span className={`w-10 h-10 rounded-xl grid place-items-center flex-none ${t.tone === "ok" ? "bg-teal/[.14] text-teal-text" : "bg-deep/[.07] text-deep"}`}>
               <Icon name={t.icon} className="w-[18px] h-[18px]" />
             </span>
             <span className="flex-1 min-w-0">

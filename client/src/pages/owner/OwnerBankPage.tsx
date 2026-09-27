@@ -149,7 +149,7 @@ function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
       </div>
       <p className="text-[12.5px] text-ink-2 mt-2">{counts(r.summary)}</p>
       {r.draft && (
-        <p className="text-[12.5px] mt-1 text-[#7C6134]">
+        <p className="text-[12.5px] mt-1 text-gold-text">
           النسخة الجديدة من {r.draft.authorName} ({r.draft.termLabel}): {counts(r.draft.summary)} — المنشور يبقى كما هو حتى تعتمدها.
         </p>
       )}

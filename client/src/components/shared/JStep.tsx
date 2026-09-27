@@ -5,8 +5,8 @@ type Status = "done" | "now" | "lock";
 
 /** يطابق .jstep من البروتوتايب — خطوة في دورة المقرر الثماني */
 const STATUS: Record<Status, { box: string; num: string }> = {
-  done: { box: "bg-gradient-to-br from-[#F4FBF9] to-white border-teal/30", num: "bg-teal text-white" },
-  now: { box: "bg-gradient-to-br from-[#FFF9F2] to-white border-gold2/[.42] shadow-[0_0_0_3px_rgba(199,154,75,.07)]", num: "bg-amber text-white" },
+  done: { box: "bg-gradient-to-br from-mint/60 to-surface border-teal/30", num: "bg-teal text-white" },
+  now: { box: "bg-gradient-to-br from-peach/60 to-surface border-gold2/[.42] shadow-[0_0_0_3px_rgba(199,154,75,.07)]", num: "bg-amber text-white" },
   lock: { box: "opacity-[.52] border-line", num: "bg-deep/[.06] text-ink-2" },
 };
 
@@ -26,7 +26,7 @@ export function JStep({ status, number, title, description, percent, onClick }: 
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      className={`flex gap-[15px] items-center p-4 rounded-rmd border bg-white transition-[border-color,box-shadow,transform] duration-150 cursor-pointer hover:border-[#C6D3CB] hover:shadow-s2 hover:-translate-x-1 ${s.box}`}
+      className={`flex gap-[15px] items-center p-4 rounded-rmd border bg-surface transition-[border-color,box-shadow,transform] duration-150 cursor-pointer hover:border-line-strong hover:shadow-s2 hover:-translate-x-1 ${s.box}`}
     >
       <div className={`grid place-items-center flex-none w-10 h-10 rounded-[13px] font-mono font-semibold text-[13.5px] ${s.num}`}>
         {status === "done" ? <Icon name="chk" className="w-4 h-4" /> : number}

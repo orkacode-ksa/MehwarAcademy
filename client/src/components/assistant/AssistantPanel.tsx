@@ -94,7 +94,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             <div className="grid gap-2">
               <p className="text-[13px] text-ink-2">اطلب ما تريد بكلماتك، مثلًا:</p>
               {SUGGESTIONS.map((s) => (
-                <button key={s} type="button" onClick={() => void send(s)} className="text-start rounded-[12px] border border-line bg-white px-3.5 py-2.5 text-[13.5px] min-h-[44px] hover:border-deep/40">
+                <button key={s} type="button" onClick={() => void send(s)} className="text-start rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[13.5px] min-h-[44px] hover:border-deep/40">
                   {s}
                 </button>
               ))}
@@ -121,7 +121,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             maxLength={1000}
             aria-label="اكتب طلبك"
             placeholder="اكتب طلبك…"
-            className="flex-1 min-w-0 resize-none border border-line rounded-[12px] px-3 py-2.5 bg-white text-[14px] max-h-[120px]"
+            className="flex-1 min-w-0 resize-none border border-line rounded-[12px] px-3 py-2.5 bg-surface text-[14px] max-h-[120px]"
           />
           <button type="submit" disabled={busy || !text.trim()} aria-label="أرسل" className="w-11 h-11 rounded-[12px] bg-deep text-white grid place-items-center disabled:opacity-40 flex-none">
             <Icon name="arrl" className="w-4 h-4" />
@@ -138,7 +138,7 @@ function TurnView({ turn, onChoice, onNavigate }: { turn: Turn; onChoice: (o: st
   }
   return (
     <div className="grid gap-2 min-w-0">
-      {turn.text && <div className="justify-self-end max-w-[92%] rounded-[14px] rounded-se-[4px] bg-white border border-line px-3.5 py-2 text-[13.5px] whitespace-pre-wrap">{turn.text}</div>}
+      {turn.text && <div className="justify-self-end max-w-[92%] rounded-[14px] rounded-se-[4px] bg-surface border border-line px-3.5 py-2 text-[13.5px] whitespace-pre-wrap">{turn.text}</div>}
       {turn.cards?.map((c, i) => (
         <CardView key={i} card={c} onChoice={onChoice} onNavigate={onNavigate} />
       ))}
@@ -147,7 +147,7 @@ function TurnView({ turn, onChoice, onNavigate }: { turn: Turn; onChoice: (o: st
 }
 
 function CardView({ card, onChoice, onNavigate }: { card: Card; onChoice: (o: string) => void; onNavigate: () => void }) {
-  const box = "rounded-[14px] bg-white border border-line p-3 min-w-0";
+  const box = "rounded-[14px] bg-surface border border-line p-3 min-w-0";
   switch (card.type) {
     case "note":
       return <div className={`${box} text-[13px] text-ink-2`}>{card.text}</div>;
@@ -248,7 +248,7 @@ function ConfirmCard({ card }: { card: Extract<Card, { type: "confirm" }> }) {
     }
   }
   return (
-    <div className="rounded-[14px] bg-white border-2 border-gold2/60 p-3 min-w-0">
+    <div className="rounded-[14px] bg-surface border-2 border-gold2/60 p-3 min-w-0">
       <div className="text-[13.5px] font-semibold">{card.title}</div>
       <ul className="mt-1.5 grid gap-0.5 text-[13px] max-h-[180px] overflow-y-auto">
         {card.lines.map((l, i) => (
@@ -258,7 +258,7 @@ function ConfirmCard({ card }: { card: Extract<Card, { type: "confirm" }> }) {
         ))}
       </ul>
       {card.warnings.map((w) => (
-        <p key={w} className="text-[12px] text-[#7C6134] mt-1">
+        <p key={w} className="text-[12px] text-gold-text mt-1">
           {w}
         </p>
       ))}

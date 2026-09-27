@@ -106,7 +106,7 @@ export function RosterImport({ sectionId, onImported }: { sectionId: string; onI
 
   return (
     <div className="mt-3">
-      <label className="inline-flex items-center gap-2 cursor-pointer text-[13px] text-deep font-medium border border-line rounded-[10px] px-3.5 py-2.5 bg-white hover:border-[#C6D3CB] min-h-[44px]">
+      <label className="inline-flex items-center gap-2 cursor-pointer text-[13px] text-deep font-medium border border-line rounded-[10px] px-3.5 py-2.5 bg-surface hover:border-line-strong min-h-[44px]">
         <Icon name="file" className="w-4 h-4" />
         {fileName || "ارفع كشف الطلاب (Excel أو CSV)"}
         <input

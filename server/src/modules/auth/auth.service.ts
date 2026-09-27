@@ -10,6 +10,7 @@ import { REFRESH_TOKEN_TTL_DAYS, LOGIN_MAX_ATTEMPTS, LOGIN_LOCK_MINUTES } from "
 import { getPlatformSettings } from "../platform/settings.js";
 import { logger } from "../../lib/logger.js";
 import { newJoinCode } from "../../lib/joinCode.js";
+import { avatarUrlOf, prefsOf } from "../account/prefs.js";
 import { DEFAULT_REGULATION } from "../owner/owner.service.js";
 
 const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة";
@@ -285,6 +286,9 @@ export async function getMe(userId: string) {
       totpEnabled: true,
       foundingMember: true,
       isDeptHead: true,
+      phone: true,
+      prefs: true,
+      avatarFileId: true,
     },
   });
 
@@ -293,7 +297,8 @@ export async function getMe(userId: string) {
     select: { workspaceId: true, role: true, workspace: { select: { name: true, planCode: true } } },
   });
 
-  return { ...user, workspaceMemberships };
+  const { avatarFileId, prefs, ...rest } = user;
+  return { ...rest, prefs: prefsOf(prefs), avatarUrl: avatarUrlOf(avatarFileId), workspaceMemberships };
 }
 
 

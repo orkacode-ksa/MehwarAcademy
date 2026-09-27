@@ -13,6 +13,7 @@ import type { BankAccount, Plan } from "../account/types.js";
 interface Integrations { storage: "r2" | "db"; ai: boolean; voice: boolean; redis: boolean }
 interface PlatformSettings {
   trialDays: number;
+  contactEmail: string | null;
   ai: { monthlyBudgetSar: number; priceInputPerM: number; priceOutputPerM: number; priceAudioPerM: number; assistantDailyLimit: number; scientificReview: boolean; maxSourcesPerCourse: number };
   term: { autoCloseDaysAfterEnd: number };
   announcements: Announcement[];
@@ -197,7 +198,7 @@ function PlanForm({ plan, onSaved }: { plan: Plan; onSaved: () => void }) {
           value={v.features}
           onChange={(e) => setV({ ...v, features: e.target.value })}
           rows={3}
-          className="w-full border border-line rounded-[10px] px-3 py-2 bg-white text-[13px]"
+          className="w-full border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]"
         />
       </Label>
       <label className="flex items-center gap-2 mt-2 text-[13px] min-h-[40px]">
@@ -296,6 +297,9 @@ function PlatformSettingsCard() {
         {num("رسائل المساعد لكل أستاذ يوميًا", v.ai.assistantDailyLimit, (n) => ai({ assistantDailyLimit: n }))}
         {num("أقصى مصادر للمقرر", v.ai.maxSourcesPerCourse, (n) => ai({ maxSourcesPerCourse: n }))}
       </div>
+      <Label text="بريد الدعم المعلن (في «عن مِحوَر» وسياسة الخصوصية)" className="mt-3">
+        <Input type="email" dir="ltr" value={v.contactEmail ?? ""} onChange={(e) => setV({ ...v, contactEmail: e.target.value.trim() || null })} placeholder="support@…" />
+      </Label>
       <div className="text-[12.5px] font-medium mt-4 mb-1">أسعار المليون رمز (ر.س) — من فاتورة المزوّد</div>
       <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
         {num("نص داخل", v.ai.priceInputPerM, (n) => ai({ priceInputPerM: n }), 0.01)}

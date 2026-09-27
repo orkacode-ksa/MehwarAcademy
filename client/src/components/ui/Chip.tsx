@@ -4,9 +4,9 @@ type Tone = "teal" | "amber" | "crimson" | "neutral";
 
 /** يطابق .chip + .ct/.ca/.cc/.cs من البروتوتايب */
 const TONE: Record<Tone, string> = {
-  teal: "bg-teal/[.14] text-[#2C6B52]",
-  amber: "bg-gold2/[.18] text-[#7C6134]",
-  crimson: "bg-crim/[.13] text-[#963C34]",
+  teal: "bg-teal/[.14] text-teal-text",
+  amber: "bg-gold2/[.18] text-gold-text",
+  crimson: "bg-crim/[.13] text-crim-text",
   neutral: "bg-deep/[.07] text-ink-2",
 };
 

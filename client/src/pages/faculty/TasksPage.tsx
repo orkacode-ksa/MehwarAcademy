@@ -60,7 +60,7 @@ export function TasksPage() {
 
       <div className="flex items-center gap-1.5 mb-4">
         <button type="button" aria-label="اليوم السابق" onClick={() => setDate(addDays(date, -1))} className="w-9 h-9 flex-none rounded-full grid place-items-center border border-line bg-surface text-ink-2 hover:text-deep">
-          <Icon name="arr" className="w-4 h-4" />
+          <Icon name="arrl" className="w-4 h-4" />
         </button>
         <div ref={strip} className="flex-1 min-w-0 flex gap-1.5 overflow-x-auto [scrollbar-width:none] snap-x">
           {days.map((d) => (
@@ -77,7 +77,7 @@ export function TasksPage() {
           ))}
         </div>
         <button type="button" aria-label="اليوم التالي" onClick={() => setDate(addDays(date, 1))} className="w-9 h-9 flex-none rounded-full grid place-items-center border border-line bg-surface text-ink-2 hover:text-deep">
-          <Icon name="arrl" className="w-4 h-4" />
+          <Icon name="arr" className="w-4 h-4" />
         </button>
       </div>
       {!isToday && (

@@ -107,7 +107,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
         onClick={onClose}
       />
       <div
-        className="absolute inset-x-0 bottom-0 bg-white rounded-t-[22px] shadow-s3 px-[18px] pt-[6px] will-change-transform"
+        className="absolute inset-x-0 bottom-0 bg-surface rounded-t-[22px] shadow-s3 px-[18px] pt-[6px] will-change-transform"
         style={{
           paddingBottom: "calc(20px + env(safe-area-inset-bottom))",
           transform: shown ? `translateY(${dragY}px)` : "translateY(110%)",
@@ -151,10 +151,10 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
         <Link
           to={highlight.to}
           onClick={onClose}
-          className="flex items-center gap-3 p-3.5 rounded-rmd border mb-3.5 border-teal/[.3] bg-gradient-to-br from-teal/[.07] to-white"
+          className="flex items-center gap-3 p-3.5 rounded-rmd border mb-3.5 border-teal/[.3] bg-gradient-to-br from-teal/[.07] to-surface"
         >
           <span
-            className="w-10 h-10 rounded-xl grid place-items-center flex-none bg-teal/[.14] text-[#2C6B52]"
+            className="w-10 h-10 rounded-xl grid place-items-center flex-none bg-teal/[.14] text-teal-text"
           >
             <Icon name={highlight.icon} className="w-[18px] h-[18px]" />
           </span>
@@ -175,7 +175,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
                 to={`/${item.key}`}
                 onClick={onClose}
                 className={`grid justify-items-center gap-[7px] py-3.5 px-1.5 rounded-[14px] border text-[11px] font-medium ${
-                  active ? "bg-deep text-white border-deep" : "bg-[#F7FAF7] border-line text-ink-2"
+                  active ? "bg-deep text-white border-deep" : "bg-paper border-line text-ink-2"
                 }`}
               >
                 <Icon name={item.icon} className="w-[19px] h-[19px]" />
@@ -190,7 +190,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
               onClose();
               onLogout();
             }}
-            className="grid justify-items-center gap-[7px] py-3.5 px-1.5 rounded-[14px] border border-line bg-[#F7FAF7] text-ink-2 text-[11px] font-medium"
+            className="grid justify-items-center gap-[7px] py-3.5 px-1.5 rounded-[14px] border border-line bg-paper text-ink-2 text-[11px] font-medium"
           >
             <Icon name="logout" className="w-[19px] h-[19px]" />
             <span>خروج</span>
