@@ -28,7 +28,7 @@ export function SpecStep({ course, onSaved }: { course: Course; onSaved: () => v
     // الرمز لا يُعاد ترقيمه بعد الحذف: المواضيع مربوطة بالرموز، وإعادة الترقيم كانت ستنقل
     // ربط «K3» إلى مخرج آخر بصمت. الجديد يأخذ أعلى رقم في مجاله + ١.
     const n = Math.max(0, ...spec.outcomes.filter((o) => o.domain === domain).map((o) => Number(o.code.slice(1)) || 0)) + 1;
-    set("outcomes", [...spec.outcomes, { code: `${domain}${n}`, domain, text: "", teaching: "", assessment: "" }]);
+    set("outcomes", [...spec.outcomes, { code: `${domain}${n}`, domain, text: "", teaching: "", assessment: "", target: 70 }]);
   }
 
   function patchOutcome(i: number, patch: Partial<LearningOutcome>) {
@@ -111,9 +111,12 @@ export function SpecStep({ course, onSaved }: { course: Course; onSaved: () => v
                 </IconButton>
               </div>
               <Input value={o.text} onChange={(e) => patchOutcome(i, { text: e.target.value })} placeholder="يصف الطالب…" aria-label={`نص المخرج ${o.code}`} />
-              <div className="grid gap-2 sm:grid-cols-2 [&>*]:min-w-0">
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr_120px] [&>*]:min-w-0">
                 <Input value={o.teaching} onChange={(e) => patchOutcome(i, { teaching: e.target.value })} placeholder="استراتيجية التدريس (محاضرة، معمل…)" aria-label="استراتيجية التدريس" />
                 <Input value={o.assessment} onChange={(e) => patchOutcome(i, { assessment: e.target.value })} placeholder="طريقة التقييم (اختبار، تقرير…)" aria-label="طريقة التقييم" />
+                <Label text="المستوى المستهدف ٪">
+                  <Input type="number" min={0} max={100} value={o.target} onChange={(e) => patchOutcome(i, { target: Number(e.target.value) })} />
+                </Label>
               </div>
             </div>
           ))}

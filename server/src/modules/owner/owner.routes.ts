@@ -22,6 +22,10 @@ import { AppError } from "../../lib/AppError.js";
 import * as service from "./owner.service.js";
 import * as store from "../store/store.service.js";
 import * as bank from "../bank/bank.service.js";
+import { getStorageProvider } from "../../adapters/storage.provider.js";
+import { n8nConfigured } from "../integrations/generation.service.js";
+import { googleConfigured } from "../integrations/google.service.js";
+import { env } from "../../config/env.js";
 
 /**
  * مسارات المالك.
@@ -324,5 +328,21 @@ ownerRouter.patch(
   validate({ body: bankReviewSchema }),
   asyncHandler(async (req, res) => {
     res.json({ success: true, data: await bank.ownerReview(actor(req), req.params.id as string, req.body) });
+  }),
+);
+
+/** حالة التكاملات — ليعرف المالك ما يعمل وما ينتظر مفاتيحه، بلا تخمين. */
+ownerRouter.get(
+  "/integrations",
+  asyncHandler(async (_req, res) => {
+    res.json({
+      success: true,
+      data: {
+        storage: getStorageProvider().mode,
+        n8n: n8nConfigured(),
+        google: googleConfigured(),
+        redis: !!env.REDIS_URL,
+      },
+    });
   }),
 );

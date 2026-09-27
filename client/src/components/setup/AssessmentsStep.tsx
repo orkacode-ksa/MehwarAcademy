@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createAssessmentSchema } from "@mihwar/shared";
-import { api, ApiError } from "../../api/client.js";
+import { api, ApiError, pdfDownloadUrl } from "../../api/client.js";
+import { useSession } from "../../hooks/useSession.js";
 import { useApi } from "../../hooks/useApi.js";
 import { Button } from "../ui/Button.js";
 import { Card, ErrorText, IconButton, Input, Label, Select, Textarea } from "../ui/Form.js";
@@ -16,6 +17,8 @@ interface Assessment {
   maxScore: string | number;
   weightPercent: string | number;
   instructions: string | null;
+  answerKey: string | null;
+  outcomes: string[];
   isLab: boolean;
 }
 
@@ -76,13 +79,13 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
                   {formatNum(Number(a.weightPercent))}٪ · من {formatNum(Number(a.maxScore))}
                 </span>
                 <Button variant="text" size="sm" onClick={() => setEdit(edit === a.id ? null : a.id)}>
-                  {a.instructions ? "النص" : "أضف النص"}
+                  {a.instructions ? (a.answerKey ? "الأسئلة والإجابة" : "أضف نموذج الإجابة") : "أضف الأسئلة"}
                 </Button>
                 <IconButton label={`حذف ${a.title}`} onClick={() => void api.del(`${W}/teaching/assessments/${a.id}`).then(changed)}>
                   <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
                 </IconButton>
               </div>
-              {edit === a.id && <InstructionsEditor assessment={a} onSaved={changed} />}
+              {edit === a.id && <InstructionsEditor assessment={a} outcomes={(course.spec.outcomes ?? []).map((o) => o.code)} onSaved={changed} />}
             </li>
           ))}
         </ul>
@@ -127,26 +130,76 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
   );
 }
 
-function InstructionsEditor({ assessment, onSaved }: { assessment: Assessment; onSaved: () => void }) {
+/**
+ * أسئلة التقييم ونموذج إجابته ومخرجاته — في مكان واحد. النموذج لا يراه الطالب أبدًا، وهو بند
+ * مستقل في ملف المقرر. والطباعة: الاختبار منسّقًا، ونموذج الإجابة في ملف منفصل.
+ */
+function InstructionsEditor({ assessment, outcomes, onSaved }: { assessment: Assessment; outcomes: string[]; onSaved: () => void }) {
   const [text, setText] = useState(assessment.instructions ?? "");
+  const [answer, setAnswer] = useState(assessment.answerKey ?? "");
+  const [linked, setLinked] = useState<string[]>(assessment.outcomes ?? []);
   const [busy, setBusy] = useState(false);
+  const { user } = useSession();
+  const ws = user?.workspaceMemberships[0]?.workspaceId;
   return (
-    <div className="mt-2">
-      <Textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} aria-label={`نص ${assessment.title}`} />
-      <Button
-        variant="primary"
-        size="sm"
-        className="mt-2"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          await api.patch(`${W}/teaching/assessments/${assessment.id}`, { instructions: text });
-          setBusy(false);
-          onSaved();
-        }}
-      >
-        احفظ النص
-      </Button>
+    <div className="mt-2 grid gap-2">
+      <Label text="الأسئلة أو التعليمات">
+        <Textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} />
+      </Label>
+      <Label text="نموذج الإجابة (لا يراه الطالب)">
+        <Textarea rows={4} value={answer} onChange={(e) => setAnswer(e.target.value)} />
+      </Label>
+      {outcomes.length > 0 && (
+        <div>
+          <div className="text-[11.5px] text-ink-3 mb-1">المخرجات التي يقيسها — يُحسب منها المستوى الفعلي في تقرير المقرر</div>
+          <div className="flex gap-1.5 flex-wrap">
+            {outcomes.map((c) => {
+              const on = linked.includes(c);
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={on}
+                  dir="ltr"
+                  onClick={() => setLinked(on ? linked.filter((x) => x !== c) : [...linked, c])}
+                  className={`min-w-[44px] min-h-[32px] px-2 rounded-full text-[11.5px] font-semibold border ${on ? "bg-teal/[.14] border-teal/40 text-[#2C6B52]" : "bg-white border-line text-ink-3"}`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div className="flex gap-2 flex-wrap">
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await api.patch(`${W}/teaching/assessments/${assessment.id}`, { instructions: text, answerKey: answer, outcomes: linked });
+            setBusy(false);
+            onSaved();
+          }}
+        >
+          احفظ
+        </Button>
+        {ws && assessment.instructions && (
+          <a href={pdfDownloadUrl(`/documents/${ws}/exam/${assessment.id}.pdf`)}>
+            <Button variant="secondary" size="sm">
+              <Icon name="file" /> اطبع الاختبار
+            </Button>
+          </a>
+        )}
+        {ws && assessment.answerKey && (
+          <a href={pdfDownloadUrl(`/documents/${ws}/exam/${assessment.id}.pdf?answers=1`)}>
+            <Button variant="secondary" size="sm">
+              <Icon name="file" /> اطبع نموذج الإجابة
+            </Button>
+          </a>
+        )}
+      </div>
     </div>
   );
 }

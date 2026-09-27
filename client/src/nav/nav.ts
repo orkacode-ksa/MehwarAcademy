@@ -15,12 +15,20 @@ export const NAV: Record<Role, NavItem[]> = {
   faculty: [
     { key: "today", icon: "clock", label: "اليوم" },
     { key: "courses", icon: "book", label: "مقرراتي" },
+    { key: "bank", icon: "box", label: "البنك" },
+    { key: "account", icon: "user", label: "حسابي" },
     { key: "evalp", icon: "chart", label: "أدائي" },
     { key: "dhome", icon: "users", label: "القسم" },
   ],
   student: [{ key: "scourses", icon: "book", label: "مقرراتي" }],
   dept: [{ key: "dhome", icon: "users", label: "القسم" }],
-  admin: [{ key: "institutions", icon: "grid", label: "الجامعات" }],
+  // المالك: التعقيد مسموح هنا وحده — ومع ذلك أربع وجهات لا أكثر.
+  admin: [
+    { key: "institutions", icon: "grid", label: "الجامعات" },
+    { key: "payments", icon: "card", label: "المدفوعات" },
+    { key: "obank", icon: "box", label: "البنك" },
+    { key: "osettings", icon: "gear", label: "الإعدادات" },
+  ],
 };
 
 /** عناصر التنقّل التي يحقّ للمستخدم رؤيتها — «القسم» لرئيس القسم وحده. */
@@ -48,10 +56,10 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
-  faculty: ["course"],
+  faculty: ["course", "plans", "orders", "cv"],
   student: ["scourse"],
   dept: [],
-  admin: ["institutions"],
+  admin: ["institutions", "payments", "obank", "osettings"],
 };
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { createMaterialSchema, MATERIAL_KINDS, type MaterialKind } from "@mihwar/shared";
-import { api, ApiError } from "../../api/client.js";
+import { useEffect, useRef, useState } from "react";
+import { createMaterialSchema, GENERATION_KINDS, MATERIAL_KINDS, type GenerationKind, type MaterialKind } from "@mihwar/shared";
+import { api, ApiError, assetUrl, uploadRaw } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { Button } from "../ui/Button.js";
 import { Card, ErrorText, IconButton, Input, Select, Textarea } from "../ui/Form.js";
@@ -21,12 +21,26 @@ interface TopicWithMaterials { id: string; title: string; learningOutcomes: stri
  */
 export function MaterialsStep({ courseId, onChanged }: { courseId: string; onChanged: () => void }) {
   const { data: topics, loading, error, reload } = useApi<TopicWithMaterials[]>(`${W}/teaching/courses/${courseId}/materials`);
+  const { data: gen } = useApi<GenStatus>("/integrations/generation/me/status");
+  const { data: jobs, reload: reloadJobs } = useApi<Job[]>(`/integrations/generation/me/course/${courseId}`);
   const [openId, setOpenId] = useState<string | null>(null);
 
   function changed() {
     reload();
+    reloadJobs();
     onChanged();
   }
+
+  // مهام جارية ← تحديث كل ١٠ ثوانٍ حتى تنتهي، فتظهر المادة وحدها بلا إعادة تحميل.
+  const running = jobs?.some((j) => j.status === "RUNNING" || j.status === "PENDING");
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => {
+      reload();
+      reloadJobs();
+    }, 10_000);
+    return () => clearInterval(t);
+  }, [running, reload, reloadJobs]);
 
   const done = topics?.filter((t) => t.lectures.length > 0).length ?? 0;
 
@@ -34,7 +48,11 @@ export function MaterialsStep({ courseId, onChanged }: { courseId: string; onCha
     <Card
       title="المواد التعليمية"
       aside={topics ? <span className="text-[12.5px] text-ink-3">{formatNum(done)} من {formatNum(topics.length)} مواضيع</span> : undefined}
-      hint="انسخ «حزمة المصادر» والصقها في NotebookLM، ثم احفظ الناتج هنا برابطه أو نصّه."
+      hint={
+        gen?.enabled
+          ? "«ولّد» يُنتج المادة من توصيف مقررك ومخرجات الموضوع وتصل هنا وحدها. أو أضف مادتك يدويًا."
+          : "انسخ «حزمة المصادر» والصقها في NotebookLM، ثم احفظ الناتج هنا برابطه أو نصّه أو ملفه."
+      }
     >
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}
       {error && <p className="text-sm text-crim">{error}</p>}
@@ -55,7 +73,7 @@ export function MaterialsStep({ courseId, onChanged }: { courseId: string; onCha
               <span className="flex-1 min-w-0 text-[13.5px] truncate">{t.title}</span>
               {t.lectures.length > 0 ? <Chip tone="teal">{formatNum(t.lectures.length)} مادة</Chip> : <Chip tone="amber">بلا مادة</Chip>}
             </button>
-            {openId === t.id && <TopicMaterials topic={t} onChanged={changed} />}
+            {openId === t.id && <TopicMaterials topic={t} gen={gen ?? null} jobs={jobs?.filter((j) => j.topicId === t.id) ?? []} onChanged={changed} />}
           </li>
         ))}
       </ol>
@@ -63,12 +81,43 @@ export function MaterialsStep({ courseId, onChanged }: { courseId: string; onCha
   );
 }
 
-function TopicMaterials({ topic, onChanged }: { topic: TopicWithMaterials; onChanged: () => void }) {
+interface GenStatus { enabled: boolean; quota: number; used: number; engine: string; google: { email: string } | null }
+interface Job { id: string; topicId: string | null; outputKind: GenerationKind | null; status: string; errorMessage: string | null }
+
+function TopicMaterials({ topic, gen, jobs, onChanged }: { topic: TopicWithMaterials; gen: GenStatus | null; jobs: Job[]; onChanged: () => void }) {
   const [kind, setKind] = useState<MaterialKind>("VIDEO");
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const { showToast } = useToast();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function generate(kind: GenerationKind) {
+    try {
+      await api.post("/integrations/generation/me", { topicId: topic.id, kind });
+      showToast(`بدأ توليد ${GENERATION_KINDS[kind]} — سيظهر هنا حين يكتمل`);
+      onChanged();
+    } catch (e) {
+      showToast(e instanceof ApiError ? e.message : "تعذّر بدء التوليد");
+    }
+  }
+
+  async function uploadMaterial(file: File) {
+    setUploading(true);
+    setErr(null);
+    try {
+      const f = await uploadRaw<{ id: string }>("/files/me/upload?purpose=MATERIAL", file);
+      const kind: MaterialKind = file.type.startsWith("video/") ? "VIDEO" : file.type.startsWith("audio/") ? "AUDIO" : file.type.includes("presentation") ? "SLIDES" : "LINK";
+      await api.post(`${W}/teaching/materials`, { topicId: topic.id, kind, title: title.trim() || file.name.replace(/\.[^.]+$/, ""), fileId: f.id });
+      setTitle("");
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "تعذّر الرفع");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function copyPack() {
     try {
@@ -97,23 +146,49 @@ function TopicMaterials({ topic, onChanged }: { topic: TopicWithMaterials; onCha
 
   return (
     <div className="border-t border-line2 px-3 pb-3 pt-2.5">
-      <div className="flex flex-wrap gap-2 mb-3">
-        <Button variant="gold" size="sm" onClick={() => void copyPack()}>
-          <Icon name="sparks" /> انسخ حزمة المصادر
-        </Button>
-        <a href="https://notebooklm.google.com/" target="_blank" rel="noreferrer">
-          <Button variant="secondary" size="sm">
-            افتح NotebookLM
+      {gen?.enabled ? (
+        <div className="mb-3">
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(GENERATION_KINDS) as GenerationKind[]).map((k) => {
+              const job = jobs.find((j) => j.outputKind === k && (j.status === "RUNNING" || j.status === "PENDING"));
+              return (
+                <Button key={k} variant={k === "VIDEO" ? "gold" : "secondary"} size="sm" disabled={!!job} onClick={() => void generate(k)}>
+                  <Icon name="sparks" /> {job ? `يُولَّد ${GENERATION_KINDS[k]}…` : `ولّد ${GENERATION_KINDS[k]}`}
+                </Button>
+              );
+            })}
+          </div>
+          <p className="text-[11.5px] text-ink-3 mt-1.5">
+            {gen.engine === "NOTEBOOKLM" ? "بحساب Google المربوط" : "بمحرّك المنصة"} · استهلكت {gen.used} من {gen.quota} هذا الشهر
+          </p>
+          {jobs
+            .filter((j) => j.status === "FAILED")
+            .slice(0, 1)
+            .map((j) => (
+              <p key={j.id} className="text-[12px] text-crim mt-1">
+                تعذّر آخر توليد: {j.errorMessage}
+              </p>
+            ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Button variant="gold" size="sm" onClick={() => void copyPack()}>
+            <Icon name="sparks" /> انسخ حزمة المصادر
           </Button>
-        </a>
-      </div>
+          <a href="https://notebooklm.google.com/" target="_blank" rel="noreferrer">
+            <Button variant="secondary" size="sm">
+              افتح NotebookLM
+            </Button>
+          </a>
+        </div>
+      )}
 
       <ul className="grid gap-1.5 mb-3">
         {topic.lectures.map((m) => (
           <li key={m.id} className="flex items-center gap-2 text-[13px]">
             <Chip>{MATERIAL_KINDS[m.kind] ?? m.kind}</Chip>
             {m.url ? (
-              <a href={m.url} target="_blank" rel="noreferrer" className="flex-1 min-w-0 truncate text-deep underline">
+              <a href={assetUrl(m.url)} target="_blank" rel="noreferrer" className="flex-1 min-w-0 truncate text-deep underline">
                 {m.title}
               </a>
             ) : (
@@ -142,9 +217,25 @@ function TopicMaterials({ topic, onChanged }: { topic: TopicWithMaterials; onCha
         <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="https://…" dir="ltr" aria-label="رابط المادة" className="mt-2" />
       )}
       <ErrorText>{err}</ErrorText>
-      <Button variant="primary" size="sm" className="mt-2" onClick={() => void add()}>
-        <Icon name="plus" /> احفظ المادة
-      </Button>
+      <div className="flex gap-2 flex-wrap mt-2">
+        <Button variant="primary" size="sm" onClick={() => void add()}>
+          <Icon name="plus" /> احفظ المادة
+        </Button>
+        <input
+          ref={fileInput}
+          type="file"
+          className="hidden"
+          accept=".pdf,.pptx,.docx,audio/*,video/mp4"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) void uploadMaterial(f);
+          }}
+        />
+        <Button variant="secondary" size="sm" disabled={uploading} onClick={() => fileInput.current?.click()}>
+          <Icon name="up" /> {uploading ? "يُرفع…" : "أو ارفع ملفًا"}
+        </Button>
+      </div>
     </div>
   );
 }

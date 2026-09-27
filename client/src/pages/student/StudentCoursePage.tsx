@@ -1,3 +1,4 @@
+import { assetUrl } from "../../api/client.js";
 import { useParams } from "react-router-dom";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
@@ -106,7 +107,7 @@ export function StudentCoursePage() {
                 {t.lectures.map((m) => (
                   <li key={m.id} className="text-[13px]">
                     {m.url ? (
-                      <a href={m.url} target="_blank" rel="noreferrer" className="text-deep underline">
+                      <a href={assetUrl(m.url)} target="_blank" rel="noreferrer" className="text-deep underline">
                         {m.title}
                       </a>
                     ) : (

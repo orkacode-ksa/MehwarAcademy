@@ -46,3 +46,25 @@ export const api = {
 export function pdfDownloadUrl(path: string): string {
   return `${API_ORIGIN}/api${path}`;
 }
+
+/**
+ * رفع ملف خام (بلا multipart): المحتوى في الجسم، والاسم وبيانات إضافية في ترويسات مُرمَّزة.
+ * مسار واحد يعمل مع R2 ومع وضع قاعدة البيانات.
+ */
+export async function uploadRaw<T>(path: string, file: File, headers: Record<string, string> = {}): Promise<T> {
+  const encoded = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, encodeURIComponent(v)]));
+  const res = await fetch(`${API_ORIGIN}/api${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name), ...encoded },
+    body: file,
+  });
+  const body = (await res.json().catch(() => undefined)) as ApiResponse<T> | undefined;
+  if (!res.ok) throw new ApiError(res.status, body?.error?.code ?? "UNKNOWN", body?.error?.message ?? "تعذّر رفع الملف");
+  return body?.data as T;
+}
+
+/** رابط مادة/ملف: المسارات الداخلية (/api/files/…) تُسبق بأصل الخادم. */
+export function assetUrl(url: string): string {
+  return url.startsWith("/api/") ? `${API_ORIGIN}${url}` : url;
+}

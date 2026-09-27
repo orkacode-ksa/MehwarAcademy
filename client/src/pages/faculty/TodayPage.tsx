@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { WEEKDAYS } from "@mihwar/shared";
-import { api, ApiError } from "../../api/client.js";
+import { api, ApiError, assetUrl } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
@@ -305,7 +305,7 @@ function SessionView({ lecture, onClose }: { lecture: Lecture; onClose: () => vo
               {materials?.map((m) => (
                 <li key={m.id} className="border border-line2 rounded-[10px] px-3 py-2.5">
                   {m.url ? (
-                    <a href={m.url} target="_blank" rel="noreferrer" className="text-[13.5px] text-deep underline">
+                    <a href={assetUrl(m.url)} target="_blank" rel="noreferrer" className="text-[13.5px] text-deep underline">
                       {m.title}
                     </a>
                   ) : (

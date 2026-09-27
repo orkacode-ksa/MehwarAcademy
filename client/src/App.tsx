@@ -21,6 +21,16 @@ import { InstitutionsPage } from "./pages/owner/InstitutionsPage.js";
 import { RegulationPage } from "./pages/owner/RegulationPage.js";
 import { CalendarPage } from "./pages/owner/CalendarPage.js";
 import { InstitutionUsersPage } from "./pages/owner/InstitutionUsersPage.js";
+import { PaymentsPage } from "./pages/owner/PaymentsPage.js";
+import { OwnerBankPage } from "./pages/owner/OwnerBankPage.js";
+import { OwnerSettingsPage } from "./pages/owner/OwnerSettingsPage.js";
+import { AccountPage } from "./pages/account/AccountPage.js";
+import { PlansPage } from "./pages/account/PlansPage.js";
+import { OrderPage } from "./pages/account/OrderPage.js";
+import { CvPage } from "./pages/account/CvPage.js";
+import { BankPage } from "./pages/bank/BankPage.js";
+import { BankDetailPage } from "./pages/bank/BankDetailPage.js";
+import { CourseReportPage } from "./pages/faculty/CourseReportPage.js";
 
 /**
  * كل مسار هنا يقود إلى شاشة مبنيّة وموصولة بالخادم. حلقة الصفحات البديلة أُزيلت: «لا زرّ
@@ -47,7 +57,14 @@ export function App() {
           <Route path="course/:id/grades" element={<GradesPage />} />
           <Route path="course/:id/file" element={<CourseFilePage />} />
           <Route path="course/:id/violations" element={<ViolationsPage />} />
+          <Route path="course/:id/report" element={<CourseReportPage />} />
           <Route path="evalp" element={<PerformancePage />} />
+          <Route path="bank" element={<BankPage />} />
+          <Route path="bank/:id" element={<BankDetailPage />} />
+          <Route path="account" element={<AccountPage />} />
+          <Route path="plans" element={<PlansPage />} />
+          <Route path="orders/:id" element={<OrderPage />} />
+          <Route path="cv" element={<CvPage />} />
           <Route path="dhome" element={<DeptPage />} />
 
           {/* الطالب */}
@@ -59,6 +76,9 @@ export function App() {
           <Route path="institutions/:tenantId" element={<RegulationPage />} />
           <Route path="institutions/:tenantId/calendar" element={<CalendarPage />} />
           <Route path="institutions/:tenantId/users" element={<InstitutionUsersPage />} />
+          <Route path="payments" element={<PaymentsPage />} />
+          <Route path="obank" element={<OwnerBankPage />} />
+          <Route path="osettings" element={<OwnerSettingsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

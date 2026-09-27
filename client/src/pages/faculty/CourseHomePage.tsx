@@ -4,7 +4,8 @@ import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
-import { Card, ErrorText, Select } from "../../components/ui/Form.js";
+import { Card, ErrorText, Input, Select } from "../../components/ui/Form.js";
+import { Chip } from "../../components/ui/Chip.js";
 import { Icon, type IconName } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
@@ -46,6 +47,7 @@ export function CourseHomePage() {
       status: file ? `اكتمل ${formatNum(file.requiredDone)} من ${formatNum(file.requiredTotal)} بنود` : "…",
       tone: file && file.requiredDone === file.requiredTotal ? "ok" : "todo",
     },
+    { to: `/course/${course.id}/report`, icon: "chart", title: "تقرير المقرر", status: "نموذج NCAAA — محسوب من عملك", tone: "todo" },
     { to: `/course/${course.id}/violations`, icon: "shield", title: "المخالفات", status: "حسب لائحة الجامعة", tone: "todo" },
   ];
 
@@ -74,6 +76,7 @@ export function CourseHomePage() {
           </Link>
         ))}
       </div>
+      <PublishCard courseId={course.id} />
       <CloneCard courseId={course.id} />
     </>
   );
@@ -116,6 +119,64 @@ function CloneCard({ courseId }: { courseId: string }) {
         </Button>
       </div>
       <ErrorText>{err}</ErrorText>
+    </Card>
+  );
+}
+
+interface BankState { id: string; status: string; version: number; reviewNote: string | null; importsCount: number; specialization: string; description: string }
+const BANK_LABEL: Record<string, string> = { PENDING: "بانتظار مراجعة المنصة", PUBLISHED: "منشور في البنك", REJECTED: "لم يُقبل", ARCHIVED: "مؤرشف", DRAFT: "مسودة" };
+
+/** النشر في بنك المقررات: المقرر يصير منتجًا جاهزًا باسمك في جدول المؤلفين. */
+function PublishCard({ courseId }: { courseId: string }) {
+  const { data: state, reload } = useApi<BankState | null>(`/store/bank/status/${courseId}`);
+  const [open, setOpen] = useState(false);
+  const [spec, setSpec] = useState("");
+  const [desc, setDesc] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  async function publish() {
+    setErr(null);
+    try {
+      await api.post(`/store/bank/publish/me/${courseId}`, { specialization: spec || state?.specialization || "", description: desc || state?.description || "" });
+      showToast(state ? "أُرسل التحديث للمراجعة" : "أُرسل المقرر للمراجعة");
+      setOpen(false);
+      reload();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "تعذّر النشر");
+    }
+  }
+
+  return (
+    <Card
+      title="بنك المقررات"
+      className="mt-4"
+      aside={state ? <Chip tone={state.status === "PUBLISHED" ? "teal" : state.status === "REJECTED" ? "crimson" : "amber"}>{BANK_LABEL[state.status] ?? state.status}</Chip> : undefined}
+      hint={
+        state
+          ? `الإصدار ${formatNum(state.version)} · أُضيف ${formatNum(state.importsCount)} مرة${state.reviewNote ? ` · ملاحظة المراجعة: ${state.reviewNote}` : ""}`
+          : "انشر مقررك كتلة جاهزة (توصيف · مواد · اختبارات ونماذجها) باسمك — يراجعه فريق المنصة قبل ظهوره."
+      }
+    >
+      {open ? (
+        <div className="grid gap-3">
+          <Input value={spec} onChange={(e) => setSpec(e.target.value)} placeholder={state?.specialization || "التخصص (مثال: الأحياء الدقيقة)"} aria-label="التخصص" />
+          <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={state?.description || "وصف قصير لمن يتصفّح البنك"} aria-label="الوصف" />
+          <ErrorText>{err}</ErrorText>
+          <div className="flex gap-2">
+            <Button variant="primary" onClick={() => void publish()}>
+              {state ? "أرسل التحديث" : "انشر"}
+            </Button>
+            <Button variant="secondary" onClick={() => setOpen(false)}>
+              إلغاء
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          <Icon name="box" /> {state ? "حدّث نسخة البنك" : "انشر في البنك"}
+        </Button>
+      )}
     </Card>
   );
 }

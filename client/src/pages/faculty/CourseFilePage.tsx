@@ -1,5 +1,7 @@
 import { Link, useParams } from "react-router-dom";
-import { api, pdfDownloadUrl } from "../../api/client.js";
+import { useRef, useState } from "react";
+import { api, ApiError, assetUrl, pdfDownloadUrl, uploadRaw } from "../../api/client.js";
+import { useToast } from "../../state/ToastContext.js";
 import { useApi } from "../../hooks/useApi.js";
 import { useSession } from "../../hooks/useSession.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
@@ -9,7 +11,8 @@ import { Icon } from "../../icons/Icon.js";
 import { formatNum } from "../../lib/numerals.js";
 import { W } from "../../components/setup/types.js";
 
-interface Item { key: string; label: string; required: boolean; done: boolean; mode: "AUTO" | "MANUAL"; hint: string; note: string | null }
+interface FileRef { id: string; originalName: string; sizeBytes: number }
+interface Item { key: string; label: string; required: boolean; done: boolean; mode: "AUTO" | "MANUAL"; hint: string; note: string | null; files: FileRef[] }
 interface QualityFile { items: Item[]; requiredDone: number; requiredTotal: number }
 
 /**
@@ -52,18 +55,41 @@ export function CourseFilePage() {
                 {i.label} {!i.required && <span className="text-[11.5px] text-ink-3">(اختياري)</span>}
               </span>
               {!i.done && <span className="block text-[12.5px] text-ink-3 mt-0.5">{i.hint}</span>}
+              {i.files.map((f) => (
+                <span key={f.id} className="flex items-center gap-2 mt-1 text-[12.5px]">
+                  <a href={assetUrl(`/api/files/${f.id}`)} target="_blank" rel="noreferrer" className="text-deep underline truncate">
+                    {f.originalName}
+                  </a>
+                  <button
+                    type="button"
+                    className="text-ink-3 hover:text-crim min-h-[32px] px-1"
+                    aria-label={`فكّ ${f.originalName}`}
+                    onClick={() => void api.post(`${W}/quality-file/attach`, { courseId: id, itemKey: i.key, fileId: f.id, attach: false }).then(reload)}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+              {KEY_LINKS[i.key] && !i.done && (
+                <Link to={`/course/${id}/${KEY_LINKS[i.key]}`} className="inline-block text-[12.5px] text-deep underline mt-1">
+                  أكمله الآن
+                </Link>
+              )}
             </span>
-            {i.mode === "AUTO" ? (
-              <Chip tone={i.done ? "teal" : "neutral"}>تلقائي</Chip>
-            ) : (
-              <Button
-                size="sm"
-                variant={i.done ? "secondary" : "primary"}
-                onClick={() => void api.patch(`${W}/quality-file`, { courseId: id, itemKey: i.key, completed: !i.done }).then(reload)}
-              >
-                {i.done ? "ألغِ التأشير" : "أشّر مكتمل"}
-              </Button>
-            )}
+            <span className="flex flex-col items-end gap-1.5 flex-none">
+              {i.mode === "AUTO" ? (
+                <Chip tone={i.done ? "teal" : "neutral"}>تلقائي</Chip>
+              ) : (
+                <Button
+                  size="sm"
+                  variant={i.done ? "secondary" : "primary"}
+                  onClick={() => void api.patch(`${W}/quality-file`, { courseId: id, itemKey: i.key, completed: !i.done }).then(reload)}
+                >
+                  {i.done ? "ألغِ التأشير" : "أشّر مكتمل"}
+                </Button>
+              )}
+              <AttachButton courseId={id as string} itemKey={i.key} onDone={reload} />
+            </span>
           </li>
         ))}
       </ul>
@@ -72,6 +98,53 @@ export function CourseFilePage() {
           صفحة المقرر
         </Link>
       </p>
+    </>
+  );
+}
+
+/** أين يُكمَل كل بند آلي — رابط «أكمله الآن» بدل أن يبحث الأستاذ. */
+const KEY_LINKS: Record<string, string> = {
+  SPEC: "setup?step=COURSE",
+  MIDTERM_EXAM: "setup?step=ASSESSMENTS",
+  FINAL_EXAM: "setup?step=ASSESSMENTS",
+  PRACTICAL_EXAM: "setup?step=ASSESSMENTS",
+  ANSWER_KEY: "setup?step=ASSESSMENTS",
+  GRADE_STATS: "grades",
+  COURSE_REPORT: "report",
+};
+
+/** رفع ملف وإرفاقه بالبند في خطوة واحدة — الإرفاق يُكمل البند. */
+function AttachButton({ courseId, itemKey, onDone }: { courseId: string; itemKey: string; onDone: () => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const { showToast } = useToast();
+  return (
+    <>
+      <input
+        ref={input}
+        type="file"
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xlsx,.pptx,image/*"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          setBusy(true);
+          try {
+            const f = await uploadRaw<{ id: string }>(`/files/me/upload?purpose=FILE_ITEM`, file);
+            await api.post(`${W}/quality-file/attach`, { courseId, itemKey, fileId: f.id, attach: true });
+            showToast("أُرفق الملف");
+            onDone();
+          } catch (err) {
+            showToast(err instanceof ApiError ? err.message : "تعذّر الرفع");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
+      <Button size="sm" variant="text" disabled={busy} onClick={() => input.current?.click()}>
+        <Icon name="up" /> {busy ? "يُرفع…" : "أرفق ملفًا"}
+      </Button>
     </>
   );
 }
