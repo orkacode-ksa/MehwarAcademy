@@ -17,8 +17,62 @@ import { AppError } from "../../lib/AppError.js";
  * (انظر docs/work-cycle.md §١). البساطة المطلوبة تخصّ الأستاذ والطالب ورئيس القسم.
  */
 
-/** لائحة افتراضية تُنشأ مع كل جامعة جديدة — نقطة انطلاق تُحرَّر، لا معيار مفروض. */
-export const DEFAULT_REGULATION: RegulationInput = {
+const SAUDI_LETTER_GRADES: RegulationInput["letterGrades"] = [
+  { letter: "A+", min: 95, name: "ممتاز مرتفع" },
+  { letter: "A", min: 90, name: "ممتاز" },
+  { letter: "B+", min: 85, name: "جيد جداً مرتفع" },
+  { letter: "B", min: 80, name: "جيد جداً" },
+  { letter: "C+", min: 75, name: "جيد مرتفع" },
+  { letter: "C", min: 70, name: "جيد" },
+  { letter: "D+", min: 65, name: "مقبول مرتفع" },
+  { letter: "D", min: 60, name: "مقبول" },
+  { letter: "F", min: 0, name: "راسب" },
+];
+const STUDENT_VIOLATIONS: RegulationInput["violationTypes"] = [
+  // المفتاح ABSENCE_BAN تُسجّله قاعدة الغياب آليًا؛ البقية يسجّلها الأستاذ.
+  { key: "ABSENCE_BAN", label: "حرمان بسبب الغياب", severity: "HIGH", action: "الحرمان من دخول الاختبار النهائي" },
+  { key: "CHEATING", label: "غش في اختبار", severity: "HIGH", action: "رصد صفر في الاختبار والرفع للقسم", escalateAfter: 1 },
+  { key: "PLAGIARISM", label: "انتحال في واجب أو بحث", severity: "MEDIUM", action: "رصد صفر في العمل", escalateAfter: 2 },
+  { key: "MISCONDUCT", label: "إخلال بنظام القاعة", severity: "MEDIUM", action: "إنذار كتابي", escalateAfter: 3 },
+  { key: "LATE_SUBMISSION", label: "تأخر في التسليم", severity: "LOW", action: "خصم حسب تقدير الأستاذ" },
+];
+const KPIS: RegulationInput["performanceKpis"] = [
+  { key: "SETUP", weight: 25 },
+  { key: "QUALITY_FILE", weight: 30 },
+  { key: "ATTENDANCE_LOGGED", weight: 25 },
+  { key: "GRADES_ON_TIME", weight: 20 },
+];
+
+/**
+ * لائحة عامة لأي جامعة لم تُعتمد لوائحها بعد — ما تشترك فيه الجامعات السعودية ومعايير NCAAA.
+ * نقطة انطلاق فقط: حين يرفع أساتذة الجامعة لوائحهم يستخرج المالك منها لائحتها ويعتمدها.
+ */
+export const GENERIC_REGULATION: RegulationInput = {
+  courseFileItems: [
+    { key: "SPEC", label: "توصيف المقرر", required: true },
+    { key: "CV", label: "السيرة الذاتية لأستاذ المقرر", required: true },
+    { key: "MIDTERM_EXAM", label: "الاختبار الفصلي", required: true },
+    { key: "FINAL_EXAM", label: "الاختبار النهائي", required: true },
+    { key: "ANSWER_KEY", label: "نماذج الإجابة", required: true },
+    { key: "GRADE_STATS", label: "إحصاءات الدرجات", required: true },
+    { key: "STUDENT_SAMPLES", label: "نماذج من أعمال الطلبة", required: false },
+    { key: "COURSE_REPORT", label: "تقرير المقرر", required: true },
+  ],
+  gradeScheme: [
+    { key: "COURSEWORK", label: "أعمال فصلية", weight: 30 },
+    { key: "MIDTERM", label: "اختبار فصلي", weight: 30 },
+    { key: "FINAL", label: "اختبار نهائي", weight: 40 },
+  ],
+  letterGrades: SAUDI_LETTER_GRADES,
+  absencePolicy: { warnPercent: 10, banPercent: 25 },
+  terminology: {},
+  violationTypes: STUDENT_VIOLATIONS,
+  performanceKpis: KPIS,
+  facultyViolations: [],
+};
+
+/** لائحة جامعة أم القرى — قالب يطبّقه المالك على جامعة أم القرى (لا افتراضي لغيرها). */
+export const UQU_REGULATION: RegulationInput = {
   // بنود ملف المقرر كما تطلبها وحدة الجودة في أم القرى — بترتيب منطقي: ما قبل الفصل، ثم
   // الاختبارات ونماذجها، ثم النتائج، ثم التقارير.
   courseFileItems: [
@@ -39,36 +93,18 @@ export const DEFAULT_REGULATION: RegulationInput = {
     { key: "MIDTERM", label: "اختبار نصفي", weight: 30 },
     { key: "FINAL", label: "اختبار نهائي", weight: 40 },
   ],
-  // سلّم أم القرى (لائحة الدراسة والاختبارات) بأسمائه.
-  letterGrades: [
-    { letter: "A+", min: 95, name: "ممتاز مرتفع" },
-    { letter: "A", min: 90, name: "ممتاز" },
-    { letter: "B+", min: 85, name: "جيد جداً مرتفع" },
-    { letter: "B", min: 80, name: "جيد جداً" },
-    { letter: "C+", min: 75, name: "جيد مرتفع" },
-    { letter: "C", min: 70, name: "جيد" },
-    { letter: "D+", min: 65, name: "مقبول مرتفع" },
-    { letter: "D", min: 60, name: "مقبول" },
-    { letter: "F", min: 0, name: "راسب" },
-  ],
+  letterGrades: SAUDI_LETTER_GRADES,
   // القاعدة التنفيذية للمادة ١٤: الحرمان إذا زاد الغياب بلا عذر عن ١٥٪ أو مع العذر عن ٢٥٪.
   absencePolicy: { warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 },
   terminology: {},
-  // المفتاح ABSENCE_BAN تُسجّله قاعدة الغياب آليًا؛ البقية يسجّلها الأستاذ.
-  violationTypes: [
-    { key: "ABSENCE_BAN", label: "حرمان بسبب الغياب", severity: "HIGH", action: "الحرمان من دخول الاختبار النهائي" },
-    { key: "CHEATING", label: "غش في اختبار", severity: "HIGH", action: "رصد صفر في الاختبار والرفع للقسم", escalateAfter: 1 },
-    { key: "PLAGIARISM", label: "انتحال في واجب أو بحث", severity: "MEDIUM", action: "رصد صفر في العمل", escalateAfter: 2 },
-    { key: "MISCONDUCT", label: "إخلال بنظام القاعة", severity: "MEDIUM", action: "إنذار كتابي", escalateAfter: 3 },
-    { key: "LATE_SUBMISSION", label: "تأخر في التسليم", severity: "LOW", action: "خصم حسب تقدير الأستاذ" },
-  ],
-  performanceKpis: [
-    { key: "SETUP", weight: 25 },
-    { key: "QUALITY_FILE", weight: 30 },
-    { key: "ATTENDANCE_LOGGED", weight: 25 },
-    { key: "GRADES_ON_TIME", weight: 20 },
-  ],
+  violationTypes: STUDENT_VIOLATIONS,
+  performanceKpis: KPIS,
+  facultyViolations: [],
 };
+
+/** ما يُنشأ مع كل جامعة جديدة أو أستاذ من جامعة لم تُعتمد بعد. */
+export const DEFAULT_REGULATION = GENERIC_REGULATION;
+export const REGULATION_PRESETS = { GENERIC: { label: "لائحة عامة (NCAAA)", value: GENERIC_REGULATION }, UQU: { label: "جامعة أم القرى", value: UQU_REGULATION } };
 
 export async function listInstitutions() {
   // جدول `tenants` خارج العزل التلقائي (هو الجدول الذي يُعرَّف به العزل نفسه)، ودور

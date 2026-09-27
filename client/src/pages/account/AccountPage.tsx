@@ -64,6 +64,14 @@ export function AccountPage() {
         </Link>
       </Card>
 
+      <Card title="جامعتي ولوائحها" className="mt-4" hint="ارفع لوائح جامعتك (ملف المقرر · الدراسة · مخالفات أعضاء هيئة التدريس) فنعتمدها لك ولزملائك.">
+        <Link to="/university">
+          <Button variant="secondary">
+            <Icon name="shield" /> افتح جامعتي
+          </Button>
+        </Link>
+      </Card>
+
       <Card title="سيرتي ونشاطي العلمي" className="mt-4" hint="تُولَّد منها «السيرة الذاتية» في ملف كل مقرر.">
         <Link to="/cv">
           <Button variant="secondary">

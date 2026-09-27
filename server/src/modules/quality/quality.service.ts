@@ -97,3 +97,38 @@ export async function setItemFile(workspaceId: string, input: { courseId: string
     update: { fileIds: next },
   });
 }
+
+/**
+ * التزامي بلائحة أعضاء هيئة التدريس — للأستاذ وحده (كمؤشر الأداء).
+ * المخالفة المربوطة بمؤشر تُحسب من بيانات مقرراته: «ملتزم» · «يحتاج انتباهًا» (بأسماء المقررات)
+ * · «لم يحن». وغير المربوطة تُعرض للاطلاع — لا حكم آلي على ما لا تراه المنصة.
+ */
+export async function getCompliance(workspaceId: string) {
+  const [courses, reg] = await Promise.all([
+    prisma.course.findMany({
+      where: { workspaceId, deletedAt: null, semester: { status: { in: ["ACTIVE", "GRADING", "CLOSED"] } } },
+      select: { id: true, code: true, nameAr: true },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.regulation.findFirst({ select: { facultyViolations: true } }),
+  ]);
+  const items = (reg?.facultyViolations as unknown as { key: string; label: string; category: string; check: PerformanceKpiKey | "" }[]) ?? [];
+  const keys = [...new Set(items.map((i) => i.check).filter(Boolean))] as PerformanceKpiKey[];
+  const perCourse: { id: string; code: string; nameAr: string; kpis: ReturnType<typeof computePerformance>["kpis"] }[] = [];
+  for (const c of courses) {
+    const facts = await loadCourseFacts(workspaceId, c.id);
+    perCourse.push({ ...c, kpis: computePerformance(facts, keys.map((key) => ({ key, weight: 1 }))).kpis });
+  }
+  return items.map((i) => {
+    if (!i.check) return { ...i, status: "INFO" as const, courses: [] };
+    const scored = perCourse.map((c) => ({ c, k: c.kpis.find((k) => k.key === i.check) })).filter((x) => x.k && x.k.score !== null);
+    if (scored.length === 0) return { ...i, status: "NOT_DUE" as const, courses: [] };
+    const bad = scored.filter((x) => (x.k?.score ?? 100) < 100);
+    return {
+      ...i,
+      status: bad.length ? ("ATTENTION" as const) : ("OK" as const),
+      courses: bad.map((x) => ({ id: x.c.id, code: x.c.code, name: x.c.nameAr, detail: x.k?.detail ?? "" })),
+    };
+  });
+}

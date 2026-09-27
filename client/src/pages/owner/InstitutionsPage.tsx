@@ -53,6 +53,7 @@ export function InstitutionsPage() {
   return (
     <>
       <PageHeader kicker="المالك" title="الجامعات" description="كل جامعة مستأجر مستقل بلائحته وتقويمه." />
+      <PendingSubmissions />
 
       <form onSubmit={create} className="bg-white border border-line rounded-[14px] p-4 mb-6 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <label className="block">
@@ -111,5 +112,21 @@ export function InstitutionsPage() {
         ))}
       </div>
     </>
+  );
+}
+
+/** لوائح رفعها الأساتذة عن جامعاتهم وتنتظر المالك — تنبيه واحد يقود لقائمتها. */
+function PendingSubmissions() {
+  const { data } = useApi<{ submissions: unknown[] }[]>("/owner/submissions");
+  const count = data?.reduce((n, g) => n + g.submissions.length, 0) ?? 0;
+  if (!count) return null;
+  return (
+    <Link to="/osubmissions" className="mb-4 flex items-center gap-3 rounded-[14px] border border-gold2/40 bg-gold2/[.08] p-3.5 text-[13.5px] min-h-[48px]">
+      <Icon name="file" className="w-5 h-5 text-[#7C6134] flex-none" />
+      <span className="flex-1">
+        {formatNum(count)} ملفًا من لوائح الجامعات بانتظار مراجعتك ({formatNum(data?.length ?? 0)} جامعة)
+      </span>
+      <Icon name="arrl" className="w-4 h-4" />
+    </Link>
   );
 }

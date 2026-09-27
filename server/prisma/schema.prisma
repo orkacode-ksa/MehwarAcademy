@@ -79,21 +79,24 @@ model Regulation {
   tenantId String @unique
 
   /// بنود ملف المقرر المطلوبة: [{ key, label, required }]
-  courseFileItems Json @default("[]")
+  courseFileItems   Json @default("[]")
   /// توزيع الدرجات الافتراضي: [{ key, label, weight }]
-  gradeScheme     Json @default("[]")
+  gradeScheme       Json @default("[]")
   /// سلّم التقديرات: [{ letter, min }]
-  letterGrades    Json @default("[]")
+  letterGrades      Json @default("[]")
   /// سياسة الغياب: { warnPercent, banPercent }
-  absencePolicy   Json @default("{}")
+  absencePolicy     Json @default("{}")
   /// أنواع المخالفات: [{ key, label, severity, action, escalateAfter? }]
   /// الجامعة تعرّف أنواعها وعقوباتها، والمنصة تسجّل وتعدّ وتُصعّد.
-  violationTypes  Json @default("[]")
+  violationTypes    Json @default("[]")
   /// مؤشرات تقييم الأداء وأوزانها: [{ key, weight }] — المفاتيح من قائمة ثابتة في
   /// `rules/performance.ts` لأن كل مؤشر يُحسب من بيانات حقيقية، والأوزان للجامعة.
-  performanceKpis Json @default("[]")
+  performanceKpis   Json @default("[]")
   /// تسميات تحلّ محل الافتراضية في الواجهة: { course: "مقرر", section: "شعبة", ... }
-  terminology     Json @default("{}")
+  terminology       Json @default("{}")
+  /// مخالفات أعضاء هيئة التدريس: [{ key, label, category, check }] — يرفعها الأساتذة ويعتمدها المالك،
+  /// و`check` يربط المخالفة بمؤشر محسوب فيرى الأستاذ التزامه بها آليًا.
+  facultyViolations Json @default("[]")
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -1147,4 +1150,26 @@ model AiUsage {
   @@index([createdAt])
   @@index([userId, createdAt])
   @@map("ai_usage")
+}
+
+/// ما يرفعه الأستاذ عن جامعته (هيكل ملف المقرر · اللائحة · مخالفات أعضاء هيئة التدريس …).
+/// المالك يراجعه ويستخرج منه لائحة الجامعة ويعتمدها — فتُبنى لوائح كل جامعة جديدة بلا مقابل.
+model UniversitySubmission {
+  id          String    @id @default(cuid())
+  tenantId    String
+  userId      String
+  /// COURSE_FILE · REGULATION · FACULTY_VIOLATIONS · OTHER
+  kind        String
+  fileId      String?
+  title       String
+  mimeType    String?
+  textContent String?
+  note        String    @default("")
+  /// PENDING · APPLIED · DISMISSED
+  status      String    @default("PENDING")
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId, status])
+  @@map("university_submissions")
 }

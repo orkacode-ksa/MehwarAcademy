@@ -59,7 +59,13 @@ describe("الخطوة ٠ — المالك", () => {
     expect(reg.status).toBe(200);
     expect(reg.body.data.gradeScheme).toHaveLength(3);
     expect(reg.body.data.courseFileItems.length).toBeGreaterThan(5);
-    expect(reg.body.data.absencePolicy).toEqual({ warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 });
+    // الافتراضي لائحة عامة — لا جامعة بعينها مثبّتة في الشيفرة
+    expect(reg.body.data.absencePolicy).toEqual({ warnPercent: 10, banPercent: 25 });
+    // وقالب أم القرى متاح للمالك يطبّقه على جامعتها
+    const presets = (await ownerAgent.get("/api/owner/regulation-presets")).body.data as { key: string; value: { absencePolicy: unknown; courseFileItems: unknown[] } }[];
+    const uqu = presets.find((p) => p.key === "UQU");
+    expect(uqu?.value.absencePolicy).toEqual({ warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 });
+    expect(uqu?.value.courseFileItems).toHaveLength(11);
   });
 
   it("يرفض لائحة مجموع أوزانها لا يساوي ١٠٠", async () => {

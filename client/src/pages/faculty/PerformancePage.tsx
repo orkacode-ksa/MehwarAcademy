@@ -54,6 +54,71 @@ export function PerformancePage() {
           </Card>
         ))}
       </div>
+      <Compliance />
     </>
+  );
+}
+
+interface ComplianceItem {
+  key: string;
+  label: string;
+  category: string;
+  status: "OK" | "ATTENTION" | "NOT_DUE" | "INFO";
+  courses: { id: string; code: string; name: string; detail: string }[];
+}
+const STATUS: Record<ComplianceItem["status"], { text: string; cls: string }> = {
+  OK: { text: "ملتزم", cls: "text-teal" },
+  ATTENTION: { text: "يحتاج انتباهًا", cls: "text-crim" },
+  NOT_DUE: { text: "لم يحن", cls: "text-ink-3" },
+  INFO: { text: "للاطلاع", cls: "text-ink-3" },
+};
+
+/**
+ * التزامي بلائحة مخالفات أعضاء هيئة التدريس في جامعتي — ما يُحسب من البيانات يُقال حالته
+ * ومقرراته، وما لا تراه المنصة يُعرض للاطلاع دون حكم.
+ */
+function Compliance() {
+  const { data } = useApi<ComplianceItem[]>(`${W}/compliance`);
+  if (!data) return null;
+  const groups = [...new Set(data.map((d) => d.category || "عام"))];
+  return (
+    <Card
+      title="التزامي بلائحة أعضاء هيئة التدريس"
+      className="mt-4"
+      hint={data.length ? "من لائحة جامعتك المعتمدة. لا يراه غيرك." : undefined}
+    >
+      {data.length === 0 ? (
+        <p className="text-[13px] text-ink-2">
+          لم تُعتمد لائحة مخالفات لجامعتك بعد.{" "}
+          <Link to="/university" className="text-deep underline">
+            ارفعها من «جامعتي»
+          </Link>{" "}
+          فتظهر هنا مع حالة التزامك بكل بند.
+        </p>
+      ) : (
+        groups.map((g) => (
+          <section key={g} className="mb-3 last:mb-0">
+            <h3 className="text-[12.5px] font-semibold text-ink-3 mb-1.5">{g}</h3>
+            <ul className="grid gap-2">
+              {data
+                .filter((d) => (d.category || "عام") === g)
+                .map((d) => (
+                  <li key={d.key} className="text-[13px]">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0">{d.label}</span>
+                      <span className={`flex-none font-medium ${STATUS[d.status].cls}`}>{STATUS[d.status].text}</span>
+                    </div>
+                    {d.courses.map((c) => (
+                      <Link key={c.id} to={`/course/${c.id}`} className="block text-[12px] text-deep underline mt-0.5">
+                        {c.code} · {c.name} — {c.detail}
+                      </Link>
+                    ))}
+                  </li>
+                ))}
+            </ul>
+          </section>
+        ))
+      )}
+    </Card>
   );
 }

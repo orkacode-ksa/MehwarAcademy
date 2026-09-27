@@ -116,8 +116,8 @@ describe("٧ ملف المقرر والاستنساخ", () => {
   it("بنود الملف تعكس العمل: المخرجات والمواد والنماذج والرصد", async () => {
     const file = await teacher.get(`${W}/courses/${courseId}/quality-file`);
     const done = Object.fromEntries((file.body.data.items as { key: string; done: boolean }[]).map((i) => [i.key, i.done]));
-    // بنود أم القرى: التوصيف · الاختبار العملي (تقييم معمل بنصّه) · الإحصاءات بعد اكتمال الرصد
-    expect(done).toMatchObject({ SPEC: true, PRACTICAL_EXAM: true, GRADE_STATS: true, CV: false, ANSWER_KEY: false, FINAL_EXAM: false });
+    // البنود العامة: التوصيف · الإحصاءات بعد اكتمال الرصد — والبقية تنتظر عملها
+    expect(done).toMatchObject({ SPEC: true, GRADE_STATS: true, CV: false, ANSWER_KEY: false, FINAL_EXAM: false });
   });
 
   it("ملف المقرر يُبنى بمحتواه", async () => {

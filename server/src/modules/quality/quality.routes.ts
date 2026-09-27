@@ -42,6 +42,14 @@ qualityRouter.get(
   }),
 );
 
+qualityRouter.get(
+  "/compliance",
+  teacherOnly,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await service.getCompliance(ws(req)) });
+  }),
+);
+
 qualityRouter.post(
   "/quality-file/attach",
   teacherOnly,

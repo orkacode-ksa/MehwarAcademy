@@ -38,6 +38,8 @@ export async function uploadFile(input: {
   fileName: string;
   mimeType: string;
   data: Buffer;
+  /** مساهمات المنصة (لوائح الجامعات) لا تُحسب على مساحة الأستاذ. */
+  skipQuota?: boolean;
 }) {
   if (!ALLOWED_MIME.has(input.mimeType)) throw AppError.badRequest("نوع الملف غير مدعوم — PDF أو صورة أو Word أو PowerPoint أو Excel أو صوت أو فيديو");
   if (input.data.length === 0) throw AppError.badRequest("الملف فارغ");
@@ -45,7 +47,7 @@ export async function uploadFile(input: {
 
   const [ent, usage] = await Promise.all([getEntitlements(input.workspaceId), getUsage(input.workspaceId)]);
   const quota = ent.storageMb * 1024 * 1024;
-  if (usage.storageBytes + input.data.length > quota) {
+  if (!input.skipQuota && usage.storageBytes + input.data.length > quota) {
     const leftMb = Math.max(0, Math.floor((quota - usage.storageBytes) / (1024 * 1024)));
     throw AppError.badRequest(`بلغت مساحة باقتك (${ent.storageMb} ميجابايت) — المتبقي ${leftMb} ميجابايت. رقِّ باقتك من «حسابي».`);
   }

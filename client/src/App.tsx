@@ -28,6 +28,8 @@ import { AccountPage } from "./pages/account/AccountPage.js";
 import { PlansPage } from "./pages/account/PlansPage.js";
 import { OrderPage } from "./pages/account/OrderPage.js";
 import { CvPage } from "./pages/account/CvPage.js";
+import { UniversityPage } from "./pages/account/UniversityPage.js";
+import { SubmissionsPage } from "./pages/owner/SubmissionsPage.js";
 import { BankPage } from "./pages/bank/BankPage.js";
 import { BankDetailPage } from "./pages/bank/BankDetailPage.js";
 import { CourseReportPage } from "./pages/faculty/CourseReportPage.js";
@@ -65,6 +67,7 @@ export function App() {
           <Route path="plans" element={<PlansPage />} />
           <Route path="orders/:id" element={<OrderPage />} />
           <Route path="cv" element={<CvPage />} />
+          <Route path="university" element={<UniversityPage />} />
           <Route path="dhome" element={<DeptPage />} />
 
           {/* الطالب */}
@@ -79,6 +82,7 @@ export function App() {
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="obank" element={<OwnerBankPage />} />
           <Route path="osettings" element={<OwnerSettingsPage />} />
+          <Route path="osubmissions" element={<SubmissionsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

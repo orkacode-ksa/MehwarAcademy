@@ -88,6 +88,19 @@ export const performanceKpiSchema = z.object({
   weight: z.number().int().min(0).max(100),
 });
 
+/**
+ * مخالفات أعضاء هيئة التدريس في لائحة الجامعة — يرفعها الأساتذة ويعتمدها المالك.
+ * `check` (اختياري) يربط المخالفة بمؤشر محسوب من البيانات، فيرى الأستاذ التزامه بها آليًا؛
+ * وما لا يُحسب يُعرض للاطلاع.
+ */
+export const facultyViolationSchema = z.object({
+  key: z.string().trim().min(1).max(40),
+  label: z.string().trim().min(2).max(200),
+  category: z.string().trim().max(60).default(""),
+  check: z.union([z.enum(Object.keys(PERFORMANCE_KPIS) as [PerformanceKpiKey, ...PerformanceKpiKey[]]), z.literal("")]).default(""),
+});
+export type FacultyViolation = z.infer<typeof facultyViolationSchema>;
+
 export const regulationSchema = z
   .object({
     courseFileItems: z.array(courseFileItemSchema).max(40),
@@ -97,6 +110,7 @@ export const regulationSchema = z
     terminology: z.record(z.string().max(40)).default({}),
     violationTypes: z.array(violationTypeSchema).max(30).default([]),
     performanceKpis: z.array(performanceKpiSchema).max(10).default([]),
+    facultyViolations: z.array(facultyViolationSchema).max(80).default([]),
   })
   .refine((r) => r.gradeScheme.reduce((sum, c) => sum + c.weight, 0) === 100, {
     message: "مجموع أوزان الدرجات يجب أن يساوي ١٠٠",
@@ -160,3 +174,15 @@ export const holidayCreateSchema = z
   })
   .refine((h) => h.startDate <= h.endDate, { message: "تاريخ النهاية قبل البداية", path: ["endDate"] });
 export type HolidayCreateInput = z.infer<typeof holidayCreateSchema>;
+
+// ───────────────────────── مساهمات الجامعات ─────────────────────────
+
+/** ما يرفعه الأستاذ عن جامعته — فتحصل المنصة على لوائح جامعة جديدة بلا مقابل ويعتمدها المالك. */
+export const SUBMISSION_KINDS = {
+  COURSE_FILE: "هيكل ملف المقرر وقوائم الجودة",
+  REGULATION: "لائحة الدراسة والاختبارات (الغياب · التقديرات)",
+  FACULTY_VIOLATIONS: "مخالفات أعضاء هيئة التدريس",
+  OTHER: "نماذج أخرى معتمدة",
+} as const;
+export type SubmissionKind = keyof typeof SUBMISSION_KINDS;
+export const SUBMISSION_STATUS_LABEL = { PENDING: "بانتظار المراجعة", APPLIED: "اعتُمدت", DISMISSED: "لم تُعتمد" } as const;

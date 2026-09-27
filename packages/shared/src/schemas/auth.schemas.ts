@@ -21,6 +21,10 @@ export const registerSchema = z
     role: z.enum(["TEACHER", "STUDENT"]),
     /** رمز الجامعة من المالك — بدونه يُنشأ مستأجر تجريبي شخصي. */
     institutionCode: z.string().trim().toUpperCase().max(12).optional(),
+    /** جامعة معتمدة من القائمة — ينضم الأستاذ إليها (لائحتها وتقويمها). */
+    universityId: z.string().trim().max(40).optional(),
+    /** جامعة غير موجودة بعد: اسمها كما يكتبه الأستاذ، فتُجهَّز له بلائحة عامة حتى تُعتمد لوائحها. */
+    universityName: z.string().trim().min(3).max(120).optional(),
   })
   .strict();
 export type RegisterInput = z.infer<typeof registerSchema>;

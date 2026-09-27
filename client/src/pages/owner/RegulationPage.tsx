@@ -20,6 +20,7 @@ export function RegulationPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const { data, loading, error } = useApi<RegulationInput>(`/owner/institutions/${tenantId}/regulation`);
   const { showToast } = useToast();
+  const { data: presets } = useApi<{ key: string; label: string; value: RegulationInput }[]>("/owner/regulation-presets");
   const [form, setForm] = useState<RegulationInput | null>(null);
   const [issue, setIssue] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,7 +29,7 @@ export function RegulationPage() {
     // لائحة أُنشئت قبل إضافة المخالفات والمؤشرات قد لا تحملهما — تُكمَّل بقوائم فارغة.
     if (data) {
       const copy = structuredClone(data);
-      setForm({ ...copy, violationTypes: copy.violationTypes ?? [], performanceKpis: copy.performanceKpis ?? [] });
+      setForm({ ...copy, violationTypes: copy.violationTypes ?? [], performanceKpis: copy.performanceKpis ?? [], facultyViolations: copy.facultyViolations ?? [] });
     }
   }, [data]);
 
@@ -42,6 +43,21 @@ export function RegulationPage() {
   function patch(next: Partial<RegulationInput>) {
     setForm((f) => (f ? { ...f, ...next } : f));
     setIssue(null);
+  }
+
+  /** مسودة من ملفات أساتذة الجامعة — تملأ النموذج للمراجعة، ولا تُحفظ إلا بزر «حفظ». */
+  async function extract() {
+    setBusy(true);
+    setIssue(null);
+    try {
+      const draft = await api.post<RegulationInput>(`/owner/institutions/${tenantId}/regulation/extract`);
+      setForm({ ...draft, facultyViolations: draft.facultyViolations ?? [] });
+      showToast("مُلئت المسودة من ملفات الأساتذة — راجعها ثم احفظ");
+    } catch (err) {
+      setIssue(err instanceof ApiError ? err.message : "تعذّر الاستخراج");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function save() {
@@ -73,6 +89,25 @@ export function RegulationPage() {
           </Button>
         }
       />
+
+      <section className="bg-white border border-line rounded-[14px] p-4 mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-[13px] text-ink-2 flex-1 min-w-[200px]">ابدأ من ملفات أساتذة الجامعة، أو من قالب جاهز — ثم راجع واحفظ.</span>
+        <Button variant="gold" size="sm" disabled={busy} onClick={() => void extract()}>
+          <Icon name="sparks" /> املأ من ملفات الأساتذة
+        </Button>
+        {presets?.map((p) => (
+          <Button
+            key={p.key}
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (window.confirm(`استبدال النموذج بقالب «${p.label}»؟ لن يُحفظ حتى تضغط «حفظ».`)) setForm(structuredClone(p.value));
+            }}
+          >
+            قالب: {p.label}
+          </Button>
+        ))}
+      </section>
 
       {issue && <div className="mb-4 rounded-[11px] border border-crim/40 bg-crim/[.06] px-3.5 py-2.5 text-[13px] text-crim">{issue}</div>}
 
@@ -271,6 +306,52 @@ export function RegulationPage() {
           onClick={() => patch({ violationTypes: [...form.violationTypes, { key: `V_${Date.now()}`, label: "مخالفة جديدة", severity: "LOW" }] })}
         >
           <Icon name="plus" /> نوع
+        </Button>
+      </section>
+
+      <section className="bg-white border border-line rounded-[14px] p-4 mt-4">
+        <h2 className="font-semibold text-[15px] mb-1">مخالفات أعضاء هيئة التدريس</h2>
+        <p className="text-[12.5px] text-ink-3 mb-3">
+          من لائحة الجامعة. اربط المخالفة بمؤشر محسوب فيرى الأستاذ التزامه بها آليًا في «أدائي»؛ وغير المربوطة تُعرض للاطلاع.
+        </p>
+        <div className="grid gap-2">
+          {form.facultyViolations.map((v, i) => {
+            const set = (next: Partial<typeof v>) => {
+              const list = [...form.facultyViolations];
+              list[i] = { ...v, ...next };
+              patch({ facultyViolations: list });
+            };
+            return (
+              <div key={v.key} className="grid gap-2 sm:grid-cols-[1fr_160px_200px_44px] items-center border-b border-line2 pb-2 [&>*]:min-w-0">
+                <input value={v.label} aria-label="نص المخالفة" onChange={(e) => set({ label: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13.5px]" />
+                <input value={v.category} aria-label="الفئة" placeholder="الفئة" onChange={(e) => set({ category: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-white text-[13px]" />
+                <select value={v.check} aria-label="المؤشر المرتبط" onChange={(e) => set({ check: e.target.value as PerformanceKpiKey | "" })} className="border border-line rounded-[10px] px-2 py-2 bg-white text-[13px]">
+                  <option value="">بلا رصد آلي</option>
+                  {(Object.keys(PERFORMANCE_KPIS) as PerformanceKpiKey[]).map((k) => (
+                    <option key={k} value={k}>
+                      {PERFORMANCE_KPIS[k]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  aria-label={`حذف ${v.label}`}
+                  onClick={() => patch({ facultyViolations: form.facultyViolations.filter((_, j) => j !== i) })}
+                  className="w-11 h-11 grid place-items-center rounded-[9px] text-ink-3 hover:text-crim hover:bg-crim/[.08]"
+                >
+                  <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-3"
+          onClick={() => patch({ facultyViolations: [...form.facultyViolations, { key: `F_${Date.now()}`, label: "مخالفة جديدة", category: "", check: "" }] })}
+        >
+          <Icon name="plus" /> مخالفة
         </Button>
       </section>
 

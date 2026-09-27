@@ -68,7 +68,12 @@ export async function registerUser(
 
   // الانضمام لجامعة قائمة برمزها — `tenants` خارج RLS فالبحث بلا سياق مشروع.
   let institution: { id: string } | null = null;
-  if (input.institutionCode) {
+  if (input.universityId) {
+    if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة");
+    // الجامعات المعتمدة وحدها (ACTIVE) تُختار من القائمة؛ غيرها يمرّ بالمراجعة أولًا.
+    institution = await prismaBase.tenant.findFirst({ where: { id: input.universityId, status: "ACTIVE", deletedAt: null }, select: { id: true } });
+    if (!institution) throw AppError.badRequest("الجامعة غير متاحة — اخترها من القائمة أو اكتب اسمها");
+  } else if (input.institutionCode) {
     if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة لا برمز الجامعة");
     institution = await prismaBase.tenant.findFirst({
       where: { joinCode: input.institutionCode, deletedAt: null, status: { in: ["ACTIVE", "TRIAL"] } },
@@ -85,7 +90,9 @@ export async function registerUser(
     const tenant =
       institution ??
       (await tx.tenant.create({
-        data: { slug: `t-${randomToken(8).toLowerCase()}`, name: input.fullName, status: "TRIAL", joinCode: newJoinCode(8) },
+        // جامعة لم تُعتمد بعد: المستأجر يحمل اسمها كما كتبه الأستاذ (أو اسمه إن لم يكتب)،
+        // ويبقى «تجريبيًا» حتى يعتمد المالك لوائحها من ملفات أساتذتها.
+        data: { slug: `t-${randomToken(8).toLowerCase()}`, name: input.universityName ?? input.fullName, status: "TRIAL", joinCode: newJoinCode(8) },
       }));
 
     // التسجيل يكتب في مستأجر لم يُحسم في الجلسة بعد، فلا سياق مصادقة يضبط `app.tenant_id`.

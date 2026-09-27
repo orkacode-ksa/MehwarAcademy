@@ -84,7 +84,7 @@ export async function getUsage(workspaceId: string) {
   since.setUTCHours(0, 0, 0, 0);
   const [courses, storage, generations] = await Promise.all([
     prisma.course.count({ where: { workspaceId, deletedAt: null } }),
-    prisma.fileAsset.aggregate({ where: { workspaceId, deletedAt: null }, _sum: { sizeBytes: true } }),
+    prisma.fileAsset.aggregate({ where: { workspaceId, deletedAt: null, purpose: { not: "UNIVERSITY" } }, _sum: { sizeBytes: true } }),
     prisma.generationJob.count({ where: { workspaceId, createdAt: { gte: since }, status: { not: "FAILED" } } }),
   ]);
   return { courses, storageBytes: storage._sum.sizeBytes ?? 0, generationsThisMonth: generations };

@@ -23,6 +23,7 @@ import { AppError } from "../../lib/AppError.js";
 import * as service from "./owner.service.js";
 import * as store from "../store/store.service.js";
 import * as bank from "../bank/bank.service.js";
+import * as university from "../university/university.service.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { kindsAvailable } from "../generation/generation.service.js";
 import { writerReady } from "../generation/engine.js";
@@ -379,5 +380,52 @@ ownerRouter.get(
   "/platform/usage",
   asyncHandler(async (_req, res) => {
     res.json({ success: true, data: await usageReport() });
+  }),
+);
+
+// ───────────────────────── لوائح الجامعات من أساتذتها ─────────────────────────
+
+ownerRouter.get(
+  "/regulation-presets",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: Object.entries(service.REGULATION_PRESETS).map(([key, p]) => ({ key, label: p.label, value: p.value })) });
+  }),
+);
+ownerRouter.get(
+  "/submissions",
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await university.ownerQueue() });
+  }),
+);
+ownerRouter.get(
+  "/submissions/:tenantId/:id/file",
+  asyncHandler(async (req, res) => {
+    const f = await university.ownerFile(req.params.tenantId as string, req.params.id as string);
+    res.setHeader("Content-Type", f.mime);
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(f.name)}`);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.send(f.data);
+  }),
+);
+ownerRouter.post(
+  "/submissions/:tenantId/:id/dismiss",
+  asyncHandler(async (req, res) => {
+    await university.ownerDismiss(req.params.tenantId as string, req.params.id as string);
+    res.json({ success: true, data: { ok: true } });
+  }),
+);
+/** مسودة لائحة مستخرجة من ملفات الأساتذة — لا تُحفظ؛ يراجعها المالك في المحرّر ثم يحفظ. */
+ownerRouter.post(
+  "/institutions/:tenantId/regulation/extract",
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await university.ownerExtract(actor(req), req.params.tenantId as string) });
+  }),
+);
+ownerRouter.post(
+  "/institutions/:tenantId/approve",
+  validate({ body: z.object({ name: z.string().trim().min(3).max(120).optional() }).strict() }),
+  asyncHandler(async (req, res) => {
+    await university.ownerApprove(actor(req), req.params.tenantId as string, req.body.name);
+    res.json({ success: true, data: { ok: true } });
   }),
 );

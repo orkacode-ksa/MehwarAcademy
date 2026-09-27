@@ -5,6 +5,7 @@ import { api, ApiError } from "../../api/client.js";
 import { MaterialView } from "../../components/materials/MaterialView.js";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
+import { UniversityNudge } from "../../components/shell/UniversityNudge.js";
 import { Button } from "../../components/ui/Button.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
@@ -61,6 +62,7 @@ export function TodayPage() {
   return (
     <>
       <PageHeader kicker="محاضرة اليوم" title={title} />
+      <UniversityNudge />
 
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}
       {error && <p className="text-sm text-crim">{error}</p>}

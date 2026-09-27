@@ -9,6 +9,7 @@ import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME } from "../nav/nav.js";
 import { api, ApiError } from "../api/client.js";
 import { resetSession } from "../hooks/useSession.js";
+import { useApi } from "../hooks/useApi.js";
 
 type Step = 1 | 2;
 
@@ -23,9 +24,18 @@ type Step = 1 | 2;
  *    نموذج تسجيل حقيقي لا يجوز أن يوحي بأن بيانات شخص آخر أُدخلت للمستخدم).
  * ٢) حقل كلمة مرور فعلي — البروتوتايب لم يتضمن كلمة مرور إطلاقاً في نموذج التسجيل،
  *    وهذا خلل وظيفي (لا يمكن إنشاء حساب فعلي بلا كلمة مرور)، لا تفصيلاً تصميميًا.
- * الأستاذ: `POST /auth/register` (برمز جامعة اختياري). الطالب: `POST /auth/join-section`.
+ * الأستاذ: `POST /auth/register` (بجامعته: معتمدة من القائمة أو اسم جديد). الطالب: `POST /auth/join-section`.
  */
+/** الاسم المطابق لجامعة معتمدة يُرسل معرّفها؛ غيره يُرسل اسمًا جديدًا. */
+function universityOf(name: string | undefined, listed: { id: string; name: string }[]) {
+  const n = (name ?? "").trim();
+  if (!n) return {};
+  const hit = listed.find((u) => u.name === n);
+  return hit ? { universityId: hit.id } : { universityName: n };
+}
+
 export function SignupPage() {
+  const { data: unis } = useApi<{ id: string; name: string }[]>("/university/list");
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
   const [role, setRole] = useState<SignupRole | null>(null);
@@ -51,7 +61,7 @@ export function SignupPage() {
           email: faculty.email ?? "",
           password: faculty.password ?? "",
           role: "TEACHER" as const,
-          ...(faculty.institutionCode ? { institutionCode: faculty.institutionCode } : {}),
+          ...universityOf(faculty.university, unis ?? []),
         });
       }
       resetSession();

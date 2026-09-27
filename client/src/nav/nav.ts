@@ -56,10 +56,10 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
-  faculty: ["course", "plans", "orders", "cv"],
+  faculty: ["course", "plans", "orders", "cv", "university"],
   student: ["scourse"],
   dept: [],
-  admin: ["institutions", "payments", "obank", "osettings"],
+  admin: ["institutions", "payments", "obank", "osettings", "osubmissions"],
 };
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {

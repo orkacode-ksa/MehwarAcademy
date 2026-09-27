@@ -52,7 +52,7 @@ describe("التسجيل الذاتي يُنتج مساحة صالحة للعم�
     courseId = course.body.data.id;
     // البنود والسياسة نُسخت من اللائحة
     expect(course.body.data.fileItems.length).toBeGreaterThan(5);
-    expect(course.body.data.absencePolicy).toEqual({ warnPercent: 10, banPercent: 15, banPercentWithExcused: 25 });
+    expect(course.body.data.absencePolicy).toEqual({ warnPercent: 10, banPercent: 25 });
   });
 });
 
