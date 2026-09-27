@@ -13,9 +13,10 @@ export const NAV: Record<Role, NavItem[]> = {
   // الأستاذ: ثلاث وجهات لا عشر. كانت سبع منها صفحات بديلة، و«لا زرّ يقود إلى شاشة غير
   // مبنية» (lessons §٣.٧). «القسم» يظهر لرئيس القسم وحده (انظر visibleNav).
   faculty: [
-    { key: "today", icon: "clock", label: "اليوم" },
+    { key: "home", icon: "grid", label: "الرئيسية" },
     { key: "courses", icon: "book", label: "مقرراتي" },
     { key: "bank", icon: "box", label: "البنك" },
+    { key: "today", icon: "clock", label: "محاضرة اليوم" },
     { key: "evalp", icon: "chart", label: "أدائي" },
     { key: "dhome", icon: "users", label: "القسم" },
   ],
@@ -40,8 +41,8 @@ export function visibleNav(role: Role, isDeptHead: boolean): NavItem[] {
 export const MOBILE_PRIMARY_COUNT = 4;
 
 export const ROLE_HOME: Record<Role, string> = {
-  // «اليوم» للأستاذ: محاضرة اليوم هي القيمة اليومية، وتحيله لمقرراته إن لم يكن لديه شيء.
-  faculty: "today",
+  // الرئيسية للأستاذ: التنبيهات ومحاضرات اليوم وآخر مقرراته في شاشة واحدة.
+  faculty: "home",
   student: "scourses",
   dept: "dhome",
   admin: "institutions",
@@ -56,7 +57,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
-  faculty: ["course", "plans", "orders", "cv", "university"],
+  faculty: ["course", "plans", "orders", "cv", "university", "tasks"],
   student: ["scourse"],
   dept: [],
   admin: ["institutions", "ousers", "payments", "obank", "osettings", "osubmissions"],

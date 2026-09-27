@@ -18,6 +18,8 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import * as controller from "./teaching.controller.js";
 import * as today from "./today.service.js";
 import * as content from "./content.service.js";
+import * as home from "./home.service.js";
+import { campusToday } from "../rules/rules.js";
 import { AppError } from "../../lib/AppError.js";
 
 function ws(req: { workspaceId?: string }): string {
@@ -51,6 +53,21 @@ teachingRouter.get(
   validate({ query: z.object({ date: isoDate }).passthrough() }),
   asyncHandler(async (req, res) => {
     res.json({ success: true, data: await today.getToday(ws(req), req.query.date as string | undefined) });
+  }),
+);
+teachingRouter.get(
+  "/home",
+  teacherOnly,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await home.teacherHome(ws(req)) });
+  }),
+);
+teachingRouter.get(
+  "/tasks",
+  teacherOnly,
+  validate({ query: z.object({ date: isoDate }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await home.dayTasks(ws(req), (req.query.date as string | undefined) ?? campusToday()) });
   }),
 );
 teachingRouter.get(

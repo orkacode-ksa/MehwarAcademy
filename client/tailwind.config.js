@@ -28,6 +28,7 @@ export default {
         // ink-3 نصّي يجتاز AA؛ ink-3d القيمة الأصلية للاستخدام الزخرفي فقط
         ink: { DEFAULT: c("ink"), 2: c("ink2"), 3: c("ink3-text"), "3d": c("ink3") },
         goldText: c("gold-text"),
+        "gold-text": c("gold-text"),
         line: { DEFAULT: c("line"), 2: c("line2") },
         mint: c("mint"),
         lav: c("lav"),

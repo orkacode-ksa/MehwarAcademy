@@ -50,7 +50,8 @@ function highlightFor(role: Role): Highlight {
     return { title: "مقرراتي", subtitle: "موادك ودرجاتك وغيابك", to: "/scourses", icon: "pen" };
   }
   if (role === "faculty") {
-    return { title: "محاضرة اليوم", subtitle: "ابدأ محاضرتك وسجّل الحضور", to: "/today", icon: "pen" };
+    // «مهام اليوم» لا «محاضرة اليوم»: تلك في الشريط وأدوات الرئيسية، وهذه خريطة اليوم كله بالوقت.
+    return { title: "مهام اليوم", subtitle: "يومك مرتبًا بالوقت: محاضرات · مستحقات · ما ينتظرك", to: "/tasks", icon: "pen" };
   }
   return { title: "لوحتك", subtitle: "ابدأ من الصفحة الرئيسية", to: `/${ROLE_HOME[role]}`, icon: "grid" };
 }
