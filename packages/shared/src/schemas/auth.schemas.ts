@@ -34,6 +34,8 @@ export const loginSchema = z
     email: emailSchema,
     password: z.string().min(1).max(128),
     turnstileToken: z.string().optional(),
+    /** رمز التحقق بخطوتين (٦ أرقام) أو رمز استرداد — مطلوب لمن فعّله */
+    totp: z.string().trim().max(20).optional(),
   })
   .strict();
 export type LoginInput = z.infer<typeof loginSchema>;

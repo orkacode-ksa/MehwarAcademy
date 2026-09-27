@@ -18,6 +18,7 @@ const RANKS = ["معيد", "محاضر", "أستاذ مساعد", "أستاذ م
 /** سيرتي — بيانات ثابتة مرة، ونشاط يُضاف كلما حدث؛ والسيرة PDF بنقرة. */
 export function CvPage() {
   const { data, reload } = useApi<Data>("/profile");
+  const sug = useApi<{ departments: string[]; colleges: string[] }>("/profile/suggestions");
   const { user } = useSession();
   const [p, setP] = useState<FacultyProfile | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -37,12 +38,12 @@ export function CvPage() {
       setErr(e instanceof ApiError ? e.message : "تعذّر الحفظ");
     }
   }
-  const field = (k: keyof FacultyProfile, label: string, long = false) => (
+  const field = (k: keyof FacultyProfile, label: string, long = false, list?: string) => (
     <Label text={label}>
       {long ? (
         <Textarea rows={3} value={p[k]} onChange={(e) => setP({ ...p, [k]: e.target.value })} />
       ) : (
-        <Input value={p[k]} onChange={(e) => setP({ ...p, [k]: e.target.value })} />
+        <Input value={p[k]} onChange={(e) => setP({ ...p, [k]: e.target.value })} list={list} />
       )}
     </Label>
   );
@@ -71,8 +72,11 @@ export function CvPage() {
             </Select>
           </Label>
           {field("specialization", "التخصص")}
-          {field("department", "القسم")}
-          {field("college", "الكلية")}
+          {field("department", "القسم", false, "cv-departments")}
+          {field("college", "الكلية", false, "cv-colleges")}
+          {/* ما كتبه الزملاء في الجامعة نفسها — اختيار لا كتابة */}
+          <datalist id="cv-departments">{sug.data?.departments.map((d) => <option key={d} value={d} />)}</datalist>
+          <datalist id="cv-colleges">{sug.data?.colleges.map((d) => <option key={d} value={d} />)}</datalist>
         </div>
         <div className="grid gap-3 mt-3">
           {field("qualifications", "المؤهلات العلمية", true)}

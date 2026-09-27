@@ -3,6 +3,7 @@ import { WEEKDAYS } from "@mihwar/shared";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Icon } from "../../icons/Icon.js";
+import { campusToday, weekdayOf } from "../../lib/campusDate.js";
 
 interface MyCourse {
   courseId: string;
@@ -14,12 +15,42 @@ interface MyCourse {
   meetings: { day: number; start: string; end: string; room?: string }[];
 }
 
-/** مقرراتي — للطالب: مقرراته ومواعيدها فقط. */
+/** مقرراتي — للطالب: محاضراته اليوم أولًا، ثم مقرراته ومواعيدها. */
 export function StudentCoursesPage() {
   const { data, loading, error } = useApi<MyCourse[]>("/student/courses");
+  const today = campusToday();
+  const wd = weekdayOf(today);
+  const todays = (data ?? [])
+    .flatMap((c) => c.meetings.filter((m) => m.day === wd).map((m) => ({ c, m })))
+    .sort((a, b) => a.m.start.localeCompare(b.m.start));
   return (
     <>
       <PageHeader title="مقرراتي" />
+      {data && data.length > 0 && (
+        <section className="mb-5">
+          <h2 className="text-xs font-semibold text-ink-2 mb-2 font-body">اليوم — {WEEKDAYS[wd]}</h2>
+          {todays.length === 0 ? (
+            <p className="text-[13px] text-ink-3 bg-surface border border-line rounded-[12px] p-3">لا محاضرات لك اليوم.</p>
+          ) : (
+            <ul className="grid gap-2">
+              {todays.map(({ c, m }) => (
+                <li key={`${c.courseId}-${m.start}`}>
+                  <Link to={`/scourse/${c.courseId}`} className="flex items-center gap-3 p-3 rounded-[12px] bg-surface border border-line hover:border-deep/30">
+                    <span className="num text-[13px] font-semibold text-deep w-[52px] flex-none" dir="ltr">{m.start}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13.5px] font-semibold truncate">{c.nameAr}</span>
+                      <span className="block text-[11.5px] text-ink-3 truncate">
+                        شعبة {c.sectionLabel}
+                        {m.room ? ` · ${m.room}` : ""} · حتى <span dir="ltr">{m.end}</span>
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}
       {error && <p className="text-sm text-crim">{error}</p>}
       {data?.length === 0 && <p className="text-sm text-ink-3 py-8 text-center">لست مسجّلاً في مقرر بعد.</p>}

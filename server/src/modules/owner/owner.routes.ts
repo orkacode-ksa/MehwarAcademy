@@ -31,6 +31,8 @@ import { writerReady } from "../generation/engine.js";
 import { getPlatformSettings, savePlatformSettings } from "../platform/settings.js";
 import { usageReport } from "../platform/aiBudget.js";
 import { googleConfigured } from "../integrations/google.service.js";
+import { ownerMfaRequired } from "../account/mfa.js";
+import { prismaBase } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
 
 /**
@@ -45,6 +47,18 @@ import { env } from "../../config/env.js";
 export const ownerRouter = Router();
 
 ownerRouter.use(requireAuth, requireRole("OWNER"));
+/**
+ * المالك يتحكم في المدفوعات وكل الجامعات: كلمة مرور مسروقة وحدها لا تكفي للدخول إلى هنا.
+ * التحقق بخطوتين إلزامي (الإنتاج افتراضيًا · OWNER_MFA_REQUIRED) — «حسابي» نفسه يبقى متاحًا لتفعيله.
+ */
+ownerRouter.use(
+  asyncHandler(async (req, _res, next) => {
+    if (!ownerMfaRequired()) return next();
+    const u = await prismaBase.user.findUnique({ where: { id: (req as { auth?: { userId: string } }).auth?.userId ?? "" }, select: { totpEnabled: true } });
+    if (!u?.totpEnabled) throw new AppError(403, "MFA_REQUIRED", "فعّل التحقق بخطوتين من «حسابي» ← الأمان لتفتح لوحة المالك");
+    next();
+  }),
+);
 
 const tenantParam = z.object({ tenantId: cuidSchema });
 

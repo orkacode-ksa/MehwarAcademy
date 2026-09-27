@@ -58,6 +58,24 @@ profileRouter.delete(
     res.status(204).send();
   }),
 );
+/** الأقسام والكليات التي كتبها زملاؤه في جامعته — يختار بدل أن يكتب (فلا يتفرّق القسم الواحد إملائيًا). */
+profileRouter.get(
+  "/suggestions",
+  asyncHandler(async (req, res) => {
+    const tenantId = (req as { auth?: { tenantId: string } }).auth?.tenantId;
+    if (!tenantId) throw AppError.unauthorized();
+    const rows = await prismaBase.user.findMany({ where: { tenantId, deletedAt: null, role: "TEACHER" }, select: { profile: true }, take: 3000 });
+    const pick = (k: "department" | "college") => {
+      const count = new Map<string, number>();
+      for (const r of rows) {
+        const v = (r.profile as Record<string, unknown> | null)?.[k];
+        if (typeof v === "string" && v.trim()) count.set(v.trim(), (count.get(v.trim()) ?? 0) + 1);
+      }
+      return [...count].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([v]) => v);
+    };
+    res.json({ success: true, data: { departments: pick("department"), colleges: pick("college") } });
+  }),
+);
 profileRouter.get(
   "/cv.pdf",
   expensiveRateLimit,

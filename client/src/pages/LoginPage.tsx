@@ -37,6 +37,8 @@ export function LoginPage() {
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
   const [authError, setAuthError] = useState<string | null>(null);
+  // التحقق بخطوتين: يظهر حقل الرمز حين يطلبه الخادم فقط — لا يربك من لم يفعّله.
+  const [needCode, setNeedCode] = useState(false);
 
   // دخول حقيقي: الكوكي يُضبط من الخادم، والوجهة تتبع دور الحساب لا افتراضًا ثابتًا.
   async function onSubmit(values: LoginInput) {
@@ -47,6 +49,7 @@ export function LoginPage() {
       const me = await api.get<{ role: string }>("/auth/me");
       navigate(`/${ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`);
     } catch (err) {
+      if (err instanceof ApiError && (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID")) setNeedCode(true);
       setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال بالخادم");
     }
   }
@@ -61,6 +64,17 @@ export function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <Field label="البريد الإلكتروني" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
             <PasswordField label="كلمة المرور" placeholder="••••••••" error={errors.password?.message} {...register("password")} />
+            {needCode && (
+              <Field
+                label="رمز التحقق (من تطبيق المصادقة) أو رمز استرداد"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                placeholder="123456"
+                error={errors.totp?.message}
+                {...register("totp")}
+              />
+            )}
             {authError && <p className="text-[12px] text-crim mb-2">{authError}</p>}
             <Button type="submit" variant="primary" size="lg" className="w-full mt-1.5" disabled={isSubmitting}>
               دخول <Icon name="arr" className="w-4 h-4" />

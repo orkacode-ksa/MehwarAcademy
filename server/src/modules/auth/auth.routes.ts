@@ -17,7 +17,12 @@ authRouter.post(
 
 authRouter.post(
   "/join-section",
-  sensitiveRateLimit((req) => (req.body as { joinCode?: string })?.joinCode),
+  // مفتاح الحساب = الرمز + الرقم الجامعي: رمز الشعبة يشترك فيه أربعون طالبًا، ولو كان هو المفتاح
+  // لانضم خمسة فقط ورُفض الباقون.
+  sensitiveRateLimit((req) => {
+    const b = req.body as { joinCode?: string; universityIdNumber?: string };
+    return b?.joinCode && b.universityIdNumber ? `${b.joinCode}:${b.universityIdNumber}` : undefined;
+  }),
   validate({ body: joinSectionSchema }),
   asyncHandler(controller.joinSection),
 );

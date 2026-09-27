@@ -12,8 +12,11 @@ function makeLimiter(keyPrefix: string, points: number, durationSeconds: number)
   return new RateLimiterMemory(opts);
 }
 
-const generalLimiter = makeLimiter("rl:general", 300, 60);
-const sensitiveLimiterIp = makeLimiter("rl:sensitive:ip", 5, 15 * 60);
+// العنوان الواحد قد يكون شبكة جامعة كاملة (NAT): قاعة من مئة طالب تخرج بعنوان واحد.
+// لذا حدّ العنوان واسع (يصدّ الإغراق والتخمين الجماعي)، والحماية الدقيقة من التخمين على
+// مستوى الحساب نفسه (٥ في ١٥ دقيقة) — لا يمنع طالبًا لأن زميله بجانبه دخل قبله.
+const generalLimiter = makeLimiter("rl:general", 1200, 60);
+const sensitiveLimiterIp = makeLimiter("rl:sensitive:ip", 60, 15 * 60);
 const sensitiveLimiterAccount = makeLimiter("rl:sensitive:acct", 5, 15 * 60);
 const expensiveLimiter = makeLimiter("rl:expensive", 10, 60);
 const adminLimiter = makeLimiter("rl:admin", 60, 60);
@@ -84,4 +87,11 @@ export function adminRateLimit(req: Request, res: Response, next: NextFunction):
 /** للاختبارات: تصفير حدّ العمليات المكلفة لمستخدم — ملف اختبار واحد يستهلك حصّة الدقيقة. لا مسار يستدعيه. */
 export async function resetExpensiveLimitForTests(userId: string): Promise<void> {
   await expensiveLimiter.delete(userId);
+}
+
+/** للاختبارات: تصفير حدّ المحاولات الحساسة لعنوان (كل ملف اختبار من 127.0.0.1). لا مسار يستدعيه. */
+export async function resetSensitiveLimitForTests(ip = "127.0.0.1", account?: string): Promise<void> {
+  await sensitiveLimiterIp.delete(`ip:${ip}`);
+  await sensitiveLimiterIp.delete(`ip:::ffff:${ip}`);
+  if (account) await sensitiveLimiterAccount.delete(`acct:${account}`);
 }

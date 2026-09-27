@@ -11,6 +11,7 @@ import { getPlatformSettings } from "../platform/settings.js";
 import { logger } from "../../lib/logger.js";
 import { newJoinCode } from "../../lib/joinCode.js";
 import { avatarUrlOf, prefsOf } from "../account/prefs.js";
+import { assertLoginTotp } from "../account/mfa.js";
 import { DEFAULT_REGULATION } from "../owner/owner.service.js";
 
 const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة";
@@ -191,6 +192,9 @@ export async function loginUser(
   if (user.lockedUntil && user.lockedUntil > new Date()) {
     throw AppError.tooManyRequests("الحساب مقفل مؤقتًا بعد محاولات فاشلة متكررة");
   }
+
+  // التحقق بخطوتين بعد كلمة المرور: الرمز الخاطئ لا يصفّر عدّاد المحاولات، ومحدود المعدل كالدخول.
+  await assertLoginTotp(user, input.totp);
 
   if (user.failedLoginCount > 0) {
     await prismaBase.user.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } });

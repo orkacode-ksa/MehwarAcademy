@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { PageFallback } from "../lib/lazyPage.js";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Rail } from "../components/shell/Rail.js";
 import { BottomNav } from "../components/shell/BottomNav.js";
 import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
 import { SubscriptionBanner } from "../components/shell/SubscriptionBanner.js";
+import { OwnerMfaBanner } from "../components/shell/OwnerMfaBanner.js";
 import { roleOf, roleOfUser, SHARED_SCREENS } from "../nav/nav.js";
 import { logout, useSession } from "../hooks/useSession.js";
-import { AssistantPanel } from "../components/assistant/AssistantPanel.js";
+const AssistantPanel = lazy(() => import("../components/assistant/AssistantPanel.js").then((m) => ({ default: m.AssistantPanel })));
 import { Icon } from "../icons/Icon.js";
 
 /**
@@ -20,7 +22,13 @@ export function AppShell() {
   const screenKey = location.pathname.split("/")[1] || "today";
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantOpen, setAssistantOpenRaw] = useState(false);
+  // المساعد حزمة مستقلة تُحمَّل عند أول فتح فقط، ثم تبقى مركّبة لتحفظ المحادثة.
+  const [assistantUsed, setAssistantUsed] = useState(false);
+  const setAssistantOpen = (v: boolean) => {
+    if (v) setAssistantUsed(true);
+    setAssistantOpenRaw(v);
+  };
   const { user } = useSession();
   const role = SHARED_SCREENS.has(screenKey) ? roleOfUser(user?.role) : roleOf(screenKey);
   const teacher = user?.role === "TEACHER" && role === "faculty";
@@ -56,7 +64,11 @@ export function AppShell() {
           <span className="text-[14px] font-medium">المساعد</span>
         </button>
       )}
-      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+      {assistantUsed && (
+        <Suspense fallback={null}>
+          <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+        </Suspense>
+      )}
       <MoreSheet
         role={role}
         open={moreOpen}
@@ -67,7 +79,10 @@ export function AppShell() {
         <div className="max-w-[1100px] mx-auto" id="main">
           <Topbar />
           <SubscriptionBanner />
-          <Outlet />
+          {user?.role === "OWNER" && <OwnerMfaBanner />}
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

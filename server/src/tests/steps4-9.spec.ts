@@ -195,4 +195,24 @@ describe("٩ رئيس القسم", () => {
     expect(body).not.toContain("\"kpis\"");
     expect(body).not.toContain("\"total\":94");
   });
+
+  it("ملف المقرر وتقريره يُفتحان له، ونطاقه قسمه لا الجامعة كلها", async () => {
+    const pdf = await teacher.get(`/api/dept/courses/${courseId}/report.pdf`).buffer(true);
+    expect(pdf.status).toBe(200);
+    expect(pdf.headers["content-type"]).toBe("application/pdf");
+
+    // قسمه في سيرته «الأحياء» وقسم صاحب المقرر (هو نفسه هنا) «الأحياء» ⇒ داخل النطاق
+    await prismaBase.user.update({ where: { id: teacherId }, data: { profile: { department: "الأحياء" } } });
+    const scoped = (await teacher.get("/api/dept/overview")).body.data;
+    expect(scoped.department).toBe("الأحياء");
+    expect(scoped.courses.some((c: { id: string }) => c.id === courseId)).toBe(true);
+
+    // مقرر جامعة أخرى: لا يُفتح (العزل) ولو عُرف معرّفه
+    const other = request.agent(app);
+    await other.post("/api/auth/register").send({ fullName: "أستاذ آخر", email: `x-${Date.now()}@mihwar.test`, password: "Str0ngPassword!23", role: "TEACHER" });
+    const sem = (await other.get(`${W}/academic/terms`)).body.data[0].id;
+    const foreign = (await other.post(`${W}/academic/courses`).send({ code: "PHY 101", nameAr: "فيزياء", creditHours: 3, semesterId: sem })).body.data.id;
+    expect((await teacher.get(`/api/dept/courses/${foreign}/file.pdf`)).status).toBe(404);
+    expect((await teacher.get(`/api/dept/courses/${courseId}/grades.pdf`)).status).toBe(404);
+  });
 });

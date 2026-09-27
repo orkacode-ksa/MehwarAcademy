@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as XLSX from "xlsx";
 import { rosterRowSchema, type RosterRow } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { Button } from "../ui/Button.js";
@@ -50,6 +49,8 @@ export function RosterImport({ sectionId, onImported }: { sectionId: string; onI
       // CSV يُقرأ نصًّا: قراءته بايتات تفكّه Latin-1 فتصير العناوين العربية رموزًا مشوّهة
       // («Ø§ÙØ±ÙÙ») ويُرفض كل سطر «هذا الحقل مطلوب» — التقطه الفحص في متصفّح حقيقي.
       const isCsv = /\.csv$/i.test(file.name) || file.type === "text/csv";
+      // قارئ Excel (~١٠٠ كيلوبايت) يُحمَّل عند اختيار الملف فقط، لا مع شاشة التجهيز.
+      const XLSX = await import("xlsx");
       const wb = isCsv ? XLSX.read(await file.text(), { type: "string" }) : XLSX.read(await file.arrayBuffer(), { type: "array" });
       const first = wb.SheetNames[0];
       const sheet = first ? wb.Sheets[first] : undefined;

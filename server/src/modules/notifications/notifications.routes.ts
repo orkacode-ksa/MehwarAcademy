@@ -4,8 +4,10 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../lib/AppError.js";
 import * as service from "./notifications.service.js";
 import { getPlatformSettings } from "../platform/settings.js";
+import { prismaBase } from "../../lib/prisma.js";
 import { raw } from "express";
-import { changePasswordSchema, profileUpdateSchema, userPrefsSchema } from "@mihwar/shared";
+import { changePasswordSchema, profileUpdateSchema, totpCodeSchema, totpDisableSchema, userPrefsSchema } from "@mihwar/shared";
+import * as mfa from "../account/mfa.js";
 import { validate } from "../../middleware/validate.js";
 import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
 import { clearAuthCookies } from "../../lib/cookies.js";
@@ -99,5 +101,31 @@ meRouter.get(
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Security-Policy", "default-src 'none'");
     res.send(a.data);
+  }),
+);
+
+// ── التحقق بخطوتين ──
+const byUser = sensitiveRateLimit((req) => (req as { auth?: { userId: string } }).auth?.userId);
+meRouter.get(
+  "/totp",
+  asyncHandler(async (req, res) => {
+    const u = await prismaBase.user.findUnique({ where: { id: who(req).userId }, select: { totpEnabled: true, totpRecovery: true } });
+    res.json({ success: true, data: { enabled: !!u?.totpEnabled, recoveryLeft: u?.totpRecovery.length ?? 0, required: who(req).role === "OWNER" && mfa.ownerMfaRequired() } });
+  }),
+);
+meRouter.post("/totp/setup", byUser, asyncHandler(async (req, res) => res.json({ success: true, data: await mfa.totpSetup(who(req).userId) })));
+meRouter.post(
+  "/totp/enable",
+  byUser,
+  validate({ body: totpCodeSchema }),
+  asyncHandler(async (req, res) => res.json({ success: true, data: await mfa.totpEnable(who(req).userId, req.body.code) })),
+);
+meRouter.post(
+  "/totp/disable",
+  byUser,
+  validate({ body: totpDisableSchema }),
+  asyncHandler(async (req, res) => {
+    await mfa.totpDisable(who(req).userId, req.body.password, req.body.code);
+    res.json({ success: true, data: null });
   }),
 );

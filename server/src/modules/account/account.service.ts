@@ -9,6 +9,7 @@ import { recordAudit } from "../../lib/auditLog.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { logoutAllDevices } from "../auth/auth.service.js";
 
+
 export const AVATAR_MAX = 64 * 1024;
 
 export async function updateProfile(userId: string, input: { fullName: string; phone?: string | undefined }) {

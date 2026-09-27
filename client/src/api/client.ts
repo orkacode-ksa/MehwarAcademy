@@ -16,7 +16,25 @@ interface ApiResponse<T> {
   error?: { code: string; message: string };
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+/**
+ * رمز الدخول يعيش ١٥ دقيقة؛ عند انتهائه يُجدَّد بصمت مرة واحدة ثم يُعاد الطلب.
+ * «مرة واحدة» مشتركة: عشرة طلبات متزامنة ترى ٤٠١ تنتظر تجديدًا واحدًا — تجديدان متوازيان
+ * يقدّمان رمز التحديث نفسه مرتين، وتدويره يعدّ ذلك سرقة فيُخرج المستخدم من كل أجهزته.
+ */
+let refreshing: Promise<boolean> | null = null;
+/** مسارات الدخول نفسها لا تُجدَّد (٤٠١ فيها جواب لا انتهاء جلسة) — و/auth/me يُجدَّد: هو أول نداء عند فتح التطبيق. */
+const NO_REFRESH = /^\/auth\/(login|register|refresh|logout|join-section)/;
+function refreshOnce(): Promise<boolean> {
+  refreshing ??= fetch(`${API_ORIGIN}/api/auth/refresh`, { method: "POST", credentials: "include" })
+    .then((r) => r.ok)
+    .catch(() => false)
+    .finally(() => {
+      setTimeout(() => (refreshing = null), 0);
+    });
+  return refreshing;
+}
+
+async function request<T>(path: string, options: RequestInit = {}, retried = false): Promise<T> {
   const res = await fetch(`${API_ORIGIN}/api${path}`, {
     ...options,
     credentials: "include",
@@ -25,6 +43,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
+
+  if (res.status === 401 && !retried && !NO_REFRESH.test(path)) {
+    if (await refreshOnce()) return request<T>(path, options, true);
+  }
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const body = isJson ? ((await res.json()) as ApiResponse<T>) : undefined;
@@ -53,12 +75,15 @@ export function pdfDownloadUrl(path: string): string {
  */
 export async function uploadRaw<T>(path: string, file: File, headers: Record<string, string> = {}): Promise<T> {
   const encoded = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k, encodeURIComponent(v)]));
-  const res = await fetch(`${API_ORIGIN}/api${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name), ...encoded },
-    body: file,
-  });
+  const send = () =>
+    fetch(`${API_ORIGIN}/api${path}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name), ...encoded },
+      body: file,
+    });
+  let res = await send();
+  if (res.status === 401 && (await refreshOnce())) res = await send();
   const body = (await res.json().catch(() => undefined)) as ApiResponse<T> | undefined;
   if (!res.ok) throw new ApiError(res.status, body?.error?.code ?? "UNKNOWN", body?.error?.message ?? "تعذّر رفع الملف");
   return body?.data as T;

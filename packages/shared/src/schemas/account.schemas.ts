@@ -42,3 +42,6 @@ export const changePasswordSchema = z
   })
   .strict()
   .refine((v) => v.current !== v.next, { message: "كلمة المرور الجديدة مطابقة للحالية", path: ["next"] });
+
+export const totpCodeSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, "الرمز ستة أرقام") }).strict();
+export const totpDisableSchema = z.object({ password: z.string().min(1).max(128), code: z.string().trim().min(6).max(20) }).strict();

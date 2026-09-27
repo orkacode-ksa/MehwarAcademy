@@ -1,43 +1,132 @@
+import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { page, PageFallback } from "./lib/lazyPage.js";
 import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
-import { LandingPage } from "./pages/LandingPage.js";
-import { GuidePage } from "./pages/GuidePage.js";
-import { ShowcasePage } from "./pages/ShowcasePage.js";
-import { SignupPage } from "./pages/SignupPage.js";
-import { LoginPage } from "./pages/LoginPage.js";
-import { TodayPage } from "./pages/faculty/TodayPage.js";
-import { CoursesPage } from "./pages/faculty/CoursesPage.js";
-import { CourseHomePage } from "./pages/faculty/CourseHomePage.js";
-import { CourseSetupPage } from "./pages/faculty/CourseSetupPage.js";
-import { GradesPage } from "./pages/faculty/GradesPage.js";
-import { CourseFilePage } from "./pages/faculty/CourseFilePage.js";
-import { ViolationsPage } from "./pages/faculty/ViolationsPage.js";
-import { PerformancePage } from "./pages/faculty/PerformancePage.js";
-import { DeptPage } from "./pages/dept/DeptPage.js";
-import { StudentCoursesPage } from "./pages/student/StudentCoursesPage.js";
-import { StudentCoursePage } from "./pages/student/StudentCoursePage.js";
-import { InstitutionsPage } from "./pages/owner/InstitutionsPage.js";
-import { RegulationPage } from "./pages/owner/RegulationPage.js";
-import { CalendarPage } from "./pages/owner/CalendarPage.js";
-import { InstitutionUsersPage } from "./pages/owner/InstitutionUsersPage.js";
-import { PaymentsPage } from "./pages/owner/PaymentsPage.js";
-import { OwnerBankPage } from "./pages/owner/OwnerBankPage.js";
-import { OwnerSettingsPage } from "./pages/owner/OwnerSettingsPage.js";
-import { AccountPage } from "./pages/account/AccountPage.js";
-import { NotificationsPage } from "./pages/common/NotificationsPage.js";
-import { FacultyHomePage } from "./pages/faculty/HomePage.js";
-import { TasksPage } from "./pages/faculty/TasksPage.js";
-import { LegalPage } from "./pages/legal/LegalPage.js";
-import { PlansPage } from "./pages/account/PlansPage.js";
-import { OrderPage } from "./pages/account/OrderPage.js";
-import { CvPage } from "./pages/account/CvPage.js";
-import { UniversityPage } from "./pages/account/UniversityPage.js";
-import { SubmissionsPage } from "./pages/owner/SubmissionsPage.js";
-import { OwnerUsersPage } from "./pages/owner/OwnerUsersPage.js";
-import { BankPage } from "./pages/bank/BankPage.js";
-import { BankDetailPage } from "./pages/bank/BankDetailPage.js";
-import { CourseReportPage } from "./pages/faculty/CourseReportPage.js";
+const LandingPage = page(() => import("./pages/LandingPage.js"), "LandingPage");
+const GuidePage = page(() => import("./pages/GuidePage.js"), "GuidePage");
+const ShowcasePage = page(
+  () => import("./pages/ShowcasePage.js"),
+  "ShowcasePage",
+);
+const SignupPage = page(() => import("./pages/SignupPage.js"), "SignupPage");
+const LoginPage = page(() => import("./pages/LoginPage.js"), "LoginPage");
+const TodayPage = page(
+  () => import("./pages/faculty/TodayPage.js"),
+  "TodayPage",
+);
+const CoursesPage = page(
+  () => import("./pages/faculty/CoursesPage.js"),
+  "CoursesPage",
+);
+const CourseHomePage = page(
+  () => import("./pages/faculty/CourseHomePage.js"),
+  "CourseHomePage",
+);
+const CourseSetupPage = page(
+  () => import("./pages/faculty/CourseSetupPage.js"),
+  "CourseSetupPage",
+);
+const GradesPage = page(
+  () => import("./pages/faculty/GradesPage.js"),
+  "GradesPage",
+);
+const CourseFilePage = page(
+  () => import("./pages/faculty/CourseFilePage.js"),
+  "CourseFilePage",
+);
+const ViolationsPage = page(
+  () => import("./pages/faculty/ViolationsPage.js"),
+  "ViolationsPage",
+);
+const PerformancePage = page(
+  () => import("./pages/faculty/PerformancePage.js"),
+  "PerformancePage",
+);
+const DeptPage = page(() => import("./pages/dept/DeptPage.js"), "DeptPage");
+const StudentCoursesPage = page(
+  () => import("./pages/student/StudentCoursesPage.js"),
+  "StudentCoursesPage",
+);
+const StudentCoursePage = page(
+  () => import("./pages/student/StudentCoursePage.js"),
+  "StudentCoursePage",
+);
+const InstitutionsPage = page(
+  () => import("./pages/owner/InstitutionsPage.js"),
+  "InstitutionsPage",
+);
+const RegulationPage = page(
+  () => import("./pages/owner/RegulationPage.js"),
+  "RegulationPage",
+);
+const CalendarPage = page(
+  () => import("./pages/owner/CalendarPage.js"),
+  "CalendarPage",
+);
+const InstitutionUsersPage = page(
+  () => import("./pages/owner/InstitutionUsersPage.js"),
+  "InstitutionUsersPage",
+);
+const PaymentsPage = page(
+  () => import("./pages/owner/PaymentsPage.js"),
+  "PaymentsPage",
+);
+const OwnerBankPage = page(
+  () => import("./pages/owner/OwnerBankPage.js"),
+  "OwnerBankPage",
+);
+const OwnerSettingsPage = page(
+  () => import("./pages/owner/OwnerSettingsPage.js"),
+  "OwnerSettingsPage",
+);
+const AccountPage = page(
+  () => import("./pages/account/AccountPage.js"),
+  "AccountPage",
+);
+const NotificationsPage = page(
+  () => import("./pages/common/NotificationsPage.js"),
+  "NotificationsPage",
+);
+const FacultyHomePage = page(
+  () => import("./pages/faculty/HomePage.js"),
+  "FacultyHomePage",
+);
+const TasksPage = page(
+  () => import("./pages/faculty/TasksPage.js"),
+  "TasksPage",
+);
+const LegalPage = page(() => import("./pages/legal/LegalPage.js"), "LegalPage");
+const PlansPage = page(
+  () => import("./pages/account/PlansPage.js"),
+  "PlansPage",
+);
+const OrderPage = page(
+  () => import("./pages/account/OrderPage.js"),
+  "OrderPage",
+);
+const CvPage = page(() => import("./pages/account/CvPage.js"), "CvPage");
+const UniversityPage = page(
+  () => import("./pages/account/UniversityPage.js"),
+  "UniversityPage",
+);
+const SubmissionsPage = page(
+  () => import("./pages/owner/SubmissionsPage.js"),
+  "SubmissionsPage",
+);
+const OwnerUsersPage = page(
+  () => import("./pages/owner/OwnerUsersPage.js"),
+  "OwnerUsersPage",
+);
+const BankPage = page(() => import("./pages/bank/BankPage.js"), "BankPage");
+const BankDetailPage = page(
+  () => import("./pages/bank/BankDetailPage.js"),
+  "BankDetailPage",
+);
+const CourseReportPage = page(
+  () => import("./pages/faculty/CourseReportPage.js"),
+  "CourseReportPage",
+);
 
 /**
  * كل مسار هنا يقود إلى شاشة مبنيّة وموصولة بالخادم. حلقة الصفحات البديلة أُزيلت: «لا زرّ
@@ -48,55 +137,63 @@ export function App() {
     <BrowserRouter>
       {/* كل شاشة تُفتح من أعلاها، والرجوع يعيد الموضع — بلاغ المالك في docs/lessons.md §١.٦ */}
       <ScrollManager />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/guide" element={<GuidePage />} />
-        <Route path="/legal/:doc" element={<LegalPage />} />
-        <Route path="/showcase" element={<ShowcasePage />} />
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/legal/:doc" element={<LegalPage />} />
+          <Route path="/showcase" element={<ShowcasePage />} />
 
-        <Route element={<AppShell />}>
-          {/* الأستاذ */}
-          <Route path="home" element={<FacultyHomePage />} />
-          <Route path="tasks" element={<TasksPage />} />
-          <Route path="today" element={<TodayPage />} />
-          <Route path="courses" element={<CoursesPage />} />
-          <Route path="course/:id" element={<CourseHomePage />} />
-          <Route path="course/:id/setup" element={<CourseSetupPage />} />
-          <Route path="course/:id/grades" element={<GradesPage />} />
-          <Route path="course/:id/file" element={<CourseFilePage />} />
-          <Route path="course/:id/violations" element={<ViolationsPage />} />
-          <Route path="course/:id/report" element={<CourseReportPage />} />
-          <Route path="evalp" element={<PerformancePage />} />
-          <Route path="bank" element={<BankPage />} />
-          <Route path="bank/:id" element={<BankDetailPage />} />
-          <Route path="account" element={<AccountPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="plans" element={<PlansPage />} />
-          <Route path="orders/:id" element={<OrderPage />} />
-          <Route path="cv" element={<CvPage />} />
-          <Route path="university" element={<UniversityPage />} />
-          <Route path="dhome" element={<DeptPage />} />
+          <Route element={<AppShell />}>
+            {/* الأستاذ */}
+            <Route path="home" element={<FacultyHomePage />} />
+            <Route path="tasks" element={<TasksPage />} />
+            <Route path="today" element={<TodayPage />} />
+            <Route path="courses" element={<CoursesPage />} />
+            <Route path="course/:id" element={<CourseHomePage />} />
+            <Route path="course/:id/setup" element={<CourseSetupPage />} />
+            <Route path="course/:id/grades" element={<GradesPage />} />
+            <Route path="course/:id/file" element={<CourseFilePage />} />
+            <Route path="course/:id/violations" element={<ViolationsPage />} />
+            <Route path="course/:id/report" element={<CourseReportPage />} />
+            <Route path="evalp" element={<PerformancePage />} />
+            <Route path="bank" element={<BankPage />} />
+            <Route path="bank/:id" element={<BankDetailPage />} />
+            <Route path="account" element={<AccountPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="plans" element={<PlansPage />} />
+            <Route path="orders/:id" element={<OrderPage />} />
+            <Route path="cv" element={<CvPage />} />
+            <Route path="university" element={<UniversityPage />} />
+            <Route path="dhome" element={<DeptPage />} />
 
-          {/* الطالب */}
-          <Route path="scourses" element={<StudentCoursesPage />} />
-          <Route path="scourse/:id" element={<StudentCoursePage />} />
+            {/* الطالب */}
+            <Route path="scourses" element={<StudentCoursesPage />} />
+            <Route path="scourse/:id" element={<StudentCoursePage />} />
 
-          {/* المالك */}
-          <Route path="institutions" element={<InstitutionsPage />} />
-          <Route path="institutions/:tenantId" element={<RegulationPage />} />
-          <Route path="institutions/:tenantId/calendar" element={<CalendarPage />} />
-          <Route path="institutions/:tenantId/users" element={<InstitutionUsersPage />} />
-          <Route path="payments" element={<PaymentsPage />} />
-          <Route path="obank" element={<OwnerBankPage />} />
-          <Route path="osettings" element={<OwnerSettingsPage />} />
-          <Route path="osubmissions" element={<SubmissionsPage />} />
-          <Route path="ousers" element={<OwnerUsersPage />} />
-        </Route>
+            {/* المالك */}
+            <Route path="institutions" element={<InstitutionsPage />} />
+            <Route path="institutions/:tenantId" element={<RegulationPage />} />
+            <Route
+              path="institutions/:tenantId/calendar"
+              element={<CalendarPage />}
+            />
+            <Route
+              path="institutions/:tenantId/users"
+              element={<InstitutionUsersPage />}
+            />
+            <Route path="payments" element={<PaymentsPage />} />
+            <Route path="obank" element={<OwnerBankPage />} />
+            <Route path="osettings" element={<OwnerSettingsPage />} />
+            <Route path="osubmissions" element={<SubmissionsPage />} />
+            <Route path="ousers" element={<OwnerUsersPage />} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
