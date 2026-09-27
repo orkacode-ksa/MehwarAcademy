@@ -40,7 +40,7 @@ export async function listedUniversities() {
 /** جامعتي: هل هي معتمدة؟ وما رفعتُه وحالته. */
 export async function myUniversity(userId: string) {
   const tenantId = requireTenantId();
-  const [tenant, subs, reg] = await Promise.all([
+  const [tenant, subs, reg, me] = await Promise.all([
     prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, status: true } }),
     prisma.universitySubmission.findMany({
       where: { userId },
@@ -48,13 +48,23 @@ export async function myUniversity(userId: string) {
       select: { id: true, kind: true, title: true, note: true, status: true, createdAt: true },
     }),
     prisma.regulation.findFirst({ select: { facultyViolations: true, courseFileItems: true } }),
+    prismaBase.user.findUnique({ where: { id: userId }, select: { fullName: true } }),
   ]);
   return {
-    name: tenant.name,
+    // حسابات ما قبل «جامعتك» حملت مساحتها اسم الأستاذ — فلا يُعرض اسمه اسمًا لجامعته.
+    name: tenant.name === me?.fullName ? null : tenant.name,
     listed: tenant.status === "ACTIVE",
     submissions: subs,
     hasFacultyViolations: ((reg?.facultyViolations as unknown[]) ?? []).length > 0,
   };
+}
+
+/** تسمية جامعة الأستاذ ما دامت غير معتمدة (المعتمدة يسمّيها المالك وحده). */
+export async function renameMyUniversity(name: string) {
+  const tenantId = requireTenantId();
+  const t = await prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { status: true } });
+  if (t.status === "ACTIVE") throw AppError.forbidden("اسم الجامعة المعتمدة تعدّله إدارة المنصة");
+  await prismaBase.tenant.update({ where: { id: tenantId }, data: { name } });
 }
 
 export async function submit(input: { workspaceId: string; userId: string; kind: string; note: string; fileName: string; mimeType: string; data: Buffer }) {

@@ -9,6 +9,7 @@ import { storeRouter } from "./modules/store/store.routes.js";
 import { integrationsRouter } from "./modules/integrations/integrations.routes.js";
 import { profileRouter } from "./modules/profile/profile.routes.js";
 import { universityRouter } from "./modules/university/university.routes.js";
+import { assistantRouter } from "./modules/assistant/assistant.routes.js";
 
 export const router = Router();
 
@@ -23,3 +24,4 @@ router.use("/store", storeRouter);
 router.use("/integrations", integrationsRouter);
 router.use("/profile", profileRouter);
 router.use("/university", universityRouter);
+router.use("/assistant", assistantRouter);

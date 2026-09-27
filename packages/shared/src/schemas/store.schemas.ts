@@ -99,7 +99,7 @@ export const BANK_STATUS_LABEL = {
 
 // ───────────────────────── التوليد ─────────────────────────
 
-export const GENERATION_KINDS = { TEXT: "شرح نصي", SLIDES: "عرض تقديمي", AUDIO: "بودكاست صوتي", VIDEO: "درس مصوّر" } as const;
+export const GENERATION_KINDS = { TEXT: "محاضرة مكتوبة", SLIDES: "عرض تقديمي", AUDIO: "بودكاست صوتي", VIDEO: "درس مصوّر" } as const;
 export type GenerationKind = keyof typeof GENERATION_KINDS;
 /**
  * طلب توليد: نوع واحد لموضوع أو أكثر من مقرر، مع وصف حرّ اختياري لما يريده الأستاذ.

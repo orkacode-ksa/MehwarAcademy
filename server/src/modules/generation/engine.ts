@@ -321,3 +321,40 @@ function resample(pcm: Buffer, from: number, to: number): Buffer {
   }
   return out;
 }
+
+// ───────────────────────── المساعد: استدعاء أدوات ─────────────────────────
+
+export interface ToolCall {
+  name: string;
+  args: Record<string, unknown>;
+}
+
+/**
+ * جولة واحدة للمساعد: النموذج يقترح استدعاءات أدوات (أو يردّ نصًّا). **لا تُعاد نتائج الأدوات
+ * إليه** — الخادم ينفّذ ويعرض بنفسه — فلا تمرّ بيانات الطلاب بالنموذج، ولا تجد حقنةٌ في
+ * البيانات نموذجًا يقرؤها. انظر docs/ai-assistant.md §٢.
+ */
+export async function proposeTools(
+  system: string,
+  contents: { role: "user" | "model"; text: string }[],
+  functionDeclarations: unknown[],
+  meter: Meter,
+): Promise<{ text: string; calls: ToolCall[] }> {
+  const out = await resilient(
+    chain(AI_MODELS.chat, `${AI_MODELS.heavy},${env.AI_MODEL_HEAVY_FALLBACKS}`),
+    {
+      systemInstruction: { parts: [{ text: system }] },
+      contents: contents.map((c) => ({ role: c.role, parts: [{ text: c.text }] })),
+      tools: [{ functionDeclarations }],
+      toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+    },
+    meter,
+    30_000,
+  );
+  const parts = (out.candidates?.[0]?.content?.parts ?? []) as { text?: string; functionCall?: { name: string; args?: Record<string, unknown> } }[];
+  return {
+    text: parts.map((p) => p.text ?? "").join("").trim(),
+    calls: parts.filter((p) => p.functionCall).map((p) => ({ name: (p.functionCall as { name: string }).name, args: p.functionCall?.args ?? {} })).slice(0, 3),
+  };
+}

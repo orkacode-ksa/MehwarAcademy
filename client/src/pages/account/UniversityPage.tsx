@@ -10,7 +10,7 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 
 interface Mine {
-  name: string;
+  name: string | null;
   listed: boolean;
   hasFacultyViolations: boolean;
   submissions: { id: string; kind: SubmissionKind; title: string; note: string; status: keyof typeof SUBMISSION_STATUS_LABEL; createdAt: string }[];
@@ -24,6 +24,7 @@ export function UniversityPage() {
   const { data, loading, error, reload } = useApi<Mine>("/university/me");
   if (loading) return <p className="text-sm text-ink-3">جارٍ التحميل…</p>;
   if (error || !data) return <PageHeader title="جامعتي" description={error ?? ""} />;
+  const uni = data.name ?? "جامعتك";
   return (
     <>
       <PageHeader
@@ -31,10 +32,11 @@ export function UniversityPage() {
         title="جامعتي ولوائحها"
         description={
           data.listed
-            ? `${data.name} — لوائحها معتمدة في المنصة. إن تغيّرت لائحة أو نقص نموذج، ارفعه هنا.`
-            : `${data.name} — جديدة علينا. ارفع لوائحها فنعتمدها لك ولزملائك، وحتى ذلك تعمل بلائحة عامة.`
+            ? `${uni} — لوائحها معتمدة في المنصة. إن تغيّرت لائحة أو نقص نموذج، ارفعه هنا.`
+            : `${uni} — جديدة علينا. ارفع لوائحها فنعتمدها لك ولزملائك، وحتى ذلك تعمل بلائحة عامة.`
         }
       />
+      {!data.listed && <NameCard current={data.name} onSaved={reload} />}
       <div className="grid gap-3 [&>*]:min-w-0">
         {(Object.keys(SUBMISSION_KINDS) as SubmissionKind[]).map((k) => (
           <KindCard key={k} kind={k} items={data.submissions.filter((s) => s.kind === k)} onChanged={reload} />
@@ -106,6 +108,34 @@ function KindCard({ kind, items, onChanged }: { kind: SubmissionKind; items: Min
           <Icon name="up" /> {busy ? "يُرفع…" : "ارفع ملفًا"}
         </Button>
       </div>
+    </Card>
+  );
+}
+
+/** اسم الجامعة غير المعتمدة يكتبه الأستاذ — وحسابات ما قبل «جامعتك» تبدأ به فارغًا. */
+function NameCard({ current, onSaved }: { current: string | null; onSaved: () => void }) {
+  const [name, setName] = useState(current ?? "");
+  const { showToast } = useToast();
+  return (
+    <Card title="اسم جامعتك" className="mb-3">
+      <form
+        className="flex gap-2 flex-wrap"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void api
+            .put("/university/me/name", { name: name.trim() })
+            .then(() => {
+              showToast("حُفظ اسم الجامعة");
+              onSaved();
+            })
+            .catch((err: unknown) => showToast(err instanceof ApiError ? err.message : "تعذّر الحفظ"));
+        }}
+      >
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: جامعة أم القرى" aria-label="اسم جامعتك" className="flex-1 min-w-[200px]" />
+        <Button type="submit" variant="secondary" size="sm" disabled={name.trim().length < 3 || name.trim() === current}>
+          احفظ
+        </Button>
+      </form>
     </Card>
   );
 }

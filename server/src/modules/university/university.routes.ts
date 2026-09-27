@@ -4,6 +4,8 @@ import { requireRole, requireWorkspaceMembership } from "../../middleware/rbac.j
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { expensiveRateLimit } from "../../middleware/rateLimit.js";
 import { AppError } from "../../lib/AppError.js";
+import { z } from "zod";
+import { validate } from "../../middleware/validate.js";
 import { MAX_UPLOAD_BYTES } from "../files/files.service.js";
 import * as service from "./university.service.js";
 
@@ -24,6 +26,17 @@ universityRouter.get(
   asyncHandler(async (req, res) => {
     if (!req.auth) throw AppError.unauthorized();
     res.json({ success: true, data: await service.myUniversity(req.auth.userId) });
+  }),
+);
+
+universityRouter.put(
+  "/me/name",
+  requireAuth,
+  requireRole("TEACHER"),
+  validate({ body: z.object({ name: z.string().trim().min(3).max(120) }).strict() }),
+  asyncHandler(async (req, res) => {
+    await service.renameMyUniversity(req.body.name);
+    res.json({ success: true, data: { ok: true } });
   }),
 );
 

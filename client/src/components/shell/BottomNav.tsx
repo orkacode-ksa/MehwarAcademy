@@ -7,6 +7,8 @@ interface BottomNavProps {
   role: Role;
   onOpenMore: () => void;
   moreActive: boolean;
+  /** زرّ المساعد في منتصف الشريط — للأستاذ وحده. */
+  onOpenAssistant?: () => void;
 }
 
 /**
@@ -14,10 +16,12 @@ interface BottomNavProps {
  * بدل مربّع أخضر مصمت يبتلع الخانة، وأهداف لمس 56px، وتسميات أوضح، وخلفية زجاجية
  * تحترم منطقة الأمان السفلية.
  */
-export function BottomNav({ role, onOpenMore, moreActive }: BottomNavProps) {
+export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: BottomNavProps) {
   const { pathname } = useLocation();
   const { user } = useSession();
-  const primary = visibleNav(role, !!user?.isDeptHead).slice(0, MOBILE_PRIMARY_COUNT);
+  // مع المساعد في المنتصف تبقى خمس خانات: عنصران · المساعد · عنصر · المزيد.
+  const primary = visibleNav(role, !!user?.isDeptHead).slice(0, onOpenAssistant ? 3 : MOBILE_PRIMARY_COUNT);
+  const center = onOpenAssistant ? 2 : -1;
 
   const itemCls = "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 select-none";
   const pill = (active: boolean) =>
@@ -31,7 +35,15 @@ export function BottomNav({ role, onOpenMore, moreActive }: BottomNavProps) {
       className="sm:hidden fixed inset-x-0 bottom-0 z-50 flex items-stretch bg-white/85 backdrop-blur-xl border-t border-line/70 px-1"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {primary.map((item) => (
+      {primary.map((item, i) => [
+        i === center && onOpenAssistant ? (
+          <button key="assistant" type="button" onClick={onOpenAssistant} aria-label="المساعد" className={itemCls}>
+            <span className="grid place-items-center w-[52px] h-[52px] -mt-6 rounded-full bg-deep text-white shadow-lg ring-4 ring-canvas">
+              <Icon name="sparks" className="w-[22px] h-[22px]" />
+            </span>
+            <span className="text-[10px] leading-none text-deep font-semibold">المساعد</span>
+          </button>
+        ) : null,
         <NavLink
           key={item.key}
           to={`/${item.key}`}
@@ -49,8 +61,8 @@ export function BottomNav({ role, onOpenMore, moreActive }: BottomNavProps) {
               <span className={label(isActive)}>{item.label}</span>
             </>
           )}
-        </NavLink>
-      ))}
+        </NavLink>,
+      ])}
 
       <button type="button" onClick={onOpenMore} aria-label="المزيد" aria-expanded={moreActive} className={itemCls}>
         <span className={pill(moreActive)}>
