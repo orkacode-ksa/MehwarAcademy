@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerSchema, loginSchema, joinSectionSchema, forgotPasswordSchema, resetPasswordSchema, confirmEmailSchema } from "@mihwar/shared";
+import { registerSchema, loginSchema, joinSectionSchema, forgotPasswordSchema, resetPasswordSchema, confirmEmailSchema, verifySignupSchema, resendSignupSchema } from "@mihwar/shared";
 import { confirmEmailChange } from "../account/contactChange.js";
 import { completePasswordReset, requestPasswordReset } from "./passwordReset.js";
 import { validate } from "../../middleware/validate.js";
@@ -38,6 +38,23 @@ authRouter.post(
   requireHuman,
   validate({ body: loginSchema }),
   asyncHandler(controller.login),
+);
+
+/** رمز تأكيد البريد عند التسجيل — الحد على الطلب نفسه (خمس محاولات يُسقطها الخادم أيضًا). */
+authRouter.post(
+  "/register/verify",
+  sensitiveRateLimit((req) => (req.body as { verificationId?: string })?.verificationId),
+  validate({ body: verifySignupSchema }),
+  asyncHandler(controller.verifyRegistration),
+);
+authRouter.post(
+  "/register/resend",
+  sensitiveRateLimit((req) => {
+    const id = (req.body as { verificationId?: string })?.verificationId;
+    return id && `resend:${id}`;
+  }),
+  validate({ body: resendSignupSchema }),
+  asyncHandler(controller.resendRegistrationCode),
 );
 
 /** الرد واحد دائمًا — وجود البريد لا يُكشف. */

@@ -68,6 +68,8 @@ const envSchema = z.object({
   INVOICE_PROVIDER_API_KEY: z.string().optional(),
   EMAIL_PROVIDER_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("no-reply@mihwar.local"),
+  /** تأكيد البريد برمز قبل إنشاء الحساب. يُطفأ في الاختبارات الآلية وحدها (تُنشئ حساباتها مباشرة). */
+  SIGNUP_EMAIL_VERIFICATION: z.enum(["on", "off"]).default(process.env.VITEST ? "off" : "on"),
 
   SENTRY_DSN: z.string().optional(),
 

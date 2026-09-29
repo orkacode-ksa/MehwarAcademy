@@ -9,6 +9,8 @@ import { logger } from "../../lib/logger.js";
 import { env } from "../../config/env.js";
 import { getEmailProvider } from "../../adapters/email.provider.js";
 import { alertServerError } from "../../lib/alerts.js";
+import { assertStudentEmail, assertTeacherEmail } from "../../lib/emailPolicy.js";
+import { universityByKey } from "../platform/catalogs.js";
 
 const TTL_MINUTES = 60;
 
@@ -18,7 +20,7 @@ const TTL_MINUTES = 60;
  * الجديد (فلا يُربط الحساب ببريد لا يملكه صاحبه)، ويُبلَّغ البريد القديم بالطلب.
  */
 async function reauth(userId: string, password: string) {
-  const u = await prismaBase.user.findUnique({ where: { id: userId }, select: { passwordHash: true, tenantId: true, email: true, fullName: true, phone: true } });
+  const u = await prismaBase.user.findUnique({ where: { id: userId }, select: { passwordHash: true, tenantId: true, email: true, fullName: true, phone: true, role: true, tenant: { select: { catalogKey: true } } } });
   if (!u || !(await verifyPassword(u.passwordHash, password))) throw AppError.badRequest("كلمة المرور غير صحيحة");
   return u;
 }
@@ -41,6 +43,10 @@ export async function changePhone(userId: string, phone: string, password: strin
 export async function requestEmailChange(userId: string, email: string, password: string) {
   const u = await reauth(userId, password);
   if (email === u.email) throw AppError.badRequest("هذا بريدك الحالي");
+  // البريد الجديد يخضع لشرط التسجيل نفسه: جامعي، وبنطاق الأعضاء للأستاذ ونطاق الطلاب للطالب.
+  const uni = u.tenant.catalogKey ? await universityByKey(u.tenant.catalogKey) : null;
+  if (u.role === "TEACHER") assertTeacherEmail(email, uni);
+  else if (u.role === "STUDENT") assertStudentEmail(email, uni);
   const used = await prismaBase.user.findFirst({ where: { tenantId: u.tenantId, email }, select: { id: true } });
   if (used) throw AppError.conflict("هذا البريد مسجّل لحساب آخر");
 

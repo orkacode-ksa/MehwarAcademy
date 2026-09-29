@@ -1,4 +1,5 @@
 import { prismaBase } from "../lib/prisma.js";
+import { prunePendingSignups } from "../modules/auth/signupVerify.js";
 import { logger } from "../lib/logger.js";
 import { getPlatformSettings } from "../modules/platform/settings.js";
 import { spentThisMonthSar } from "../modules/platform/aiBudget.js";
@@ -31,7 +32,8 @@ export async function hourlyNotices(now = new Date()): Promise<void> {
     await notifyOwnersOnce({ kind: "BUDGET_80", title: `بلغ إنفاق المحرّك ${Math.round((spent / ai.monthlyBudgetSar) * 100)}٪ من سقف الشهر`, body: "عند بلوغ السقف يتوقف التوليد والمساعد حتى أول الشهر.", link: `/osettings#${month}` }, 31);
   }
 
-  // ٤) تنظيف: الإشعارات أقدم من ٩٠ يومًا.
+  // ٤) تنظيف: طلبات التسجيل التي لم تُؤكَّد، والإشعارات أقدم من ٩٠ يومًا.
+  await prunePendingSignups(now);
   const rows = await prismaBase.$queryRaw<{ n: number }[]>`SELECT mihwar_prune_notifications(${new Date(now.getTime() - 90 * 864e5)}::timestamp) AS n`;
   const n = rows[0]?.n ?? 0;
   if (n) logger.info({ pruned: n }, "حُذفت إشعارات قديمة");

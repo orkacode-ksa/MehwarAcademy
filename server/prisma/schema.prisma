@@ -1279,3 +1279,22 @@ model WalletEntry {
   @@index([tenantId])
   @@map("wallet_entries")
 }
+
+/// تسجيل ينتظر تأكيد البريد برمز من ٦ أرقام — لا يُنشأ الحساب قبل إدخاله.
+/// `payload` بيانات النموذج بعد التحقق، وكلمة المرور فيه مُجزّأة لا نصًا.
+model PendingSignup {
+  id         String   @id @default(cuid())
+  kind       String
+  email      String
+  payload    Json
+  codeHash   String
+  attempts   Int      @default(0)
+  sends      Int      @default(1)
+  lastSentAt DateTime @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("pending_signups")
+}

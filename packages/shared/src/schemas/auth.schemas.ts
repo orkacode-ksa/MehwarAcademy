@@ -57,3 +57,13 @@ export const resetPasswordSchema = z
 
 export const refreshCookieName = "__Host-mihwar-refresh";
 export const accessCookieName = "__Host-mihwar-access";
+
+/** تأكيد البريد عند التسجيل: الرمز المرسل (٦ أرقام) لطلب التسجيل المعلّق. */
+export const verifySignupSchema = z
+  .object({
+    verificationId: z.string().uuid(),
+    code: z.string().trim().regex(/^\d{6}$/, "الرمز ستة أرقام"),
+  })
+  .strict();
+
+export const resendSignupSchema = z.object({ verificationId: z.string().uuid() }).strict();

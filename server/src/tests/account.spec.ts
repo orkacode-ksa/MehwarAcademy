@@ -36,6 +36,7 @@ describe("حسابي", () => {
     const next = `new-${crypto.randomUUID()}@mihwar.test`;
     expect((await a.post("/api/me/email").send({ email: next, password: "wrong-password" })).status).toBe(400);
     expect((await a.post("/api/me/email").send({ email, password: PW })).status).toBe(400);
+    expect((await a.post("/api/me/email").send({ email: "someone@gmail.com", password: PW })).status).toBe(400);
     const sent = await a.post("/api/me/email").send({ email: next, password: PW });
     expect(sent.status).toBe(200);
     // لم يتغير شيء قبل التأكيد

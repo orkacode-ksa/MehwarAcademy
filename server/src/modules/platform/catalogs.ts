@@ -9,12 +9,29 @@ import { AppError } from "../../lib/AppError.js";
  * و«ام القري» ثلاث مساحات لجامعة واحدة إن كُتبت، وواحدة إن اختيرت. المالك يعدّلها من
  * «الإعدادات ← القوائم»، والجامعة تُعرَّف بمفتاح ثابت لا باسمها (تعديل الاسم لا يفصلها عن مساحتها).
  */
+const domain = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .transform((d) => d.replace(/^@/, ""))
+  .pipe(z.string().regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/, "نطاق بريد غير صالح").max(80));
 const list = (max = 200) => z.array(z.string().trim().min(1).max(120)).max(max);
 
 export const catalogsSchema = z
   .object({
     universities: z
-      .array(z.object({ key: z.string().regex(/^[a-z0-9-]{2,40}$/), name: z.string().trim().min(3).max(120) }).strict())
+      .array(
+        z
+          .object({
+            key: z.string().regex(/^[a-z0-9-]{2,40}$/),
+            name: z.string().trim().min(3).max(120),
+            /** نطاقات بريد أعضاء هيئة التدريس (uqu.edu.sa) — فارغة = أي نطاق أكاديمي */
+            staffDomains: z.array(domain).max(10).default([]),
+            /** نطاقات بريد الطلاب (st.uqu.edu.sa) — فارغة = أي نطاق أكاديمي */
+            studentDomains: z.array(domain).max(10).default([]),
+          })
+          .strict(),
+      )
       .max(500),
     termLabels: list(20),
     holidays: list(),
@@ -32,7 +49,7 @@ export const catalogsSchema = z
   .strict();
 export type Catalogs = z.infer<typeof catalogsSchema>;
 
-const U = (key: string, name: string) => ({ key, name });
+const U = (key: string, name: string) => ({ key, name, staffDomains: [] as string[], studentDomains: [] as string[] });
 
 export const DEFAULT_CATALOGS: Catalogs = {
   universities: [

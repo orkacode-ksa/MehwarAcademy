@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodeInput } from "../../../components/auth/CodeInput.js";
 import { api, ApiError } from "../../../api/client.js";
 import { useApi } from "../../../hooks/useApi.js";
 import { Button } from "../../../components/ui/Button.js";
@@ -74,7 +75,7 @@ export function TotpSection() {
             {setup.secret.match(/.{1,4}/g)?.join(" ")}
           </code>
           <Label text="ثم اكتب الرمز الذي يظهر في التطبيق">
-            <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder="123456" />
+            <CodeInput value={code} onChange={setCode} autoFocus={false} />
           </Label>
           <div>
             <Button

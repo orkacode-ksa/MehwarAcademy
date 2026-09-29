@@ -1,4 +1,5 @@
 import type { RegisterInput, LoginInput } from "@mihwar/shared";
+import { assertTeacherEmail } from "../../lib/emailPolicy.js";
 import { prisma, prismaBase } from "../../lib/prisma.js";
 import { hashPassword, needsRehash, verifyPassword } from "../../lib/password.js";
 import { signAccessToken, newJti } from "../../lib/jwt.js";
@@ -54,8 +55,33 @@ export async function issueTokenPair(userId: string, role: RegisterInput["role"]
   return { accessToken, refreshToken };
 }
 
+/** بيانات التسجيل بعد التحقق — كلمة المرور مُجزّأة (تُحفظ هكذا في طلب التسجيل المعلّق). */
+export type RegisterData = Omit<RegisterInput, "password"> & { passwordHash: string; emailVerifiedAt?: Date };
+
+/** فحوص ما قبل الإنشاء (تُعاد عند الإنشاء): البريد غير مستخدم، وجامعي بنطاق جامعته. */
+export async function precheckRegistration(input: Omit<RegisterInput, "password">): Promise<void> {
+  if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة");
+  const existing = await prismaBase.user.findFirst({ where: { email: input.email, deletedAt: null }, select: { id: true } });
+  if (existing) throw AppError.conflict("تعذّر إتمام التسجيل بهذه البيانات");
+  assertTeacherEmail(input.email, await universityDomainsFor(input));
+}
+
+/** نطاقات بريد جامعة التسجيل: من القائمة بمفتاحها، أو من مفتاح الجامعة المعتمدة المختارة. */
+async function universityDomainsFor(input: { universityKey?: string | undefined; universityId?: string | undefined }) {
+  if (input.universityKey) {
+    const u = await universityByKey(input.universityKey);
+    if (!u) throw AppError.badRequest("اختر جامعتك من القائمة");
+    return u;
+  }
+  if (input.universityId) {
+    const t = await prismaBase.tenant.findFirst({ where: { id: input.universityId, deletedAt: null }, select: { catalogKey: true } });
+    return t?.catalogKey ? universityByKey(t.catalogKey) : null;
+  }
+  return null;
+}
+
 export async function registerUser(
-  input: RegisterInput,
+  input: RegisterData,
   ctx: { ip?: string; userAgent?: string },
 ): Promise<IssuedTokens & { userId: string }> {
   try {
@@ -75,7 +101,7 @@ export async function registerUser(
 }
 
 async function registerOnce(
-  input: RegisterInput,
+  input: RegisterData,
   ctx: { ip?: string; userAgent?: string },
 ): Promise<IssuedTokens & { userId: string }> {
   const { trialDays } = await getPlatformSettings();
@@ -89,7 +115,8 @@ async function registerOnce(
     throw AppError.conflict("تعذّر إتمام التسجيل بهذه البيانات");
   }
 
-  const passwordHash = await hashPassword(input.password);
+  assertTeacherEmail(input.email, await universityDomainsFor(input));
+  const passwordHash = input.passwordHash;
 
   // الانضمام لجامعة قائمة برمزها — `tenants` خارج RLS فالبحث بلا سياق مشروع.
   let institution: { id: string } | null = null;
@@ -165,6 +192,7 @@ async function registerOnce(
         fullName: input.fullName,
         passwordHash,
         role: input.role,
+        emailVerifiedAt: input.emailVerifiedAt ?? null,
       },
     });
 

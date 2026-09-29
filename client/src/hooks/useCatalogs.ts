@@ -3,7 +3,8 @@ import { api } from "../api/client.js";
 
 /** القوائم المقنّنة التي يديرها المالك (الإعدادات ← القوائم) — تُختار الحقول منها بدل كتابتها. */
 export interface Catalogs {
-  universities: { key: string; name: string }[];
+  /** نطاقات البريد: الأستاذ من `staffDomains` والطالب من `studentDomains` (فارغة = أي نطاق أكاديمي) */
+  universities: { key: string; name: string; staffDomains?: string[]; studentDomains?: string[] }[];
   termLabels: string[];
   holidays: string[];
   levels: string[];

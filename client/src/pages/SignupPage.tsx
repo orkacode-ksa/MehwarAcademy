@@ -10,11 +10,13 @@ import { ROLE_HOME } from "../nav/nav.js";
 import { api, ApiError } from "../api/client.js";
 import { resetSession } from "../hooks/useSession.js";
 import { useHumanCheck } from "../components/auth/HumanCheck.js";
+import { VerifyEmailStep } from "../components/auth/VerifyEmailStep.js";
 
-type Step = 1 | 2;
+type Step = 1 | 2 | 3;
 
 /**
- * التسجيل بخطوتين: نوع الحساب ← البيانات، ثم الحساب يُنشأ فورًا.
+ * التسجيل بثلاث خطوات: نوع الحساب ← البيانات ← رمز من ٦ أرقام يصل البريد الجامعي، ولا يُنشأ
+ * الحساب قبل إدخاله (فلا يسجّل أحد ببريد لا يملكه — ولا طالب باسم أستاذه).
  *
  * حُذفت خطوة ثالثة كانت تعرض محتوى وهميًا («انضممت إلى ٥ مقررات» · استيراد جدول لا يفعل
  * شيئًا · «الفصل الأول ١٤٤٧ أُنشئ») — وعد لا يتحقّق أسوأ من لا شيء.
@@ -42,7 +44,14 @@ export function SignupPage() {
   const [facultyData, setFacultyData] = useState<Partial<FacultyDetails>>({});
   const [studentData, setStudentData] = useState<Partial<StudentJoinDetails>>({});
   const [authError, setAuthError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ verificationId: string; email: string } | null>(null);
+  const [busy, setBusy] = useState(false);
   const human = useHumanCheck();
+
+  function enter(asRole: SignupRole) {
+    resetSession();
+    navigate(`/${ROLE_HOME[asRole]}`);
+  }
 
   /**
    * إنشاء الحساب فعليًا على الخادم.
@@ -52,12 +61,21 @@ export function SignupPage() {
    */
   async function enterPlatform(faculty: Partial<FacultyDetails>, student: Partial<StudentJoinDetails>) {
     setAuthError(null);
+    setBusy(true);
     try {
+      let res: { verificationId?: string; email?: string } | null;
       if (role === "student") {
         // الطالب يستلم حسابه الذي أنشأه كشف أستاذه — لا يُنشئ مستأجرًا ولا حسابًا جديدًا.
-        await api.post("/auth/join-section", { ...student, ...human.extra });
+        res = await api.post("/auth/join-section", {
+          joinCode: student.joinCode ?? "",
+          universityIdNumber: student.universityIdNumber ?? "",
+          fullName: student.fullName ?? "",
+          email: student.email ?? "",
+          password: student.password ?? "",
+          ...human.extra,
+        });
       } else {
-        await api.post("/auth/register", {
+        res = await api.post("/auth/register", {
           fullName: faculty.fullName ?? "",
           email: faculty.email ?? "",
           password: faculty.password ?? "",
@@ -66,12 +84,17 @@ export function SignupPage() {
           ...human.extra,
         });
       }
-      resetSession();
-      navigate(`/${ROLE_HOME[role ?? "faculty"]}`);
+      // رمز أُرسل إلى البريد ← خطوة الرمز؛ وإلا فالحساب أُنشئ مباشرة
+      if (res?.verificationId) {
+        setPending({ verificationId: res.verificationId, email: res.email ?? "" });
+        setStep(3);
+      } else enter(role ?? "faculty");
     } catch (err) {
       human.reset();
       setAuthError(err instanceof ApiError ? err.message : "تعذّر إنشاء الحساب — تحقّق من اتصالك");
       setStep(2);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -79,7 +102,7 @@ export function SignupPage() {
     <AuthLayout
       left={
         <>
-          <WizDots step={step} total={2} />
+          <WizDots step={step} total={3} />
           {step === 1 && (
             <SignupRoleStep
               initial={role}
@@ -110,7 +133,18 @@ export function SignupPage() {
             />
           )}
           {step === 2 && human.widget}
-          {authError && <p className="text-[12.5px] text-crim mt-3 text-center">{authError}</p>}
+          {step === 3 && pending && (
+            <VerifyEmailStep
+              pending={pending}
+              onBack={() => {
+                setPending(null);
+                setStep(2);
+              }}
+              onDone={() => enter(role ?? "faculty")}
+            />
+          )}
+          {busy && step === 2 && <p className="text-[12.5px] text-ink-3 mt-3 text-center">نرسل رمز التأكيد إلى بريدك…</p>}
+          {authError && step !== 3 && <p className="text-[12.5px] text-crim mt-3 text-center">{authError}</p>}
 
           <p className="text-xs text-ink-3 mt-5 text-center">
             لديك حساب؟{" "}

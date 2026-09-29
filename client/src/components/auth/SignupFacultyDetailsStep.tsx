@@ -20,11 +20,14 @@ const facultyDetailsSchema = z.object({
   fullName: z.string().trim().min(2, "الاسم الكامل مطلوب").max(120),
   email: emailSchema,
   password: passwordSchema,
+  password2: z.string(),
   /** الجامعة من القائمة (مفتاحها) — لا تُكتب: «ام القرى» و«أم القرى» مساحتان لو كُتبت. */
   university: z.string().min(1, "اختر جامعتك من القائمة"),
   /** حين لا تكون في القائمة فقط */
   universityOther: z.string().trim().max(120).optional(),
-}).refine((v) => v.university !== OTHER || (v.universityOther ?? "").length >= 3, { message: "اكتب اسم جامعتك كاملًا", path: ["universityOther"] });
+})
+  .refine((v) => v.university !== OTHER || (v.universityOther ?? "").length >= 3, { message: "اكتب اسم جامعتك كاملًا", path: ["universityOther"] })
+  .refine((v) => v.password === v.password2, { message: "كلمتا المرور غير متطابقتين", path: ["password2"] });
 
 export const OTHER = "__other__";
 export type FacultyDetails = z.infer<typeof facultyDetailsSchema>;
@@ -57,8 +60,16 @@ export function SignupFacultyDetailsStep({ initial, onNext, onBack }: SignupFacu
       <p className="text-ink-2 text-[13px] my-2 mb-[22px] text-center">تُستخدم في ترويسة اختباراتك وملفات الجودة.</p>
       <form onSubmit={handleSubmit(onNext)} noValidate>
         <Field label="الاسم الكامل" placeholder="د. عبدالله بن سعيد الغامدي" error={errors.fullName?.message} {...register("fullName")} />
-        <Field label="البريد الجامعي" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
-        <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" error={errors.password?.message} {...register("password")} />
+        <Field
+          label="البريد الجامعي (بريد أعضاء هيئة التدريس)"
+          type="email"
+          dir="ltr"
+          placeholder={`name@${catalogs?.universities.find((u) => u.key === picked)?.staffDomains?.[0] ?? "university.edu.sa"}`}
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" autoComplete="new-password" error={errors.password?.message} {...register("password")} />
+        <PasswordField label="تأكيد كلمة المرور" placeholder="أعد كتابتها" autoComplete="new-password" error={errors.password2?.message} {...register("password2")} />
         <SelectField label="جامعتك" error={errors.university?.message} {...register("university")}>
           <option value="">اختر جامعتك</option>
           {options.map((o) => (

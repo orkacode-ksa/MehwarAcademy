@@ -12,6 +12,7 @@ import { ROLE_HOME, type Role } from "../nav/nav.js";
 import { resetSession, useSession } from "../hooks/useSession.js";
 import { api, ApiError } from "../api/client.js";
 import { useHumanCheck } from "../components/auth/HumanCheck.js";
+import { CodeInput } from "../components/auth/CodeInput.js";
 
 /**
  * شاشة الدخول — منقولة من `login()` في البروتوتايب مع فارق جوهري: حقول فارغة حقيقية
@@ -37,8 +38,11 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  const [useRecovery, setUseRecovery] = useState(false);
 
   const [authError, setAuthError] = useState<string | null>(null);
   const [params] = useSearchParams();
@@ -79,16 +83,26 @@ export function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <Field label="البريد الإلكتروني" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />
             <PasswordField label="كلمة المرور" placeholder="••••••••" error={errors.password?.message} {...register("password")} />
+            {needCode &&
+              (useRecovery ? (
+                <Field label="رمز الاسترداد" dir="ltr" autoFocus placeholder="XXXX-XXXX" error={errors.totp?.message} {...register("totp")} />
+              ) : (
+                <div className="mb-3">
+                  <div className="text-[12.5px] font-medium text-ink-2 mb-1 text-center">رمز التحقق من تطبيق المصادقة</div>
+                  <CodeInput value={watch("totp") ?? ""} onChange={(v) => setValue("totp", v)} onComplete={() => void handleSubmit(onSubmit)()} />
+                </div>
+              ))}
             {needCode && (
-              <Field
-                label="رمز التحقق (من تطبيق المصادقة) أو رمز استرداد"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                autoFocus
-                placeholder="123456"
-                error={errors.totp?.message}
-                {...register("totp")}
-              />
+              <button
+                type="button"
+                className="block mx-auto -mt-1 mb-3 text-[12px] text-deep font-semibold"
+                onClick={() => {
+                  setUseRecovery(!useRecovery);
+                  setValue("totp", "");
+                }}
+              >
+                {useRecovery ? "أدخل رمز التطبيق بدلًا منه" : "لا أملك التطبيق — أستخدم رمز استرداد"}
+              </button>
             )}
             <div className="-mt-1.5 mb-3 text-end">
               <Link to="/forgot-password" className="text-[12px] text-deep font-semibold">

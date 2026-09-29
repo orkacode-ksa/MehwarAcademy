@@ -20,7 +20,8 @@ const studentJoinSchema = z.object({
   fullName: z.string().trim().min(2, "الاسم الكامل مطلوب").max(120),
   email: emailSchema,
   password: passwordSchema,
-});
+  password2: z.string(),
+}).refine((v) => v.password === v.password2, { message: "كلمتا المرور غير متطابقتين", path: ["password2"] });
 export type StudentJoinDetails = z.infer<typeof studentJoinSchema>;
 
 interface SignupStudentJoinStepProps {
@@ -51,8 +52,9 @@ export function SignupStudentJoinStep({ initial, onNext, onBack }: SignupStudent
         />
         <Field label="الرقم الجامعي" inputMode="numeric" dir="ltr" placeholder="444XXXXXX" className="font-mono" error={errors.universityIdNumber?.message} {...register("universityIdNumber")} />
         <Field label="الاسم الكامل" placeholder="اسمك الثلاثي" error={errors.fullName?.message} {...register("fullName")} />
-        <Field label="البريد الإلكتروني" type="email" dir="ltr" placeholder="name@example.com" error={errors.email?.message} {...register("email")} />
-        <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" error={errors.password?.message} {...register("password")} />
+        <Field label="البريد الجامعي" type="email" dir="ltr" placeholder="id@st.university.edu.sa" error={errors.email?.message} {...register("email")} />
+        <PasswordField label="كلمة المرور" placeholder="١٠ أحرف على الأقل" autoComplete="new-password" error={errors.password?.message} {...register("password")} />
+        <PasswordField label="تأكيد كلمة المرور" placeholder="أعد كتابتها" autoComplete="new-password" error={errors.password2?.message} {...register("password2")} />
 
         <Button type="submit" variant="primary" size="lg" className="w-full mt-2">
           متابعة <Icon name="arr" className="w-4 h-4" />

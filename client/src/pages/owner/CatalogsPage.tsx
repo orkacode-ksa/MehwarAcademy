@@ -87,29 +87,58 @@ export function CatalogsPage() {
 function Universities({ list, onChange }: { list: Catalogs["universities"]; onChange: (v: Catalogs["universities"]) => void }) {
   const [q, setQ] = useState("");
   const [name, setName] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
+  const patch = (i: number, p: Partial<Catalogs["universities"][number]>) => onChange(list.map((x, j) => (j === i ? { ...x, ...p } : x)));
+  const domains = (v: string) =>
+    v
+      .split(/[,،\s]+/)
+      .map((d) => d.trim().toLowerCase().replace(/^@/, ""))
+      .filter(Boolean);
   const shown = list.map((u, i) => ({ u, i })).filter(({ u }) => !q.trim() || u.name.includes(q.trim()));
   const add = () => {
     const n = name.trim();
     if (n.length < 3 || list.some((u) => u.name === n)) return;
-    onChange([...list, { key: newKey(), name: n }]);
+    onChange([...list, { key: newKey(), name: n, staffDomains: [], studentDomains: [] }]);
     setName("");
   };
   return (
     <Card
       title={`الجامعات (${formatNum(list.length)})`}
-      hint="يختار منها الأستاذ جامعته عند التسجيل. تعديل الاسم يسري على مساحتها القائمة؛ ولا تُحذف جامعة لها مساحة."
+      hint="يختار منها الأستاذ جامعته عند التسجيل. تعديل الاسم يسري على مساحتها القائمة؛ ولا تُحذف جامعة لها مساحة. «النطاقات»: بريد الأعضاء وبريد الطلاب — بها لا يسجّل طالب أستاذًا، ولا يُقبل إلا بريد الجامعة."
     >
       <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث…" aria-label="ابحث في الجامعات" className="mb-2" />
       <ul className="grid gap-1.5 max-h-[420px] overflow-y-auto">
         {shown.map(({ u, i }) => (
-          <li key={u.key} className="flex items-center gap-2">
-            <Input value={u.name} aria-label={`اسم ${u.key}`} onChange={(e) => onChange(list.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} className="flex-1" />
-            <span className="text-[11px] text-ink-3 w-20 truncate flex-none" dir="ltr">
-              {u.key}
-            </span>
-            <IconButton label={`حذف ${u.name}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>
-              <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
-            </IconButton>
+          <li key={u.key} className="grid gap-1.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <Input value={u.name} aria-label={`اسم ${u.key}`} onChange={(e) => patch(i, { name: e.target.value })} className="flex-1 min-w-0" />
+              <button
+                type="button"
+                aria-expanded={open === u.key}
+                onClick={() => setOpen(open === u.key ? null : u.key)}
+                className={`text-[11px] px-2 py-1 rounded-md border flex-none ${u.staffDomains?.length ? "border-teal/40 text-teal-text" : "border-line text-ink-3"}`}
+              >
+                {u.staffDomains?.length ? "النطاقات ✓" : "النطاقات"}
+              </button>
+              <IconButton label={`حذف ${u.name}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>
+                <Icon name="plus" className="w-3.5 h-3.5 rotate-45" />
+              </IconButton>
+            </div>
+            {open === u.key && (
+              <div className="grid gap-2 sm:grid-cols-2 [&>*]:min-w-0 rounded-lg bg-canvas p-2.5">
+                <label className="grid gap-1 text-[11.5px] text-ink-2">
+                  بريد أعضاء هيئة التدريس
+                  <Input dir="ltr" defaultValue={(u.staffDomains ?? []).join(", ")} onBlur={(e) => patch(i, { staffDomains: domains(e.target.value) })} placeholder="uqu.edu.sa" />
+                </label>
+                <label className="grid gap-1 text-[11.5px] text-ink-2">
+                  بريد الطلاب
+                  <Input dir="ltr" defaultValue={(u.studentDomains ?? []).join(", ")} onBlur={(e) => patch(i, { studentDomains: domains(e.target.value) })} placeholder="st.uqu.edu.sa" />
+                </label>
+                <span className="text-[11px] text-ink-3 sm:col-span-2">
+                  أكثر من نطاق: افصل بفاصلة. الفارغ يقبل أي بريد جامعي. <bdi dir="ltr">{u.key}</bdi>
+                </span>
+              </div>
+            )}
           </li>
         ))}
       </ul>
