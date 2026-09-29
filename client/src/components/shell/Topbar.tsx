@@ -13,17 +13,15 @@ const iconBtn =
 /**
  * رأس المنصة:
  * ١) شريط النظام وحده في سطر مستقل (الفصل · الأسبوع · النسبة · إعلانات المالك).
- * ٢) سطر الحساب: الصورة وعليها قلم ← «حسابي»، والترحيب والاسم، ثم الإشعارات · الخروج · رجوع.
+ * ٢) سطر الحساب: الصورة وعليها قلم ← «حسابي»، والترحيب والاسم، ثم الإشعارات · الخروج.
  *    «حسابي» خرج من الشريط السفلي إلى هنا — مكانه الطبيعي بجانب صاحب الحساب.
  */
 export function Topbar() {
   const { user } = useSession();
-  const { pathname, key } = useLocation();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const unread = useUnread(pathname);
   const name = user?.fullName ?? "";
-  // «رجوع» حين يوجد ما يُرجع إليه داخل المنصة — أول شاشة بعد الدخول لا سابق لها.
-  const canBack = key !== "default";
 
   return (
     <div className="mb-5">
@@ -58,13 +56,8 @@ export function Topbar() {
             )}
           </Link>
           <button type="button" aria-label="تسجيل الخروج" className={iconBtn} onClick={() => void logout().then(() => navigate("/login"))}>
-            <Icon name="logout" className="w-[18px] h-[18px]" />
+            <Icon name="logout" className="w-[18px] h-[18px] -scale-x-100" />
           </button>
-          {canBack && (
-            <button type="button" aria-label="رجوع" className={iconBtn} onClick={() => navigate(-1)}>
-              <Icon name="arr" className="w-[18px] h-[18px]" />
-            </button>
-          )}
         </div>
       </div>
     </div>

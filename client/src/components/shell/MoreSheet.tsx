@@ -192,7 +192,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
             }}
             className="grid justify-items-center gap-[7px] py-3.5 px-1.5 rounded-[14px] border border-line bg-paper text-ink-2 text-[11px] font-medium"
           >
-            <Icon name="logout" className="w-[19px] h-[19px]" />
+            <Icon name="logout" className="w-[19px] h-[19px] -scale-x-100" />
             <span>خروج</span>
           </button>
         </div>

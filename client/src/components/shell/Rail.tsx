@@ -47,7 +47,7 @@ export function Rail({ role }: { role: Role }) {
         onClick={() => void logout().then(() => navigate("/login"))}
         className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150"
       >
-        <Icon name="logout" className="w-[19px] h-[19px]" />
+        <Icon name="logout" className="w-[19px] h-[19px] -scale-x-100" />
         <i className="not-italic text-[9.5px] font-medium">خروج</i>
       </button>
     </aside>
