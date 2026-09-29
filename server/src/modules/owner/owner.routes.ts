@@ -32,6 +32,8 @@ import { getPlatformSettings, savePlatformSettings } from "../platform/settings.
 import { usageReport } from "../platform/aiBudget.js";
 import { googleConfigured } from "../integrations/google.service.js";
 import { ownerMfaRequired } from "../account/mfa.js";
+import * as staff from "./staff.service.js";
+import { STAFF_SCREENS, screenOfPath, type StaffScreen } from "./staff.service.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
 
@@ -40,23 +42,70 @@ import { env } from "../../config/env.js";
  *
  * **كل مسار هنا يعمل على جامعة ليست مستأجر المستخدم** — وهو الاستثناء الوحيد المسموح
  * في المنصة (انظر `withExplicitTenantTx`). لذلك ثلاثة شروط مفروضة على كل مسار بلا استثناء:
- *   ١) `requireRole("OWNER")` — لا ADMIN ولا TEACHER.
+ *   ١) المالك، أو موظف إدارة (ADMIN) في الشاشات الممنوحة له فقط — لا TEACHER.
  *   ٢) معرّف الجامعة من معامل المسار، ويُتحقّق من وجودها قبل أي كتابة.
  *   ٣) كل كتابة تُسجَّل في سجل التدقيق باسم الفاعل والجامعة الهدف.
  */
 export const ownerRouter = Router();
 
-ownerRouter.use(requireAuth, requireRole("OWNER"));
+ownerRouter.use(requireAuth, requireRole("OWNER", "ADMIN"));
 /**
- * المالك يتحكم في المدفوعات وكل الجامعات: كلمة مرور مسروقة وحدها لا تكفي للدخول إلى هنا.
+ * لوحة المالك تتحكم في المدفوعات وكل الجامعات: كلمة مرور مسروقة وحدها لا تكفي للدخول إلى هنا.
  * التحقق بخطوتين إلزامي (الإنتاج افتراضيًا · OWNER_MFA_REQUIRED) — «حسابي» نفسه يبقى متاحًا لتفعيله.
+ * والموظف لا يصل إلا لشاشاته — تُقرأ من القاعدة مع كل طلب، فسحبها يسري فورًا.
  */
 ownerRouter.use(
   asyncHandler(async (req, _res, next) => {
-    if (!ownerMfaRequired()) return next();
-    const u = await prismaBase.user.findUnique({ where: { id: (req as { auth?: { userId: string } }).auth?.userId ?? "" }, select: { totpEnabled: true } });
-    if (!u?.totpEnabled) throw new AppError(403, "MFA_REQUIRED", "فعّل التحقق بخطوتين من «حسابي» ← الأمان لتفتح لوحة المالك");
+    const u = await prismaBase.user.findUnique({
+      where: { id: (req as { auth?: { userId: string } }).auth?.userId ?? "" },
+      select: { role: true, totpEnabled: true, staffScreens: true, suspendedAt: true },
+    });
+    if (!u || u.suspendedAt || (u.role !== "OWNER" && u.role !== "ADMIN")) throw AppError.forbidden();
+    if (ownerMfaRequired() && !u.totpEnabled) throw new AppError(403, "MFA_REQUIRED", "فعّل التحقق بخطوتين من «حسابي» ← الأمان لتفتح لوحة الإدارة");
+    if (u.role === "ADMIN") {
+      const screen = screenOfPath(req.path, req.method);
+      if (!screen || !u.staffScreens.includes(screen)) throw AppError.forbidden("هذه الشاشة غير ممنوحة لحسابك");
+    }
     next();
+  }),
+);
+
+// ───────────────────────── فريق الإدارة (للمالك وحده) ─────────────────────────
+
+const staffBody = z
+  .object({
+    fullName: z.string().trim().min(3).max(80),
+    email: z.string().trim().toLowerCase().email().max(255),
+    screens: z.array(z.enum(Object.keys(STAFF_SCREENS) as [StaffScreen, ...StaffScreen[]])).max(5),
+  })
+  .strict();
+const screensBody = z.object({ screens: staffBody.shape.screens }).strict();
+
+ownerRouter.get("/staff", asyncHandler(async (_req, res) => res.json({ success: true, data: { screens: STAFF_SCREENS, staff: await staff.listStaff() } })));
+ownerRouter.post(
+  "/staff",
+  validate({ body: staffBody }),
+  asyncHandler(async (req, res) => res.status(201).json({ success: true, data: await staff.createStaff(actor(req), req.body) })),
+);
+ownerRouter.put(
+  "/staff/:id/screens",
+  validate({ params: z.object({ id: cuidSchema }).passthrough(), body: screensBody }),
+  asyncHandler(async (req, res) => {
+    await staff.setScreens(actor(req), req.params.id as string, req.body.screens);
+    res.json({ success: true, data: null });
+  }),
+);
+ownerRouter.post(
+  "/staff/:id/reset",
+  validate({ params: z.object({ id: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => res.json({ success: true, data: await staff.resetStaffAccess(actor(req), req.params.id as string) })),
+);
+ownerRouter.put(
+  "/staff/:id/active",
+  validate({ params: z.object({ id: cuidSchema }).passthrough(), body: z.object({ active: z.boolean() }).strict() }),
+  asyncHandler(async (req, res) => {
+    await staff.setStaffActive(actor(req), req.params.id as string, req.body.active);
+    res.json({ success: true, data: null });
   }),
 );
 

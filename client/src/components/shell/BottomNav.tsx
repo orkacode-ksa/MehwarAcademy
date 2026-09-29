@@ -20,7 +20,7 @@ export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: Bot
   const { pathname } = useLocation();
   const { user } = useSession();
   // مع المساعد في المنتصف تبقى خمس خانات: عنصران · المساعد · عنصر · المزيد.
-  const primary = visibleNav(role, !!user?.isDeptHead).slice(0, onOpenAssistant ? 3 : MOBILE_PRIMARY_COUNT);
+  const primary = visibleNav(role, user).slice(0, onOpenAssistant ? 3 : MOBILE_PRIMARY_COUNT);
   const center = onOpenAssistant ? 2 : -1;
 
   const itemCls = "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 select-none";

@@ -87,7 +87,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
 
   if (!render) return null;
 
-  const items = visibleNav(role, !!user?.isDeptHead);
+  const items = visibleNav(role, user);
   // بطاقة الصدارة تتبع الدور: «التنبيهات الوقائية» أداة عضو هيئة التدريس وحده،
   // وكانت تظهر لكل الأدوار — فيرى الطالب تنبيهات أستاذه، وفتحها يقلب هيكل الشاشة
   // إلى تنقّل عضو هيئة التدريس. الطالب يرى ما يخصّه: تسليماته المفتوحة.

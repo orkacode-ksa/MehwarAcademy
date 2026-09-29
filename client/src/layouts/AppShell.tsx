@@ -79,7 +79,7 @@ export function AppShell() {
         <div className="max-w-[1100px] mx-auto" id="main">
           <Topbar />
           <SubscriptionBanner />
-          {user?.role === "OWNER" && <OwnerMfaBanner />}
+          {(user?.role === "OWNER" || user?.role === "ADMIN") && <OwnerMfaBanner />}
           <Suspense fallback={<PageFallback />}>
             <Outlet />
           </Suspense>

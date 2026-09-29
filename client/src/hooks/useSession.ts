@@ -13,6 +13,8 @@ export interface SessionUser {
   /** صورة الملف الشخصي — رابط ملف أو null (تُعرض الأحرف الأولى بدلها) */
   avatarUrl?: string | null;
   phone?: string | null;
+  /** موظف الإدارة (ADMIN): الشاشات الممنوحة له */
+  staffScreens?: string[];
   prefs?: UserPrefs;
   workspaceMemberships: { workspaceId: string }[];
 }

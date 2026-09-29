@@ -8,7 +8,7 @@ import { Field } from "../components/auth/Field.js";
 import { PasswordField } from "../components/auth/PasswordField.js";
 import { Button } from "../components/ui/Button.js";
 import { Icon } from "../icons/Icon.js";
-import { ROLE_HOME, type Role } from "../nav/nav.js";
+import { ROLE_HOME, visibleNav, type Role } from "../nav/nav.js";
 import { resetSession } from "../hooks/useSession.js";
 import { api, ApiError } from "../api/client.js";
 
@@ -46,8 +46,10 @@ export function LoginPage() {
     try {
       await api.post("/auth/login", values);
       resetSession();
-      const me = await api.get<{ role: string }>("/auth/me");
-      navigate(`/${ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`);
+      const me = await api.get<{ role: string; staffScreens?: string[] }>("/auth/me");
+      // موظف الإدارة يبدأ من أول شاشة ممنوحة له — لا من «الجامعات» التي قد لا يملكها.
+      const first = me.role === "ADMIN" ? visibleNav("admin", me)[0]?.key : undefined;
+      navigate(`/${first ?? (me.role === "ADMIN" ? "account" : ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"])}`);
     } catch (err) {
       if (err instanceof ApiError && (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID")) setNeedCode(true);
       setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال بالخادم");

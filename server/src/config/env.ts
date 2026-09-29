@@ -4,6 +4,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   /** التحقق بخطوتين إلزامي لشاشات المالك. افتراضيًا: في الإنتاج نعم، وفي التطوير لا. */
   OWNER_MFA_REQUIRED: z.enum(["true", "false"]).optional(),
+  /**
+   * استعادة حساب المالك من متغيرات Railway: يُطبَّقان مرة عند الإقلاع، ولا يُعاد التطبيق إلا إن
+   * تغيّرا. احذف كلمة المرور من المتغيرات بعد أول دخول وغيّرها من «حسابي».
+   */
+  OWNER_EMAIL: z.string().trim().toLowerCase().email().optional(),
+  OWNER_INITIAL_PASSWORD: z.string().min(10).max(128).optional(),
   PORT: z.coerce.number().int().positive().default(4000),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL مطلوب"),

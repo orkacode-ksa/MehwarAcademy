@@ -29,12 +29,36 @@ export const NAV: Record<Role, NavItem[]> = {
     { key: "payments", icon: "card", label: "المدفوعات" },
     { key: "obank", icon: "box", label: "البنك" },
     { key: "osettings", icon: "gear", label: "الإعدادات" },
+    { key: "ostaff", icon: "shield", label: "الفريق" },
   ],
 };
 
-/** عناصر التنقّل التي يحقّ للمستخدم رؤيتها — «القسم» لرئيس القسم وحده. */
-export function visibleNav(role: Role, isDeptHead: boolean): NavItem[] {
-  return NAV[role].filter((i) => i.key !== "dhome" || isDeptHead || role === "dept");
+/** شاشة لوحة الإدارة ← صلاحية الموظف التي تفتحها. «الفريق» للمالك وحده. */
+const STAFF_SCREEN_OF: Record<string, string> = {
+  institutions: "institutions",
+  osubmissions: "institutions",
+  ousers: "users",
+  payments: "payments",
+  obank: "bank",
+  osettings: "settings",
+};
+
+interface NavUser {
+  role?: string;
+  isDeptHead?: boolean;
+  staffScreens?: string[];
+}
+
+/** هل يحقّ لموظف الإدارة فتح هذه الشاشة؟ المالك: كل شيء. */
+export function staffCan(user: NavUser | null | undefined, key: string): boolean {
+  if (user?.role !== "ADMIN") return true;
+  const screen = STAFF_SCREEN_OF[key];
+  return !!screen && (user.staffScreens ?? []).includes(screen);
+}
+
+/** عناصر التنقّل التي يحقّ للمستخدم رؤيتها — «القسم» لرئيس القسم، وللموظف شاشاته فقط. */
+export function visibleNav(role: Role, user: NavUser | null | undefined): NavItem[] {
+  return NAV[role].filter((i) => (i.key !== "dhome" || !!user?.isDeptHead || role === "dept") && (role !== "admin" || staffCan(user, i.key)));
 }
 
 /** أول 4 عناصر تظهر في الشريط السفلي على الجوال، البقية عبر «المزيد» */

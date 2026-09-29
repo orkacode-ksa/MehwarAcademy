@@ -7,6 +7,7 @@ import { assertRlsEffective } from "./lib/rlsGuard.js";
 import { redis } from "./lib/redis.js";
 import { closePdfEngine } from "./lib/pdf.js";
 import { startTermCloser } from "./jobs/termCloser.js";
+import { bootstrapOwner } from "./modules/owner/staff.service.js";
 
 installArabicZodErrorMap();
 
@@ -21,6 +22,8 @@ const server = app.listen(env.PORT, () => {
 });
 
 startTermCloser();
+// استعادة حساب المالك من متغيرات Railway إن ضُبطت — مرة لكل قيمة، ولا تُسقط الخادم إن فشلت.
+void bootstrapOwner().catch((err: unknown) => logger.error({ err }, "تعذّرت استعادة حساب المالك"));
 
 server.headersTimeout = 65_000;
 server.requestTimeout = 60_000;

@@ -114,6 +114,7 @@ const SubmissionsPage = page(
   () => import("./pages/owner/SubmissionsPage.js"),
   "SubmissionsPage",
 );
+const StaffPage = page(() => import("./pages/owner/StaffPage.js"), "StaffPage");
 const OwnerUsersPage = page(
   () => import("./pages/owner/OwnerUsersPage.js"),
   "OwnerUsersPage",
@@ -189,6 +190,7 @@ export function App() {
             <Route path="osettings" element={<OwnerSettingsPage />} />
             <Route path="osubmissions" element={<SubmissionsPage />} />
             <Route path="ousers" element={<OwnerUsersPage />} />
+            <Route path="ostaff" element={<StaffPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

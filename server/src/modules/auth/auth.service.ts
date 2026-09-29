@@ -290,6 +290,7 @@ export async function getMe(userId: string) {
       totpEnabled: true,
       foundingMember: true,
       isDeptHead: true,
+      staffScreens: true,
       phone: true,
       prefs: true,
       avatarFileId: true,

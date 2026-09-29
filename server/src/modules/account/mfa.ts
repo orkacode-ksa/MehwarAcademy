@@ -56,7 +56,7 @@ export async function totpDisable(userId: string, password: string, code: string
   const u = await prismaBase.user.findUnique({ where: { id: userId }, select: { passwordHash: true, totpSecret: true, totpEnabled: true, totpRecovery: true, tenantId: true, role: true } });
   if (!u?.totpEnabled) throw AppError.badRequest("التحقق بخطوتين غير مفعّل");
   // الرفض لسبب الدور يسبق فحص الرمز: وإلا استُهلك رمز استرداد في محاولة مرفوضة أصلًا.
-  if (u.role === "OWNER" && ownerMfaRequired()) throw AppError.badRequest("التحقق بخطوتين إلزامي لحساب المالك");
+  if ((u.role === "OWNER" || u.role === "ADMIN") && ownerMfaRequired()) throw AppError.badRequest("التحقق بخطوتين إلزامي لحسابات الإدارة");
   if (!(await verifyPassword(u.passwordHash, password))) throw AppError.badRequest("كلمة المرور غير صحيحة");
   if (!(await checkCode(userId, u.totpSecret, u.totpRecovery, code))) throw AppError.badRequest("الرمز غير صحيح");
   await prismaBase.user.update({ where: { id: userId }, data: { totpEnabled: false, totpSecret: null, totpRecovery: [] } });

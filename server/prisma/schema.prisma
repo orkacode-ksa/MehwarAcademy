@@ -171,6 +171,9 @@ model User {
   prefs        Json      @default("{}")
   /// صورة الملف الشخصي (مصغّرة ٢٥٦px بلا بيانات EXIF) — ملف في `files`.
   avatarFileId String?
+  /// موظف الإدارة (ADMIN): الشاشات المسموحة له من لوحة المالك
+  /// (institutions · users · payments · bank · settings). المالك لا يحتاجها — له كل شيء.
+  staffScreens String[] @default([])
   /// آخر مرة فتح الإشعارات: ما بعده «غير مقروء» — عدّ واحد مفهرس لا علَم لكل إشعار.
   notifSeenAt  DateTime?
 

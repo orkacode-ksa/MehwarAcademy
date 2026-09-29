@@ -110,7 +110,7 @@ meRouter.get(
   "/totp",
   asyncHandler(async (req, res) => {
     const u = await prismaBase.user.findUnique({ where: { id: who(req).userId }, select: { totpEnabled: true, totpRecovery: true } });
-    res.json({ success: true, data: { enabled: !!u?.totpEnabled, recoveryLeft: u?.totpRecovery.length ?? 0, required: who(req).role === "OWNER" && mfa.ownerMfaRequired() } });
+    res.json({ success: true, data: { enabled: !!u?.totpEnabled, recoveryLeft: u?.totpRecovery.length ?? 0, required: (who(req).role === "OWNER" || who(req).role === "ADMIN") && mfa.ownerMfaRequired() } });
   }),
 );
 meRouter.post("/totp/setup", byUser, asyncHandler(async (req, res) => res.json({ success: true, data: await mfa.totpSetup(who(req).userId) })));

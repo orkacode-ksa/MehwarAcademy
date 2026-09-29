@@ -9,7 +9,7 @@ import { visibleNav, type Role } from "../../nav/nav.js";
  */
 export function Rail({ role }: { role: Role }) {
   const { user } = useSession();
-  const items = visibleNav(role, !!user?.isDeptHead);
+  const items = visibleNav(role, user);
   const navigate = useNavigate();
 
   return (
