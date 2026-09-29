@@ -18,7 +18,7 @@ interface Data {
 }
 
 /**
- * مقرر الطالب — صفحة واحدة بأربعة أقسام: غيابي · درجاتي · المواد · التقييمات.
+ * مقرر الطالب — صفحة واحدة بأربعة أقسام: غيابي · درجاتي · المواد · الاختبارات.
  * الغياب أولًا لأنه الوحيد الذي قد يكلّفه المقرر كله، ويُقال بعدد لا بنسبة: «بقي لك ٣».
  */
 export function StudentCoursePage() {
@@ -58,7 +58,7 @@ export function StudentCoursePage() {
             </div>
           )}
           <p className="text-[12.5px] text-ink-2 mt-1">
-            رُصد {formatNum(data.assessments.filter((x) => x.score !== null).length)} من {formatNum(data.assessments.length)} تقييمات
+            رُصد {formatNum(data.assessments.filter((x) => x.score !== null).length)} من {formatNum(data.assessments.length)} اختبارات
           </p>
         </Card>
       </div>
@@ -74,7 +74,7 @@ export function StudentCoursePage() {
         </div>
       )}
 
-      <Card title="التقييمات" className="mt-4">
+      <Card title="الاختبارات" className="mt-4">
         <ul className="grid gap-2">
           {data.assessments.map((x) => (
             <li key={x.id} className="border-b border-line2 last:border-0 pb-2">

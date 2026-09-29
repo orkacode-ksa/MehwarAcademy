@@ -188,6 +188,15 @@ describe("الخطوة ٣ — محاضرة اليوم والحضور", () => {
     const cheat = list.body.data.find((x: { typeKey: string }) => x.typeKey === "CHEATING");
     expect(cheat.escalated).toBe(true); // escalateAfter = 1 في اللائحة الافتراضية
 
+    // الشاشة العامة: كل مخالفات الأستاذ عبر مقرراته، ومعها اسم المقرر والشعبة
+    const all = await teacher.get(`${W}/teaching/violations`);
+    expect(all.status).toBe(200);
+    const same = all.body.data.find((x: { id: string }) => x.id === cheat.id);
+    expect(same).toMatchObject({ courseId, escalated: true });
+    expect(same.course).toContain("—");
+    expect(typeof same.section).toBe("string");
+    expect((await teacher.get(`${W}/teaching/violations?courseId=${courseId}`)).body.data.length).toBe(list.body.data.length);
+
     const resolved = await teacher.post(`${W}/teaching/violations/${cheat.id}/resolve`);
     expect(resolved.status).toBe(200);
   });

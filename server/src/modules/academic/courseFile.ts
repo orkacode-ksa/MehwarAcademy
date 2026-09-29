@@ -60,11 +60,11 @@ const gradesDone = (f: Omit<CourseFacts, "fileItems" | "setup">) => f.gradesExpe
 const AUTO_RULES: Record<string, AutoRule> = {
   // ── بنود أم القرى ──
   CV: (f) => ({ done: f.profileReady, hint: "أكمل بياناتك في «حسابي ← سيرتي» فتُولَّد السيرة، أو ارفع سيرتك" }),
-  MIDTERM_EXAM: (f) => ({ done: examOf(f, "MIDTERM").length > 0, hint: "أضف الاختبار النصفي بأسئلته في خطوة التقييمات" }),
-  FINAL_EXAM: (f) => ({ done: examOf(f, "FINAL").length > 0, hint: "أضف الاختبار النهائي بأسئلته في خطوة التقييمات" }),
+  MIDTERM_EXAM: (f) => ({ done: examOf(f, "MIDTERM").length > 0, hint: "أضف الاختبار النصفي بأسئلته في خطوة الاختبارات" }),
+  FINAL_EXAM: (f) => ({ done: examOf(f, "FINAL").length > 0, hint: "أضف الاختبار النهائي بأسئلته في خطوة الاختبارات" }),
   PRACTICAL_EXAM: (f) =>
     f.hasLab
-      ? { done: f.exams.some((e) => e.isLab && e.hasContent), hint: "أضف تقييم معمل بأسئلته (الاختبار العملي)" }
+      ? { done: f.exams.some((e) => e.isLab && e.hasContent), hint: "أضف اختبار معمل بأسئلته (الاختبار العملي)" }
       : { done: true, hint: "لا ينطبق — المقرر بلا معمل" },
   ANSWER_KEY: (f) => {
     const withContent = f.exams.filter((e) => e.hasContent && ["MIDTERM", "FINAL"].includes(e.type) || (e.isLab && e.hasContent));
@@ -83,9 +83,9 @@ const AUTO_RULES: Record<string, AutoRule> = {
     done: f.topics > 0 && f.topicsWithMaterials === f.topics,
     hint: `أضف مادة لكل موضوع (${f.topicsWithMaterials} من ${f.topics})`,
   }),
-  ASSESSMENT_PLAN: (f) => ({ done: f.assessments > 0, hint: "أضف تقييمات المقرر" }),
-  EXAM_SAMPLES: (f) => ({ done: f.assessmentsWithContent > 0, hint: "اكتب أسئلة تقييم واحد على الأقل" }),
-  QUESTION_BANK: (f) => ({ done: f.assessmentsWithContent > 0, hint: "اكتب أسئلة التقييمات فتُجمع في البنك" }),
+  ASSESSMENT_PLAN: (f) => ({ done: f.assessments > 0, hint: "أضف اختبارات المقرر" }),
+  EXAM_SAMPLES: (f) => ({ done: f.assessmentsWithContent > 0, hint: "اكتب أسئلة اختبار واحد على الأقل" }),
+  QUESTION_BANK: (f) => ({ done: f.assessmentsWithContent > 0, hint: "اكتب أسئلة الاختبارات فتُجمع في البنك" }),
   GRADE_DISTRIBUTION: (f) => ({
     done: f.gradesExpected > 0 && f.gradesEntered >= f.gradesExpected,
     hint: `ارصد الدرجات (${f.gradesEntered} من ${f.gradesExpected})`,

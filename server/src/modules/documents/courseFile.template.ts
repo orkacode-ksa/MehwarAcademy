@@ -147,7 +147,7 @@ ${topicRows ? `<table><thead><tr><th>#</th><th>الموضوع</th><th>المخر
 
 <h2>5 — خطة التقييم</h2>
 ${d.gradeScheme.length ? `<p>توزيع الدرجات: ${d.gradeScheme.map((g) => `${e(g.label)} ${n(g.weight)}٪`).join(" · ")}</p>` : ""}
-${assessRows ? `<table><thead><tr><th>التقييم</th><th>النوع</th><th>العظمى</th><th>الوزن</th><th>النموذج</th></tr></thead><tbody>${assessRows}</tbody></table>` : '<p class="empty">لا تقييمات</p>'}
+${assessRows ? `<table><thead><tr><th>الاختبار</th><th>النوع</th><th>العظمى</th><th>الوزن</th><th>النموذج</th></tr></thead><tbody>${assessRows}</tbody></table>` : '<p class="empty">لا اختبارات</p>'}
 
 <h2>6 — مصادر التعلّم</h2>
 <h3>المرجع الأساسي</h3>${para(spec.references?.main)}
@@ -161,7 +161,7 @@ ${violationRows ? `<h3>المخالفات المسجّلة</h3><table><thead><tr
 
 <h2>8 — تقييم جودة المقرر</h2>${para(spec.courseEvaluation)}
 
-${samples ? `<h2>9 — نماذج التقييمات</h2>${samples}` : ""}
+${samples ? `<h2>9 — نماذج الاختبارات</h2>${samples}` : ""}
 
 <div class="footer">مِحوَر · ملف مولَّد من عمل الأستاذ في المنصة · بنوده من لائحة الجامعة</div>
 </body></html>`;

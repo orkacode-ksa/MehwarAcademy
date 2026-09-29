@@ -24,8 +24,8 @@ interface Assessment {
 
 
 /**
- * ⑥ التقييمات — كل تقييم بوزنه من المجموع ونصّه (الأسئلة أو التعليمات).
- * النص يصير «نموذج اختبار» في ملف المقرر آليًا. تقييمات المعمل تظهر لمقرر ذي معمل.
+ * ⑥ الاختبارات — كل اختبار بوزنه من المجموع ونصّه (الأسئلة أو التعليمات).
+ * النص يصير «نموذج اختبار» في ملف المقرر آليًا. اختبارات المعمل تظهر لمقرر ذي معمل.
  */
 export function AssessmentsStep({ course, onChanged }: { course: Course; onChanged: () => void }) {
   const { data, reload } = useApi<Assessment[]>(`${W}/teaching/courses/${course.id}/assessments`);
@@ -63,11 +63,11 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
   return (
     <div className="grid gap-4">
       <Card
-        title="تقييمات المقرر"
+        title="اختبارات المقرر"
         aside={<span className={`text-[12.5px] font-medium ${total === 100 ? "text-teal" : "text-gold-text"}`}>مجموع الأوزان {formatNum(total)}٪</span>}
         hint="المجموع النهائي للطالب = مجموع (درجته ÷ العظمى × الوزن)."
       >
-        {data?.length === 0 && <p className="text-[13.5px] text-ink-3">لا تقييمات بعد.</p>}
+        {data?.length === 0 && <p className="text-[13.5px] text-ink-3">لا اختبارات بعد.</p>}
         <ul className="grid gap-2">
           {data?.map((a) => (
             <li key={a.id} className="border border-line2 rounded-[10px] px-3 py-2">
@@ -91,7 +91,7 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
         </ul>
       </Card>
 
-      <Card title="تقييم جديد">
+      <Card title="اختبار جديد">
         <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
           <Label text="العنوان">
             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="اختبار قصير ١" />
@@ -118,12 +118,12 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
         {course.hasLab && (
           <label className="flex items-center gap-2 mt-3 text-[13.5px] min-h-[44px]">
             <input type="checkbox" checked={form.isLab} onChange={(e) => setForm({ ...form, isLab: e.target.checked })} className="w-4 h-4" />
-            تقييم معمل (دليل · تقرير · نشاط · اختبار عملي)
+            اختبار معمل (دليل · تقرير · نشاط · اختبار عملي)
           </label>
         )}
         <ErrorText>{err}</ErrorText>
         <Button variant="primary" className="mt-3" onClick={() => void add()}>
-          <Icon name="plus" /> أضف التقييم
+          <Icon name="plus" /> أضف الاختبار
         </Button>
       </Card>
     </div>
@@ -131,7 +131,7 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
 }
 
 /**
- * أسئلة التقييم ونموذج إجابته ومخرجاته — في مكان واحد. النموذج لا يراه الطالب أبدًا، وهو بند
+ * أسئلة الاختبار ونموذج إجابته ومخرجاته — في مكان واحد. النموذج لا يراه الطالب أبدًا، وهو بند
  * مستقل في ملف المقرر. والطباعة: الاختبار منسّقًا، ونموذج الإجابة في ملف منفصل.
  */
 function InstructionsEditor({ assessment, outcomes, onSaved }: { assessment: Assessment; outcomes: string[]; onSaved: () => void }) {

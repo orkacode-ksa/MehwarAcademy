@@ -80,7 +80,7 @@ export const ROLE_HOME: Record<Role, string> = {
 
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
-  faculty: ["course", "plans", "orders", "cv", "university", "tasks"],
+  faculty: ["course", "plans", "orders", "cv", "university", "tasks", "violations"],
   student: ["scourse"],
   dept: [],
   admin: ["ohome", "institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs", "oaudit", "odata"],
@@ -120,6 +120,7 @@ export function roleOfUser(role: string | undefined): Role {
 const MORE_EXTRA: Record<Role, NavItem[]> = {
   faculty: [
     { key: "tasks", icon: "cal", label: "مهام اليوم" },
+    { key: "violations", icon: "shield", label: "المخالفات" },
     { key: "cv", icon: "file", label: "سيرتي" },
     { key: "university", icon: "shield", label: "جامعتي" },
     { key: "plans", icon: "star", label: "الباقات" },

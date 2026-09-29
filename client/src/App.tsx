@@ -36,6 +36,13 @@ const ViolationsPage = page(
   () => import("./pages/faculty/ViolationsPage.js"),
   "ViolationsPage",
 );
+const CourseStudentsPage = page(() => import("./pages/faculty/CourseStudentsPage.js"), "CourseStudentsPage");
+
+/** الرابط القديم لمخالفات مقرر ← شاشة المخالفات العامة مصفّاة على المقرر. */
+function CourseViolationsRedirect() {
+  const id = useLocation().pathname.split("/")[2] ?? "";
+  return <Navigate to={`/violations?course=${id}`} replace />;
+}
 const PerformancePage = page(
   () => import("./pages/faculty/PerformancePage.js"),
   "PerformancePage",
@@ -186,7 +193,9 @@ export function App() {
             <Route path="course/:id/setup" element={<CourseSetupPage />} />
             <Route path="course/:id/grades" element={<GradesPage />} />
             <Route path="course/:id/file" element={<CourseFilePage />} />
-            <Route path="course/:id/violations" element={<ViolationsPage />} />
+            <Route path="course/:id/violations" element={<CourseViolationsRedirect />} />
+            <Route path="course/:id/students" element={<CourseStudentsPage />} />
+            <Route path="violations" element={<ViolationsPage />} />
             <Route path="course/:id/report" element={<CourseReportPage />} />
             <Route path="evalp" element={<PerformancePage />} />
             <Route path="bank" element={<BankPage />} />

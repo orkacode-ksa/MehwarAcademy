@@ -51,7 +51,7 @@ export function AccountPage() {
   return (
     <>
       <PageHeader title="حسابي" description="بياناتك وتفضيلاتك — افتح ما تريد تعديله." />
-      <div className="grid gap-2.5 max-w-[760px]">
+      <div className="grid gap-2.5 max-w-[760px] [&>*]:min-w-0">
         {card("profile", "user", "البيانات الشخصية والصورة", `${user.fullName} · ${user.email}`, <ProfileCard key={user.id} user={user} />)}
         {card("security", "lock", "الأمان وكلمة المرور", "تغيير كلمة المرور · الخروج من كل الأجهزة", <SecurityCard />)}
         {teacher &&

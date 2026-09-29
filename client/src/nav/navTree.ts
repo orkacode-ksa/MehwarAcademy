@@ -30,6 +30,7 @@ export function parentOf(pathname: string, home: string): string {
 /** عنوان احتياطي للشاشات التي لا تعلن عنوانها (قبل تحميل بياناتها). */
 export const FALLBACK_TITLE: Record<string, string> = {
   tasks: "مهام اليوم",
+  violations: "المخالفات",
   today: "محاضرة اليوم",
   courses: "مقرراتي",
   course: "المقرر",

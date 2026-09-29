@@ -84,10 +84,10 @@ documentsRouter.get(
         },
       },
     });
-    if (!a) throw AppError.notFound("التقييم غير موجود");
+    if (!a) throw AppError.notFound("الاختبار غير موجود");
     const withAnswers = req.query.answers === "1";
-    if (withAnswers && !a.answerKey) throw AppError.badRequest("لا نموذج إجابة لهذا التقييم بعد");
-    if (!withAnswers && !a.instructions) throw AppError.badRequest("لا أسئلة مكتوبة لهذا التقييم بعد");
+    if (withAnswers && !a.answerKey) throw AppError.badRequest("لا نموذج إجابة لهذا الاختبار بعد");
+    if (!withAnswers && !a.instructions) throw AppError.badRequest("لا أسئلة مكتوبة لهذا الاختبار بعد");
     const html = renderExamHtml({
       institution: a.course.workspace.tenant.name,
       courseCode: a.course.code,

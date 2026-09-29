@@ -117,7 +117,7 @@ export function CourseReportPage() {
         </Label>
       </Card>
 
-      <Card title="ب. مخرجات التعلّم" className="mt-4" hint="المستوى الفعلي = متوسط نسب الطلاب في التقييمات المربوطة بالمخرج (اربطها من خطوة التقييمات).">
+      <Card title="ب. مخرجات التعلّم" className="mt-4" hint="المستوى الفعلي = متوسط نسب الطلاب في الاختبارات المربوطة بالمخرج (اربطها من خطوة الاختبارات).">
         <ul className="grid gap-2">
           {data.clos.map((c) => (
             <li key={c.code} className="flex items-center gap-2 flex-wrap text-[13px] border-b border-line2 pb-2">
@@ -127,7 +127,7 @@ export function CourseReportPage() {
               <span className="flex-1 min-w-0">{c.text}</span>
               <span className="text-ink-3">المستهدف {formatNum(c.target)}٪</span>
               {c.actual === null ? (
-                <Chip>لا تقييم مربوط</Chip>
+                <Chip>لا اختبار مربوط</Chip>
               ) : (
                 <Chip tone={c.met ? "teal" : "crimson"}>الفعلي {formatNum(c.actual)}٪</Chip>
               )}

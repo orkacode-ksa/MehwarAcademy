@@ -9,7 +9,7 @@ import { gradeStats } from "../rules/rules.js";
  * تقرير المقرر — نموذج NCAAA ٢٠٢٥ (الملف الذي أرسله المالك).
  *
  * المحسوب لا يُكتب: توزيع التقديرات وحالات الطلاب · المستوى الفعلي لكل مخرج تعلّم (متوسط
- * نسب الطلاب في التقييمات المربوطة به) مقابل المستهدف · المواضيع التي لم تُعقد لها محاضرة.
+ * نسب الطلاب في الاختبارات المربوطة به) مقابل المستهدف · المواضيع التي لم تُعقد لها محاضرة.
  * والأستاذ يكتب التعليقات والتوصيات وخطة التحسين وحدها.
  */
 
@@ -43,7 +43,7 @@ export async function buildCourseReport(workspaceId: string, courseId: string) {
   const inProgress = rows.length - complete.length;
   const pct = (n: number) => (rows.length ? Math.round((n / rows.length) * 1000) / 10 : 0);
 
-  // المستوى الفعلي لكل مخرج: متوسط (الدرجة ÷ العظمى) للطلاب في التقييمات التي تقيسه.
+  // المستوى الفعلي لكل مخرج: متوسط (الدرجة ÷ العظمى) للطلاب في الاختبارات التي تقيسه.
   const spec = (course.spec ?? {}) as Partial<CourseSpec>;
   const byAssessment = new Map(course.assessments.map((a) => [a.id, a]));
   const clos = (spec.outcomes ?? []).map((o) => {

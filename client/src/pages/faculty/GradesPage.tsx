@@ -21,7 +21,7 @@ interface GradeGrid {
 }
 
 /**
- * رصد الدرجات — تقييم واحد في كل مرة: عمود واحد يُملأ من أعلى لأسفل، لا جدول بعشرة
+ * رصد الدرجات — اختبار واحد في كل مرة: عمود واحد يُملأ من أعلى لأسفل، لا جدول بعشرة
  * أعمدة قابلة للتحرير. والمجموع الموزون والتقدير يُحسبان في الخادم (المصدر نفسه للكشف).
  */
 export function GradesPage() {
@@ -71,7 +71,7 @@ export function GradesPage() {
       {grid?.blocked && <p className="mb-3 rounded-[11px] border border-gold2/40 bg-gold2/[.08] px-3.5 py-2.5 text-[13px]">{grid.blocked}</p>}
       {grid && grid.assessments.length === 0 && (
         <p className="text-sm text-ink-3">
-          لا تقييمات بعد —{" "}
+          لا اختبارات بعد —{" "}
           <Link to={`/course/${id}/setup?step=ASSESSMENTS`} className="text-deep underline">
             أضفها
           </Link>
@@ -80,7 +80,7 @@ export function GradesPage() {
 
       {grid && grid.assessments.length > 0 && (
         <>
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-3" aria-label="التقييم">
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-3" aria-label="الاختبار">
             {grid.assessments.map((a) => (
               <Button key={a.id} size="sm" variant={a.id === assessmentId ? "primary" : "secondary"} onClick={() => setAssessmentId(a.id)}>
                 {a.title}

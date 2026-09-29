@@ -282,7 +282,7 @@ export const createViolationSchema = z
   })
   .strict();
 
-// ───────────────────────── التقييمات ─────────────────────────
+// ───────────────────────── الاختبارات ─────────────────────────
 
 export const updateAssessmentSchema = z
   .object({

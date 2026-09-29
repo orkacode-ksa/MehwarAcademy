@@ -16,7 +16,7 @@ export const SETUP_STEPS = [
   { key: "SECTIONS", label: "الشُّعب" },
   { key: "GRADES", label: "الدرجات" },
   { key: "MATERIALS", label: "المواد" },
-  { key: "ASSESSMENTS", label: "التقييمات" },
+  { key: "ASSESSMENTS", label: "الاختبارات" },
 ] as const;
 
 export type SetupStepKey = (typeof SETUP_STEPS)[number]["key"];

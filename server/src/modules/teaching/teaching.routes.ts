@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { pageOf } from "../../lib/paging.js";
 import {
   createTopicSchema,
   recordAttendanceSchema,
@@ -102,7 +103,17 @@ teachingRouter.get(
   teacherOnly,
   validate({ params: z.object({ courseId: cuidSchema }).passthrough() }),
   asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await today.listViolations(ws(req), req.params.courseId as string) });
+    res.json({ success: true, data: await today.listViolations(ws(req), req.params.courseId as string, pageOf(req.query)) });
+  }),
+);
+/** كل مخالفات الأستاذ عبر مقرراته — `?courseId=` يحصرها في مقرر. */
+teachingRouter.get(
+  "/violations",
+  teacherOnly,
+  validate({ query: z.object({ courseId: cuidSchema.optional() }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    const courseId = typeof req.query.courseId === "string" ? req.query.courseId : undefined;
+    res.json({ success: true, data: await today.listViolations(ws(req), courseId, pageOf(req.query)) });
   }),
 );
 teachingRouter.post(

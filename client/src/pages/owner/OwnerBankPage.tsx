@@ -85,7 +85,7 @@ export function OwnerBankPage() {
 }
 
 const counts = (s: Summary) =>
-  `${formatNum(s.topics ?? 0)} موضوعًا · ${formatNum(s.materials ?? 0)} مادة · ${formatNum(s.assessments ?? 0)} تقييمات (${formatNum(s.exams ?? 0)} بأسئلة) · ${formatNum(s.outcomes ?? 0)} مخرجات`;
+  `${formatNum(s.topics ?? 0)} موضوعًا · ${formatNum(s.materials ?? 0)} مادة · ${formatNum(s.assessments ?? 0)} اختبارات (${formatNum(s.exams ?? 0)} بأسئلة) · ${formatNum(s.outcomes ?? 0)} مخرجات`;
 
 function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
   const [ev, setEv] = useState<Evaluation | null>(r.evaluation);

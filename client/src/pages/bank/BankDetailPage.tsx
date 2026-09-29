@@ -74,7 +74,7 @@ export function BankDetailPage() {
       <Card className="mb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="text-[13px] text-ink-2">
-            {formatNum(data.summary.topics ?? 0)} موضوعًا · {formatNum(data.summary.materials ?? 0)} مادة · {formatNum(data.summary.assessments ?? 0)} تقييمات ·{" "}
+            {formatNum(data.summary.topics ?? 0)} موضوعًا · {formatNum(data.summary.materials ?? 0)} مادة · {formatNum(data.summary.assessments ?? 0)} اختبارات ·{" "}
             {formatNum(data.summary.outcomes ?? 0)} مخرجات · الإصدار {formatNum(data.version)}
           </div>
           {data.owned ? <Chip tone="teal">لديك</Chip> : <b className="text-[18px] text-deep">{data.price === 0 ? "مجاني" : <Money>{formatNum(data.price)}</Money>}</b>}

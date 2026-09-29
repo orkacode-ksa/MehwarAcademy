@@ -173,29 +173,39 @@ interface ViolationTypeDef {
   escalateAfter?: number;
 }
 
-export async function listViolations(workspaceId: string, courseId: string) {
-  const course = await prisma.course.findFirst({ where: { id: courseId, workspaceId, deletedAt: null }, select: { id: true } });
-  if (!course) throw AppError.notFound("المقرر غير موجود");
-  const [rows, reg] = await Promise.all([
+/**
+ * مخالفات الأستاذ — عامة على كل مقرراته (أو مقرر واحد إن حُدّد)، الأحدث أولًا ومقسّمة إلى صفحات.
+ * التصعيد يُحسب من كل المفتوح لا من الصفحة المعروضة وحدها.
+ */
+export async function listViolations(workspaceId: string, courseId?: string, page: { skip: number; take: number } = { skip: 0, take: 100 }) {
+  if (courseId) {
+    const course = await prisma.course.findFirst({ where: { id: courseId, workspaceId, deletedAt: null }, select: { id: true } });
+    if (!course) throw AppError.notFound("المقرر غير موجود");
+  }
+  const where = { workspaceId, ...(courseId ? { courseId } : {}) };
+  const [rows, open, reg] = await Promise.all([
     prisma.violation.findMany({
-      where: { courseId, workspaceId },
-      orderBy: { createdAt: "desc" },
-      include: { enrollment: { select: { universityIdNumber: true, student: { select: { fullName: true } } } } },
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      ...page,
+      include: {
+        enrollment: { select: { universityIdNumber: true, student: { select: { fullName: true } }, section: { select: { label: true } } } },
+        course: { select: { code: true, nameAr: true } },
+      },
     }),
+    prisma.violation.groupBy({ by: ["enrollmentId", "typeKey"], where: { ...where, resolvedAt: null }, _count: { _all: true } }),
     prisma.regulation.findFirst({ select: { violationTypes: true } }),
   ]);
   const types = (reg?.violationTypes as unknown as ViolationTypeDef[]) ?? [];
-  const perStudentType = new Map<string, number>();
-  for (const r of rows) {
-    if (r.resolvedAt) continue;
-    const k = `${r.enrollmentId}:${r.typeKey}`;
-    perStudentType.set(k, (perStudentType.get(k) ?? 0) + 1);
-  }
+  const perStudentType = new Map(open.map((g) => [`${g.enrollmentId}:${g.typeKey}`, g._count._all]));
   return rows.map((r) => ({
     id: r.id,
     enrollmentId: r.enrollmentId,
     fullName: r.enrollment.student.fullName,
     universityIdNumber: r.enrollment.universityIdNumber,
+    courseId: r.courseId,
+    course: `${r.course.code} — ${r.course.nameAr}`,
+    section: r.enrollment.section.label,
     typeKey: r.typeKey,
     typeLabel: r.typeLabel,
     severity: r.severity,

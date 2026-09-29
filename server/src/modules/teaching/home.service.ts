@@ -53,7 +53,7 @@ export async function preventiveAlerts(workspaceId: string, now = new Date()): P
       icon: "alert",
       title: `${b._count._all} ${b._count._all === 1 ? "طالب بلغ" : "طلاب بلغوا"} حدّ الحرمان في ${code.get(b.courseId) ?? "مقرر"}`,
       body: "سُجّل الحرمان آليًا حسب لائحة جامعتك. راجعه قبل اعتماده في كشف الدرجات.",
-      action: { label: "راجع المخالفات", to: `/course/${b.courseId}/violations` },
+      action: { label: "راجع المخالفات", to: `/violations?course=${b.courseId}` },
     });
   }
   for (const a of due) {
@@ -66,8 +66,8 @@ export async function preventiveAlerts(workspaceId: string, now = new Date()): P
       tone: past ? "crimson" : "amber",
       icon: "file",
       title: past ? `لم تُرصد درجات «${a.title}» (${a.course.code})` : `«${a.title}» (${a.course.code}) ${dateOf(a.dueDate) === today ? "اليوم" : "خلال أيام"}`,
-      body: past ? "انقضى موعد التقييم ولا درجات مرصودة — التأخر في الرصد من بنود لائحة أعضاء هيئة التدريس." : "جهّز نموذج الإجابة لتكتمل بنود ملف المقرر.",
-      action: { label: past ? "ارصد الدرجات" : "افتح التقييمات", to: past ? `/course/${a.courseId}/grades` : `/course/${a.courseId}/setup?step=ASSESSMENTS` },
+      body: past ? "انقضى موعد الاختبار ولا درجات مرصودة — التأخر في الرصد من بنود لائحة أعضاء هيئة التدريس." : "جهّز نموذج الإجابة لتكتمل بنود ملف المقرر.",
+      action: { label: past ? "ارصد الدرجات" : "افتح الاختبارات", to: past ? `/course/${a.courseId}/grades` : `/course/${a.courseId}/setup?step=ASSESSMENTS` },
     });
   }
   for (const i of compliance) {
@@ -140,7 +140,7 @@ export async function teacherHome(workspaceId: string, now = new Date()) {
 }
 
 /**
- * مهام يوم واحد مرتبة بالوقت: المحاضرات (بوقت) · التقييمات المستحقة ذلك اليوم · ومهام بلا وقت
+ * مهام يوم واحد مرتبة بالوقت: المحاضرات (بوقت) · الاختبارات المستحقة ذلك اليوم · ومهام بلا وقت
  * (التنبيهات الوقائية) لليوم الحالي فقط — ما مضى لا يُعاد، وما سيأتي لا يُستبق.
  */
 export async function dayTasks(workspaceId: string, date: string) {

@@ -66,7 +66,7 @@ export function BankPage() {
               {c.owned ? <Chip tone="teal">لديك</Chip> : <Chip tone={c.price === 0 ? "teal" : "amber"}>{c.price === 0 ? "مجاني" : <Money>{formatNum(c.price)}</Money>}</Chip>}
             </div>
             <div className="text-[12px] text-ink-2 mt-2">
-              {formatNum(c.summary.topics ?? 0)} موضوعًا · {formatNum(c.summary.materials ?? 0)} مادة · {formatNum(c.summary.assessments ?? 0)} تقييمات
+              {formatNum(c.summary.topics ?? 0)} موضوعًا · {formatNum(c.summary.materials ?? 0)} مادة · {formatNum(c.summary.assessments ?? 0)} اختبارات
               {c.vipIncluded && c.price > 0 ? " · مشمول في «محور برو»" : ""}
             </div>
           </Link>

@@ -6,7 +6,7 @@ import { assertCanAddCourse } from "../academic/limits.js";
 import { editBlockReason, gradingBlockReason, letterFor, type TermStatus } from "../rules/rules.js";
 
 /**
- * محتوى المقرر: المواد (الخطوة ⑤) · التقييمات (⑥) · الرصد (الخطوة ٤) · الاستنساخ (٧).
+ * محتوى المقرر: المواد (الخطوة ⑤) · الاختبارات (⑥) · الرصد (الخطوة ٤) · الاستنساخ (٧).
  *
  * التوليد الثقيل **خارج المنصة** (قرار مقفل: NotebookLM على حساب الأستاذ). ما تفعله المنصة
  * هو ما لا يستطيعه المولّد: تعرف المقرر — فتُجهّز «حزمة المصادر» لكل موضوع من التوصيف
@@ -137,7 +137,7 @@ export async function sourcePack(workspaceId: string, topicId: string): Promise<
   return { text: lines.filter((l, i, arr) => l !== "" || arr[i - 1] !== "").join("\n").trim() };
 }
 
-// ───────────────────────── التقييمات ─────────────────────────
+// ───────────────────────── الاختبارات ─────────────────────────
 
 export async function updateAssessment(
   workspaceId: string,
@@ -145,7 +145,7 @@ export async function updateAssessment(
   input: { title?: string; instructions?: string; answerKey?: string; outcomes?: string[]; maxScore?: number; weightPercent?: number; dueDate?: Date | null },
 ) {
   const a = await prisma.assessment.findFirst({ where: { id: assessmentId, workspaceId, deletedAt: null }, select: { id: true } });
-  if (!a) throw AppError.notFound("التقييم غير موجود");
+  if (!a) throw AppError.notFound("الاختبار غير موجود");
   return prisma.assessment.update({ where: { id: a.id }, data: input });
 }
 
@@ -154,13 +154,13 @@ export async function removeAssessment(workspaceId: string, assessmentId: string
     where: { id: assessmentId, workspaceId, deletedAt: null },
     data: { deletedAt: new Date() },
   });
-  if (count === 0) throw AppError.notFound("التقييم غير موجود");
+  if (count === 0) throw AppError.notFound("الاختبار غير موجود");
 }
 
 // ───────────────────────── الرصد ─────────────────────────
 
 /**
- * كشف الرصد لشعبة: الطلاب × التقييمات، مع المجموع الموزون والتقدير من سلّم الجامعة.
+ * كشف الرصد لشعبة: الطلاب × الاختبارات، مع المجموع الموزون والتقدير من سلّم الجامعة.
  *
  * المجموع = Σ (الدرجة ÷ العظمى × الوزن). التقييم الذي لم يُرصد بعد لا يُحسب صفرًا في
  * المجموع المعروض أثناء الفصل، لكنه يُعدّ في «ما ينقص».
@@ -229,7 +229,7 @@ export async function saveGrades(workspaceId: string, input: { assessmentId: str
     where: { id: input.assessmentId, workspaceId, deletedAt: null },
     select: { id: true, courseId: true, maxScore: true, course: { select: { semester: { select: { status: true, gradeLockAt: true } } } } },
   });
-  if (!assessment) throw AppError.notFound("التقييم غير موجود");
+  if (!assessment) throw AppError.notFound("الاختبار غير موجود");
   const blocked = gradingBlockReason(assessment.course.semester.status as TermStatus, assessment.course.semester.gradeLockAt);
   if (blocked) throw AppError.badRequest(blocked);
   const max = Number(assessment.maxScore);
@@ -258,7 +258,7 @@ export async function saveGrades(workspaceId: string, input: { assessmentId: str
 // ───────────────────────── الاستنساخ ─────────────────────────
 
 /**
- * استنساخ مقرر إلى فصل جديد: التوصيف والفهرس والمواد والتقييمات والتوزيع — بلا طلاب ولا
+ * استنساخ مقرر إلى فصل جديد: التوصيف والفهرس والمواد والاختبارات والتوزيع — بلا طلاب ولا
  * درجات ولا حضور. إعادة استخدام ما وُلّد بدل إعادة توليده (work-cycle §٧.١).
  */
 export async function cloneCourse(workspaceId: string, courseId: string, semesterId: string) {

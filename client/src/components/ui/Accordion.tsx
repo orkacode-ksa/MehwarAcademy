@@ -25,7 +25,7 @@ export function AccordionCard({
 }) {
   const panel = useId();
   return (
-    <section className={`bg-surface border rounded-[16px] transition-colors ${open ? "border-deep/35 shadow-s1" : "border-line"}`}>
+    <section className={`min-w-0 bg-surface border rounded-[16px] transition-colors ${open ? "border-deep/35 shadow-s1" : "border-line"}`}>
       <h2 className="m-0 text-[15px] font-body">
         <button
           type="button"

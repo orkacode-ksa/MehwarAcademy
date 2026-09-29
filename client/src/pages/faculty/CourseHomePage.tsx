@@ -9,19 +9,20 @@ import { Chip } from "../../components/ui/Chip.js";
 import { Icon, type IconName } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
-import { W, type Course } from "../../components/setup/types.js";
+import { W, type Course, type Section } from "../../components/setup/types.js";
 
 interface QualityFile { requiredDone: number; requiredTotal: number }
 interface Term { id: string; label: string }
 
 /**
- * صفحة المقرر — أربع مهام بعد التجهيز، ولكل منها شاشتها: التجهيز · الرصد · ملف المقرر ·
- * المخالفات. بطاقة لكل مهمة تقول حالتها بجملة واحدة.
+ * صفحة المقرر — مهامه بعد التجهيز، ولكل منها شاشتها: التجهيز · الرصد · ملف المقرر · التقرير ·
+ * الشعب والطلاب. بطاقة لكل مهمة تقول حالتها بجملة واحدة. (المخالفات عامة في شاشتها.)
  */
 export function CourseHomePage() {
   const { id } = useParams<{ id: string }>();
   const { data: courses, error } = useApi<Course[]>(`${W}/academic/courses`);
   const { data: file } = useApi<QualityFile>(id ? `${W}/courses/${id}/quality-file` : null);
+  const { data: sections } = useApi<Section[]>(id ? `${W}/academic/courses/${id}/sections` : null);
   const course = courses?.find((c) => c.id === id);
 
   // الحالات الثلاث: الخطأ يُقال، و«غير موجود» يُقال — لا «جارٍ التحميل» إلى الأبد.
@@ -48,7 +49,13 @@ export function CourseHomePage() {
       tone: file && file.requiredDone === file.requiredTotal ? "ok" : "todo",
     },
     { to: `/course/${course.id}/report`, icon: "chart", title: "تقرير المقرر", status: "نموذج NCAAA — محسوب من عملك", tone: "todo" },
-    { to: `/course/${course.id}/violations`, icon: "shield", title: "المخالفات", status: "حسب لائحة الجامعة", tone: "todo" },
+    {
+      to: `/course/${course.id}/students`,
+      icon: "users",
+      title: "الشعب والطلاب",
+      status: sections ? `${formatNum(sections.length)} شعبة · ${formatNum(sections.reduce((n, x) => n + x._count.enrollments, 0))} طالب` : "…",
+      tone: sections && sections.length > 0 ? "ok" : "todo",
+    },
   ];
 
   return (
@@ -99,7 +106,7 @@ function CloneCard({ courseId }: { courseId: string }) {
   const { showToast } = useToast();
 
   return (
-    <Card title="استنساخ لفصل جديد" hint="ينقل التوصيف والفهرس والمواد والتقييمات — بلا طلاب ولا درجات." className="mt-4">
+    <Card title="استنساخ لفصل جديد" hint="ينقل التوصيف والفهرس والمواد والاختبارات — بلا طلاب ولا درجات." className="mt-4">
       <div className="flex gap-2 flex-wrap">
         <Select value={termId} onChange={(e) => setTermId(e.target.value)} aria-label="الفصل" className="flex-1 min-w-[180px]">
           <option value="">اختر الفصل</option>

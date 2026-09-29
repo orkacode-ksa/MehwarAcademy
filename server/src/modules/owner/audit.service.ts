@@ -62,7 +62,7 @@ const AREA: [RegExp, string][] = [
   [/\/owner\/store/, "المدفوعات والباقات"],
   [/\/owner\/bank/, "بنك المقررات"],
   [/\/owner\/(platform|catalogs)/, "الإعدادات"],
-  [/\/grades|\/assessments/, "الدرجات والتقييمات"],
+  [/\/grades|\/assessments/, "الدرجات والاختبارات"],
   [/\/attendance|\/sessions/, "الحضور"],
   [/\/generation/, "توليد المواد"],
   [/\/materials|\/topics|\/lectures/, "المواد والمواضيع"],

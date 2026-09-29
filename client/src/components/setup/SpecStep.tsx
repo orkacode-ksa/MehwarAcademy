@@ -100,7 +100,7 @@ export function SpecStep({ course, onSaved }: { course: Course; onSaved: () => v
         </div>
       </Card>
 
-      <Card title="مخرجات التعلّم *" hint="لكل مخرج: ما سيعرفه الطالب أو يستطيعه. تُربط بها المواضيع والتقييمات لاحقاً.">
+      <Card title="مخرجات التعلّم *" hint="لكل مخرج: ما سيعرفه الطالب أو يستطيعه. تُربط بها المواضيع والاختبارات لاحقاً.">
         <div className="grid gap-3">
           {spec.outcomes.map((o, i) => (
             <div key={i} className="border border-line2 rounded-[12px] p-3 grid gap-2">

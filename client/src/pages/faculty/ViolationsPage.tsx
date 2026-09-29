@@ -1,19 +1,24 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { SEVERITY_LABEL } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
+import { usePaged } from "../../hooks/usePaged.js";
+import { MoreButton } from "../../components/ui/MoreButton.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Card, ErrorText, Input, Label, Select } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { useToast } from "../../state/ToastContext.js";
-import { W, type Section } from "../../components/setup/types.js";
+import { W, type Course, type Section } from "../../components/setup/types.js";
 
 interface ViolationType { key: string; label: string; severity: "LOW" | "MEDIUM" | "HIGH"; action?: string }
 interface Violation {
   id: string;
   fullName: string;
+  courseId: string;
+  course: string;
+  section: string;
   typeKey: string;
   typeLabel: string;
   severity: "LOW" | "MEDIUM" | "HIGH";
@@ -29,14 +34,17 @@ interface RosterEntry { id: string; universityIdNumber: string; student: { fullN
 const TONE = { LOW: "neutral", MEDIUM: "amber", HIGH: "crimson" } as const;
 
 /**
- * المخالفات — أنواعها وعقوباتها وحدّ تصعيدها من لائحة الجامعة، لا من المنصة.
- * الحرمان بالغياب يُسجَّل آليًا من «محاضرة اليوم»؛ البقية يسجّلها الأستاذ هنا.
+ * المخالفات — شاشة واحدة للأستاذ على كل مقرراته (تُصفّى بمقرر عند الحاجة). أنواعها وعقوباتها
+ * وحدّ تصعيدها من لائحة الجامعة، لا من المنصة. الحرمان بالغياب يُسجَّل آليًا من «محاضرة اليوم».
  */
 export function ViolationsPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data, reload } = useApi<Violation[]>(id ? `${W}/teaching/courses/${id}/violations` : null);
+  const [params, setParams] = useSearchParams();
+  const filter = params.get("course") ?? "";
+  const { data: courses } = useApi<Course[]>(`${W}/academic/courses`);
+  const { data, reload, more, loadMore, loadingMore } = usePaged<Violation>(`${W}/teaching/violations${filter ? `?courseId=${filter}` : ""}`);
   const { data: reg } = useApi<{ violationTypes: ViolationType[] }>(`${W}/academic/regulation`);
-  const { data: sections } = useApi<Section[]>(id ? `${W}/academic/courses/${id}/sections` : null);
+  const [courseId, setCourseId] = useState(filter);
+  const { data: sections } = useApi<Section[]>(courseId ? `${W}/academic/courses/${courseId}/sections` : null);
   const [sectionId, setSectionId] = useState("");
   const { data: roster } = useApi<RosterEntry[]>(sectionId ? `${W}/academic/sections/${sectionId}/roster` : null);
   const [form, setForm] = useState({ enrollmentId: "", typeKey: "", note: "" });
@@ -60,20 +68,36 @@ export function ViolationsPage() {
 
   return (
     <>
-      <PageHeader
-        kicker="المقرر"
-        title="المخالفات"
-        actions={
-          <Link to={`/course/${id}`} className="text-[13px] text-deep font-medium px-3 py-2">
-            صفحة المقرر
-          </Link>
-        }
-      />
+      <PageHeader title="المخالفات" description="على كل مقرراتك — الأنواع والعقوبات من لائحة جامعتك." />
 
-      <Card title="تسجيل مخالفة" hint="الأنواع والعقوبات من لائحة جامعتك.">
+      <Card title="تسجيل مخالفة">
         <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+          <Label text="المقرر">
+            <Select
+              value={courseId}
+              onChange={(e) => {
+                setCourseId(e.target.value);
+                setSectionId("");
+                setForm({ ...form, enrollmentId: "" });
+              }}
+            >
+              <option value="">اختر</option>
+              {courses?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.code} — {c.nameAr}
+                </option>
+              ))}
+            </Select>
+          </Label>
           <Label text="الشعبة">
-            <Select value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+            <Select
+              value={sectionId}
+              disabled={!sections}
+              onChange={(e) => {
+                setSectionId(e.target.value);
+                setForm({ ...form, enrollmentId: "" });
+              }}
+            >
               <option value="">اختر</option>
               {sections?.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -118,7 +142,25 @@ export function ViolationsPage() {
         </Button>
       </Card>
 
-      <Card title="السجلّ" className="mt-4">
+      <Card
+        title="السجلّ"
+        className="mt-4"
+        aside={
+          <Select
+            value={filter}
+            aria-label="تصفية بالمقرر"
+            className="max-w-[220px]"
+            onChange={(e) => setParams(e.target.value ? { course: e.target.value } : {}, { replace: true })}
+          >
+            <option value="">كل المقررات</option>
+            {courses?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code}
+              </option>
+            ))}
+          </Select>
+        }
+      >
         {data?.length === 0 && <p className="text-[13.5px] text-ink-3">لا مخالفات.</p>}
         <ul className="grid gap-2">
           {data?.map((v) => (
@@ -130,6 +172,7 @@ export function ViolationsPage() {
                 {v.escalated && <Chip tone="crimson">مُصعَّدة</Chip>}
               </div>
               <div className="text-[12px] text-ink-3 mt-1">
+                {v.course} · شعبة {v.section} ·{" "}
                 {new Date(v.createdAt).toLocaleDateString("ar-SA-u-nu-latn")}
                 {v.action ? ` · ${v.action}` : ""}
                 {v.note ? ` · ${v.note}` : ""}
@@ -142,6 +185,7 @@ export function ViolationsPage() {
             </li>
           ))}
         </ul>
+        <MoreButton more={more} busy={loadingMore} onClick={() => void loadMore()} />
       </Card>
     </>
   );
