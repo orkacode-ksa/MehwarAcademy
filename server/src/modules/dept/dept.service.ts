@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma, prismaBase } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { loadCourseFacts } from "../academic/courseFile.js";
+import { cached } from "../../lib/cache.js";
 
 /**
  * عرض رئيس القسم — **قراءة فقط، وبحدود مكتوبة** (docs/lessons.md §٤):
@@ -61,20 +62,27 @@ export async function deptCourse(userId: string, tenantId: string, courseId: str
 }
 
 /**
- * يُحسب من كل مقررات القسم (استعلامات لكل مقرر) — يُحفظ ٥ دقائق لكل قسم، فعشرة رؤساء
- * يفتحون الشاشة معًا لا يطلقون آلاف الاستعلامات.
+ * يُحسب من كل مقررات القسم — يُحفظ ٥ دقائق لكل قسم في الذاكرة المؤقتة الموحّدة، فعشرة رؤساء
+ * يفتحون الشاشة معًا (ولو على نسختين من الخادم) لا يعيدون الحساب.
  */
-const cache = new Map<string, { at: number; value: Awaited<ReturnType<typeof compute>> }>();
-
 export async function deptOverview(userId: string, tenantId: string) {
   const department = await departmentOf(userId);
-  const key = `${tenantId}|${department ?? "*"}`;
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < 5 * 60_000) return hit.value;
-  const value = await compute(tenantId, department);
-  if (cache.size > 5000) cache.clear();
-  cache.set(key, { at: Date.now(), value });
-  return value;
+  return cached(`dept:${tenantId}:${department ? deptKey(department) : "*"}`, 5 * 60, () => compute(tenantId, department));
+}
+
+/** يشغّل `fn` على العناصر بحد أقصى `limit` في الوقت نفسه، ويحفظ الترتيب. */
+async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i] as T);
+      }
+    }),
+  );
+  return out;
 }
 
 async function compute(tenantId: string, department: string | null) {
@@ -99,15 +107,29 @@ async function compute(tenantId: string, department: string | null) {
     },
   });
 
-  const rows = [];
-  for (const c of courses) {
-    const f = await loadCourseFacts(c.workspaceId, c.id);
-    const required = f.fileItems.filter((i) => i.required);
-    const [absent, marked] = await Promise.all([
-      prisma.attendance.count({ where: { section: { courseId: c.id, deletedAt: null }, status: "ABSENT" } }),
-      prisma.attendance.count({ where: { section: { courseId: c.id, deletedAt: null } } }),
-    ]);
-    rows.push({
+  // الحضور لكل المقررات في استعلام واحد (لا استعلامين لكل مقرر).
+  const sections = await prisma.section.findMany({ where: { courseId: { in: courses.map((c) => c.id) }, deletedAt: null }, select: { id: true, courseId: true } });
+  const courseOf = new Map(sections.map((x) => [x.id, x.courseId]));
+  const att = new Map<string, { absent: number; marked: number }>();
+  const grouped = sections.length
+    ? await prisma.attendance.groupBy({ by: ["sectionId", "status"], where: { sectionId: { in: sections.map((x) => x.id) } }, _count: { _all: true } })
+    : [];
+  for (const g of grouped) {
+    const cid = courseOf.get(g.sectionId);
+    if (!cid) continue;
+    const a = att.get(cid) ?? { absent: 0, marked: 0 };
+    a.marked += g._count._all;
+    if (g.status === "ABSENT") a.absent += g._count._all;
+    att.set(cid, a);
+  }
+
+  // حقائق ملف كل مقرر: ستة مقررات في الوقت نفسه بدل واحد تلو الآخر.
+  const facts = await mapLimit(courses, 6, (c) => loadCourseFacts(c.workspaceId, c.id));
+  const rows = courses.map((c, i) => {
+    const f = facts[i] as Awaited<ReturnType<typeof loadCourseFacts>>;
+    const required = f.fileItems.filter((it) => it.required);
+    const { absent, marked } = att.get(c.id) ?? { absent: 0, marked: 0 };
+    return {
       id: c.id,
       code: c.code,
       nameAr: c.nameAr,
@@ -123,8 +145,8 @@ async function compute(tenantId: string, department: string | null) {
       // نسب مجمّعة للمقرر كله — لا شعبة ولا طالب.
       attendanceRate: marked > 0 ? Math.round(((marked - absent) / marked) * 1000) / 10 : null,
       gradingProgress: f.gradesExpected > 0 ? Math.round((f.gradesEntered / f.gradesExpected) * 100) : null,
-    });
-  }
+    };
+  });
 
   const ready = rows.filter((r) => r.setup.done === r.setup.total).length;
   const filesComplete = rows.filter((r) => r.file.total > 0 && r.file.done === r.file.total).length;

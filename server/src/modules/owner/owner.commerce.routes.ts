@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { pageOf } from "../../lib/paging.js";
 import { planSchema, bankAccountSchema, reviewOrderSchema, bankReviewSchema } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
@@ -90,7 +91,7 @@ ownerCommerceRouter.get(
   "/store/orders",
   asyncHandler(async (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
-    res.json({ success: true, data: await store.listOrders(status) });
+    res.json({ success: true, data: await store.listOrders(status, pageOf(req.query)) });
   }),
 );
 ownerCommerceRouter.get(
@@ -115,7 +116,7 @@ ownerCommerceRouter.get(
   "/bank",
   asyncHandler(async (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
-    res.json({ success: true, data: await bank.ownerList(status) });
+    res.json({ success: true, data: await bank.ownerList(status, pageOf(req.query)) });
   }),
 );
 /** تقييم المحرّك للمقرر وسعر مقترح — قبل قرار المالك. */

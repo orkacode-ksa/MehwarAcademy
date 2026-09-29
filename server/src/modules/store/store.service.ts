@@ -203,11 +203,11 @@ export async function cancelOrder(userId: string, orderId: string) {
 
 // ───────────────────────── الطلبات (المالك) ─────────────────────────
 
-export async function listOrders(status?: string) {
+export async function listOrders(status?: string, page: { skip: number; take: number } = { skip: 0, take: 100 }) {
   const rows = await prismaBase.order.findMany({
     where: status ? { status } : {},
-    orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }],
-    take: 200,
+    orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }, { id: "asc" }],
+    ...page,
   });
   const users = await prismaBase.user.findMany({
     where: { id: { in: [...new Set(rows.map((r) => r.userId))] } },

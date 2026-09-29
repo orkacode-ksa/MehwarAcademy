@@ -11,7 +11,7 @@ import { cardSelect, type Snapshot } from "./bank.service.js";
 // ───────────────────────── المالك ─────────────────────────
 
 /** قائمة المالك. «review» = ما ينتظر قراره: مقرر جديد، أو نسخة مسحوبة فوق منشور. */
-export async function ownerList(filter?: string) {
+export async function ownerList(filter?: string, page: { skip: number; take: number } = { skip: 0, take: 100 }) {
   const where =
     filter === "review"
       ? { OR: [{ status: "PENDING" }, { draftAt: { not: null } }] }
@@ -20,8 +20,8 @@ export async function ownerList(filter?: string) {
         : {};
   const rows = await prismaBase.bankCourse.findMany({
     where,
-    orderBy: { updatedAt: "desc" },
-    take: 200,
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+    ...page,
     select: {
       ...cardSelect,
       status: true,

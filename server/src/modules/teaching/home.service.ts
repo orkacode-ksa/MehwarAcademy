@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { cached } from "../../lib/cache.js";
 import { campusToday } from "../rules/rules.js";
 import { listCourses } from "../academic/academic.service.js";
 import { getPerformance, getCompliance } from "../quality/quality.service.js";
@@ -108,14 +109,8 @@ export async function preventiveAlerts(workspaceId: string, now = new Date()): P
  * مؤشر الأداء يُحسب من كل مقررات الأستاذ (استعلامات لكل مقرر) — يُحفظ ١٠ دقائق لكل مساحة.
  * الباقي في الرئيسية حيّ دائمًا: من أكمل خطوة ورجع يجب أن يرى تنبيهها قد زال.
  */
-const perfCache = new Map<string, { at: number; value: number | null }>();
-async function overallPerformance(workspaceId: string, now: Date) {
-  const hit = perfCache.get(workspaceId);
-  if (hit && now.getTime() - hit.at < 10 * 60_000) return hit.value;
-  const value = (await getPerformance(workspaceId).catch(() => ({ overall: null }))).overall;
-  if (perfCache.size > 20_000) perfCache.clear();
-  perfCache.set(workspaceId, { at: now.getTime(), value });
-  return value;
+function overallPerformance(workspaceId: string) {
+  return cached(`perf:${workspaceId}`, 10 * 60, async () => (await getPerformance(workspaceId).catch(() => ({ overall: null }))).overall);
 }
 
 /** رئيسية الأستاذ في نداء واحد (لا ستة): التنبيهات · محاضرات اليوم · آخر المقررات · مؤشراته. */
@@ -124,7 +119,7 @@ export async function teacherHome(workspaceId: string, now = new Date()) {
     preventiveAlerts(workspaceId, now),
     getToday(workspaceId),
     listCourses(workspaceId),
-    overallPerformance(workspaceId, now),
+    overallPerformance(workspaceId),
     getEntitlements(workspaceId),
     getUsage(workspaceId),
     prisma.enrollment.count({ where: { workspaceId, deletedAt: null, section: { deletedAt: null, course: { deletedAt: null, semester: { status: "ACTIVE" } } } } }),

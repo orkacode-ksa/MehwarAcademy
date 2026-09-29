@@ -57,6 +57,7 @@ export function isTenantScoped(model: string | undefined): model is TenantScoped
  *                          صريح في طبقة الخدمة، ويفحصه اختبار العزل مسارًا مسارًا.
  * - `RefreshToken`         يُبحث فيه بـ hash التوكن قبل معرفة المستخدم أو مستأجره.
  * - `PasswordResetToken`   كسابقه.
+ * - `EmailChangeToken`     كسابقه (رابط تأكيد البريد الجديد يُفتح بلا جلسة).
  * - `AuditLog`             `tenantId` اختياري: أحداث ما قبل حسم المستأجر تُسجَّل بلا مستأجر.
  * - `WebhookEvent`         يصل من مزوّد خارجي بلا جلسة.
  *
@@ -68,6 +69,7 @@ export const UNSCOPED_MODELS = [
   "User",
   "RefreshToken",
   "PasswordResetToken",
+  "EmailChangeToken",
   "AuditLog",
   "WebhookEvent",
   // المتجر على مستوى المنصة: الباقات والحسابات البنكية تخصّ المنصة كلها، وكتالوج البنك

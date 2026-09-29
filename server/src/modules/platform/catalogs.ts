@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { cached, invalidate } from "../../lib/cache.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 
@@ -102,17 +103,15 @@ export const DEFAULT_CATALOGS: Catalogs = {
   departments: ["قسم الأحياء", "قسم الكيمياء", "قسم الفيزياء", "قسم الرياضيات", "قسم الإحصاء", "قسم علوم الحاسب", "قسم نظم المعلومات", "قسم هندسة الحاسب", "قسم الهندسة الكهربائية", "قسم الهندسة المدنية", "قسم الهندسة الميكانيكية", "قسم الإدارة", "قسم المحاسبة", "قسم الاقتصاد", "قسم المناهج وطرق التدريس", "قسم علم النفس", "قسم اللغة العربية", "قسم اللغة الإنجليزية", "قسم الدراسات الإسلامية", "قسم التاريخ", "قسم الجغرافيا"],
 };
 
-let cache: { at: number; value: Catalogs } | null = null;
 
 /** القوائم الحالية — المحفوظ فوق الافتراضي (قائمة جديدة في الشيفرة تظهر ولو لم يحفظها المالك بعد). */
-export async function getCatalogs(): Promise<Catalogs> {
-  if (cache && Date.now() - cache.at < 60_000) return cache.value;
-  const row = await prismaBase.platformSetting.findUnique({ where: { key: "catalogs" } });
-  const merged = { ...DEFAULT_CATALOGS, ...((row?.value as Partial<Catalogs> | null) ?? {}) };
-  const parsed = catalogsSchema.safeParse(merged);
-  const value = parsed.success ? parsed.data : DEFAULT_CATALOGS;
-  cache = { at: Date.now(), value };
-  return value;
+export function getCatalogs(): Promise<Catalogs> {
+  return cached("settings:catalogs", 60, async () => {
+    const row = await prismaBase.platformSetting.findUnique({ where: { key: "catalogs" } });
+    const merged = { ...DEFAULT_CATALOGS, ...((row?.value as Partial<Catalogs> | null) ?? {}) };
+    const parsed = catalogsSchema.safeParse(merged);
+    return parsed.success ? parsed.data : DEFAULT_CATALOGS;
+  });
 }
 
 /**
@@ -147,7 +146,7 @@ export async function saveCatalogs(input: unknown): Promise<Catalogs> {
     create: { key: "catalogs", value: clean as unknown as Prisma.InputJsonValue },
     update: { value: clean as unknown as Prisma.InputJsonValue },
   });
-  cache = null;
+  await invalidate("settings:catalogs");
   return clean;
 }
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { cached, invalidate } from "../../lib/cache.js";
 import { prismaBase } from "../../lib/prisma.js";
 
 /**
@@ -76,15 +77,12 @@ export const platformSettingsSchema = z
 
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
 
-let cache: { at: number; value: PlatformSettings } | null = null;
-
-export async function getPlatformSettings(): Promise<PlatformSettings> {
-  if (cache && Date.now() - cache.at < 60_000) return cache.value;
-  const row = await prismaBase.platformSetting.findUnique({ where: { key: "platform" } });
-  const parsed = platformSettingsSchema.safeParse(row?.value ?? {});
-  const value = parsed.success ? parsed.data : platformSettingsSchema.parse({});
-  cache = { at: Date.now(), value };
-  return value;
+export function getPlatformSettings(): Promise<PlatformSettings> {
+  return cached("settings:platform", 60, async () => {
+    const row = await prismaBase.platformSetting.findUnique({ where: { key: "platform" } });
+    const parsed = platformSettingsSchema.safeParse(row?.value ?? {});
+    return parsed.success ? parsed.data : platformSettingsSchema.parse({});
+  });
 }
 
 export async function savePlatformSettings(input: unknown): Promise<PlatformSettings> {
@@ -94,10 +92,8 @@ export async function savePlatformSettings(input: unknown): Promise<PlatformSett
     create: { key: "platform", value: value as Prisma.InputJsonValue },
     update: { value: value as Prisma.InputJsonValue },
   });
-  cache = null;
+  await resetSettingsCache();
   return value;
 }
 
-export const resetSettingsCache = () => {
-  cache = null;
-};
+export const resetSettingsCache = () => invalidate("settings:platform");

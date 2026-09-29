@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { pageOf } from "../../lib/paging.js";
 import { academicYearCreateSchema, cuidSchema, holidayCreateSchema, institutionCreateSchema, regulationSchema, termCreateSchema, termStatusSchema } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
@@ -314,7 +315,16 @@ ownerRouter.get(
   validate({ params: tenantParam }),
   asyncHandler(async (req, res) => {
     await assertInstitution(req.params.tenantId as string);
-    res.json({ success: true, data: await service.listInstitutionUsers(req.params.tenantId as string) });
+    const role = req.query.role === "TEACHER" || req.query.role === "STUDENT" ? req.query.role : undefined;
+    res.json({ success: true, data: await service.listInstitutionUsers(req.params.tenantId as string, pageOf(req.query), role) });
+  }),
+);
+ownerRouter.get(
+  "/institutions/:tenantId/users/count",
+  validate({ params: tenantParam }),
+  asyncHandler(async (req, res) => {
+    await assertInstitution(req.params.tenantId as string);
+    res.json({ success: true, data: await service.countInstitutionUsers(req.params.tenantId as string) });
   }),
 );
 

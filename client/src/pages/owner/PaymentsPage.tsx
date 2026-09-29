@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ORDER_STATUS_LABEL } from "@mihwar/shared";
 import { api, ApiError, pdfDownloadUrl } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
+import { usePaged } from "../../hooks/usePaged.js";
+import { MoreButton } from "../../components/ui/MoreButton.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Card, ErrorText, Input } from "../../components/ui/Form.js";
@@ -31,7 +33,7 @@ const TABS = [
  */
 export function PaymentsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("UNDER_REVIEW");
-  const { data, loading, error, reload } = useApi<OwnerOrder[]>(`/owner/store/orders?status=${tab}`);
+  const { data, loading, error, reload, more, loadMore, loadingMore } = usePaged<OwnerOrder>(`/owner/store/orders?status=${tab}`);
   const { data: summary, reload: reloadSummary } = useApi<{ pendingReview: number; monthRevenue: number; monthOrders: number; monthCreditFees: number; monthCreditLoaded: number; walletLiability: number }>(
     "/owner/store/summary",
   );
@@ -77,6 +79,7 @@ export function PaymentsPage() {
           />
         ))}
       </div>
+      <MoreButton more={more} busy={loadingMore} onClick={() => void loadMore()} />
     </>
   );
 }

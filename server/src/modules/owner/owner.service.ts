@@ -298,13 +298,20 @@ export async function institutionExists(tenantId: string): Promise<boolean> {
  * مستخدمو الجامعة — `users` خارج العزل الآلي (المصادقة تسبق حسم المستأجر)، فالعزل هنا
  * بفلتر `tenantId` صريح من معامل المسار بعد التحقق من وجود الجامعة.
  */
-export async function listInstitutionUsers(tenantId: string) {
+export async function listInstitutionUsers(tenantId: string, page: { skip: number; take: number } = { skip: 0, take: 100 }, role?: "TEACHER" | "STUDENT") {
   return prismaBase.user.findMany({
-    where: { tenantId, deletedAt: null, role: { in: ["TEACHER", "STUDENT"] } },
-    orderBy: [{ role: "asc" }, { fullName: "asc" }],
-    take: 500,
+    where: { tenantId, deletedAt: null, role: role ? role : { in: ["TEACHER", "STUDENT"] } },
+    orderBy: [{ role: "asc" }, { fullName: "asc" }, { id: "asc" }],
+    ...page,
     select: { id: true, fullName: true, email: true, role: true, isDeptHead: true, createdAt: true },
   });
+}
+
+/** أعداد المستخدمين للعنوان — القائمة نفسها مقسّمة إلى صفحات. */
+export async function countInstitutionUsers(tenantId: string) {
+  const rows = await prismaBase.user.groupBy({ by: ["role"], where: { tenantId, deletedAt: null, role: { in: ["TEACHER", "STUDENT"] } }, _count: { _all: true } });
+  const of = (r: string) => rows.find((x) => x.role === r)?._count._all ?? 0;
+  return { teachers: of("TEACHER"), students: of("STUDENT") };
 }
 
 export async function setDeptHead(tenantId: string, userId: string, isDeptHead: boolean) {

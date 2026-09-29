@@ -1,4 +1,5 @@
 import { prisma, prismaBase } from "../../lib/prisma.js";
+import { cached } from "../../lib/cache.js";
 import { getPlatformSettings } from "../platform/settings.js";
 
 const DAY = 864e5;
@@ -39,12 +40,13 @@ interface Strip {
   holiday: { label: string; inDays: number } | null;
 }
 
-/** الفصل يتغيّر يوميًا لا لحظيًا — يُحفظ لكل جامعة ١٠ دقائق (حد أقصى ٥٠٠٠ جامعة في الذاكرة). */
-const cache = new Map<string, { at: number; value: Strip }>();
+/** الفصل يتغيّر يوميًا لا لحظيًا — يُحفظ لكل جامعة ١٠ دقائق في الذاكرة المؤقتة الموحّدة. */
+let stripEpoch = 0;
+function termStrip(tenantId: string, now: Date): Promise<Strip> {
+  return cached(`strip:${stripEpoch}:${tenantId}`, 10 * 60, () => computeStrip(now));
+}
 
-async function termStrip(tenantId: string, now: Date): Promise<Strip> {
-  const hit = cache.get(tenantId);
-  if (hit && now.getTime() - hit.at < 10 * 60_000) return hit.value;
+async function computeStrip(now: Date): Promise<Strip> {
   const sem =
     (await prisma.semester.findFirst({ where: { deletedAt: null, status: "ACTIVE" }, orderBy: { startDate: "desc" }, include: { holidays: true } })) ??
     (await prisma.semester.findFirst({ where: { deletedAt: null, status: "PREP" }, orderBy: { startDate: "asc" }, include: { holidays: true } }));
@@ -66,12 +68,13 @@ async function termStrip(tenantId: string, now: Date): Promise<Strip> {
       holiday: next && inDays <= 14 ? { label: next.label, inDays } : null,
     };
   }
-  if (cache.size > 5000) cache.clear();
-  cache.set(tenantId, { at: now.getTime(), value });
   return value;
 }
 
-export const resetStripCache = () => cache.clear();
+/** للاختبارات: تجاهل كل ما حُفظ (المفاتيح القديمة تنتهي وحدها). */
+export const resetStripCache = () => {
+  stripEpoch++;
+};
 
 /** الشريط العلوي: توقيت الفصل (للأستاذ والطالب) + إعلانات المالك العامة لهذا الدور. */
 export async function strip(tenantId: string, role: string, now = new Date()) {

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { BANK_STATUS_LABEL } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+import { usePaged } from "../../hooks/usePaged.js";
+import { MoreButton } from "../../components/ui/MoreButton.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Card, ErrorText, Input, Label } from "../../components/ui/Form.js";
@@ -59,7 +60,7 @@ const ROLE: Record<string, string> = { CREATOR: "أنشأه", EDITOR: "حدّث�
  */
 export function OwnerBankPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("review");
-  const { data, loading, error, reload } = useApi<Row[]>(`/owner/bank?status=${tab}`);
+  const { data, loading, error, reload, more, loadMore, loadingMore } = usePaged<Row>(`/owner/bank?status=${tab}`);
   return (
     <>
       <PageHeader kicker="المالك" title="بنك المقررات" description="يمتلئ وحده عند إقفال كل فصل. قيّم المقرر، واعتمد سعره، وقرّر إتاحته في «محور برو»." />
@@ -78,6 +79,7 @@ export function OwnerBankPage() {
           <BankRow key={r.id} r={r} onDone={reload} />
         ))}
       </div>
+      <MoreButton more={more} busy={loadingMore} onClick={() => void loadMore()} />
     </>
   );
 }

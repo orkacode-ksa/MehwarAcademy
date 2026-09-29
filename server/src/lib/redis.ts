@@ -46,6 +46,11 @@ export async function cacheSet(key: string, value: string, ttlSeconds: number): 
     await redis.set(key, value, "EX", ttlSeconds);
     return;
   }
+  if (memoryStore.size > 50_000) {
+    const now = Date.now();
+    for (const [k, e] of memoryStore) if (e.expiresAt < now) memoryStore.delete(k);
+    if (memoryStore.size > 50_000) memoryStore.clear();
+  }
   memoryStore.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
 }
 
