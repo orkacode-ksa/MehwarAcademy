@@ -65,7 +65,7 @@ describe("نقل الملفات إلى التخزين الكائني", () => {
   it("بعد الضبط: يُنقل ويُحذف من القاعدة، والتنزيل يعيد المحتوى نفسه", async () => {
     const mem = new MemoryStorage();
     resetStorageProvider(mem);
-    const moved = await migrateBlobsToObjectStorage();
+    const moved = await migrateBlobsToObjectStorage({ tenantIds: [tenantId], userIds: [userId] });
     expect(moved.files).toBeGreaterThanOrEqual(1);
     expect(moved.avatars).toBeGreaterThanOrEqual(1);
 
@@ -84,7 +84,7 @@ describe("نقل الملفات إلى التخزين الكائني", () => {
     expect((await t.get("/api/me/avatar")).status).toBe(200);
 
     // إعادة التشغيل لا تجد ما تنقله لهذا الحساب
-    const again = await migrateBlobsToObjectStorage();
+    const again = await migrateBlobsToObjectStorage({ tenantIds: [tenantId], userIds: [userId] });
     expect(await withExplicitTenantTx(tenantId, (tx) => tx.fileBlob.findUnique({ where: { fileId } }))).toBeNull();
     expect(again.files).toBe(0);
   });

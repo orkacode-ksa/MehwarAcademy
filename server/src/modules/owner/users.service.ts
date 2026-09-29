@@ -3,6 +3,7 @@ import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { runWithTenant } from "../../lib/tenantContext.js";
 import { getEntitlements, getUsage } from "../store/entitlements.js";
+import { forgetSessions } from "../../lib/sessionCache.js";
 
 /**
  * المستخدمون والاشتراكات عبر المنصة — للمالك وحده.
@@ -86,5 +87,6 @@ export async function setSuspended(ownerId: string, userId: string, suspended: b
   if (!u) throw AppError.notFound("المستخدم غير موجود");
   // الإيقاف يُبطل الجلسات القائمة (رفع إصدار الرمز) — لا ينتظر انتهاءها.
   await prismaBase.user.update({ where: { id: u.id }, data: { suspendedAt: suspended ? new Date() : null, ...(suspended ? { tokenVersion: { increment: 1 } } : {}) } });
+  await forgetSessions(u.id);
   await recordAudit({ userId: ownerId, tenantId: u.tenantId, action: suspended ? "OWNER_USER_SUSPENDED" : "OWNER_USER_RESTORED", entityType: "User", entityId: u.id });
 }

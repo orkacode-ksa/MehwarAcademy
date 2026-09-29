@@ -51,4 +51,6 @@ export const FALLBACK_TITLE: Record<string, string> = {
   ousers: "المستخدمون",
   ostaff: "الفريق",
   ocatalogs: "القوائم",
+  oaudit: "سجل التدقيق",
+  odata: "إدارة البيانات",
 };

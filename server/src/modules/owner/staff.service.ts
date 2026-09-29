@@ -6,6 +6,7 @@ import { recordAudit } from "../../lib/auditLog.js";
 import { sha256Hex } from "../../lib/crypto.js";
 import { logger } from "../../lib/logger.js";
 import { env } from "../../config/env.js";
+import { forgetSessions } from "../../lib/sessionCache.js";
 
 /**
  * فريق الإدارة — موظفون (ADMIN) يفتحون شاشات محددة من لوحة المالك، لا كلها.
@@ -81,6 +82,7 @@ export async function resetStaffAccess(ownerId: string, id: string) {
     where: { id },
     data: { passwordHash: await hashPassword(password), totpEnabled: false, totpSecret: null, totpRecovery: [], failedLoginCount: 0, lockedUntil: null, tokenVersion: { increment: 1 } },
   });
+  await forgetSessions(id);
   await recordAudit({ userId: ownerId, tenantId: u.tenantId, action: "STAFF_ACCESS_RESET", entityType: "User", entityId: id });
   return { tempPassword: password };
 }
@@ -88,6 +90,7 @@ export async function resetStaffAccess(ownerId: string, id: string) {
 export async function setStaffActive(ownerId: string, id: string, active: boolean) {
   const u = await staffOf(id);
   await prismaBase.user.update({ where: { id }, data: { suspendedAt: active ? null : new Date(), ...(active ? {} : { tokenVersion: { increment: 1 } }) } });
+  await forgetSessions(id);
   await recordAudit({ userId: ownerId, tenantId: u.tenantId, action: active ? "STAFF_ENABLED" : "STAFF_DISABLED", entityType: "User", entityId: id });
 }
 
@@ -128,6 +131,7 @@ export async function bootstrapOwner(): Promise<void> {
     userId = u.id;
     tenantId = tenant.id;
   }
+  await forgetSessions(userId);
   await prismaBase.platformSetting.upsert({
     where: { key: "ownerBootstrap" },
     create: { key: "ownerBootstrap", value: { fp, at: new Date().toISOString() } },

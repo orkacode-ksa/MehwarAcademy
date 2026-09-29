@@ -11,7 +11,8 @@ import { logger } from "../../lib/logger.js";
  * يُحدَّث السجل ويُحذف المحتوى من القاعدة في معاملة صغيرة — فانقطاعه في المنتصف لا يُضيع شيئًا
  * (الملف الذي لم يُنقل يُقرأ من القاعدة كما كان)، وإعادة تشغيله تُكمل من حيث توقف.
  */
-export async function migrateBlobsToObjectStorage(): Promise<{ files: number; receipts: number; avatars: number }> {
+/** `scope` للاختبارات فقط: يقصر النقل على جامعات ومستخدمين بأعيانهم فلا يمسّ ملفات اختبارات تعمل بالتوازي. */
+export async function migrateBlobsToObjectStorage(scope?: { tenantIds: string[]; userIds: string[] }): Promise<{ files: number; receipts: number; avatars: number }> {
   const storage = getStorageProvider();
   const moved = { files: 0, receipts: 0, avatars: 0 };
   if (storage.mode !== "r2") return moved;
@@ -25,7 +26,7 @@ export async function migrateBlobsToObjectStorage(): Promise<{ files: number; re
   logger.info("التخزين الكائني: الفحص الذاتي ناجح (كتابة · قراءة · حذف)");
 
   // ١) محتوى الملفات — الجدول تحت العزل، فيُمرّ عليه جامعةً جامعة.
-  const tenants = await prismaBase.tenant.findMany({ select: { id: true } });
+  const tenants = await prismaBase.tenant.findMany({ where: scope ? { id: { in: scope.tenantIds } } : {}, select: { id: true } });
   for (const { id: tenantId } of tenants) {
     const ids = await withExplicitTenantTx(tenantId, (tx) => tx.fileBlob.findMany({ select: { fileId: true } }));
     for (const { fileId } of ids) {
@@ -41,7 +42,7 @@ export async function migrateBlobsToObjectStorage(): Promise<{ files: number; re
   }
 
   // ٢) إيصالات التحويل.
-  const orders = await prismaBase.order.findMany({ where: { receiptKey: null, receiptData: { not: null } }, select: { id: true } });
+  const orders = await prismaBase.order.findMany({ where: { receiptKey: null, receiptData: { not: null }, ...(scope ? { userId: { in: scope.userIds } } : {}) }, select: { id: true } });
   for (const { id } of orders) {
     const o = await prismaBase.order.findUnique({ where: { id }, select: { receiptData: true, receiptMime: true } });
     if (!o?.receiptData) continue;
@@ -52,7 +53,7 @@ export async function migrateBlobsToObjectStorage(): Promise<{ files: number; re
   }
 
   // ٣) الصور الشخصية.
-  const avatars = await prismaBase.userAvatar.findMany({ select: { userId: true } });
+  const avatars = await prismaBase.userAvatar.findMany({ where: scope ? { userId: { in: scope.userIds } } : {}, select: { userId: true } });
   for (const { userId } of avatars) {
     const a = await prismaBase.userAvatar.findUnique({ where: { userId } });
     if (!a) continue;

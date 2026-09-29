@@ -31,6 +31,8 @@ const NAV: Record<Role, NavItem[]> = {
     { key: "obank", icon: "box", label: "البنك" },
     { key: "osettings", icon: "gear", label: "الإعدادات" },
     { key: "ostaff", icon: "shield", label: "الفريق" },
+    { key: "oaudit", icon: "eye", label: "السجل" },
+    { key: "odata", icon: "arch", label: "البيانات" },
   ],
 };
 
@@ -81,7 +83,7 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
   faculty: ["course", "plans", "orders", "cv", "university", "tasks"],
   student: ["scourse"],
   dept: [],
-  admin: ["ohome", "institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs"],
+  admin: ["ohome", "institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs", "oaudit", "odata"],
 };
 
 const SCREEN_TO_ROLE: Record<string, Role> = (() => {

@@ -114,6 +114,8 @@ const ForgotPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "
 const ResetPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ResetPasswordPage");
 const StaffPage = page(() => import("./pages/owner/StaffPage.js"), "StaffPage");
 const OwnerHomePage = page(() => import("./pages/owner/OwnerHomePage.js"), "OwnerHomePage");
+const AuditPage = page(() => import("./pages/owner/AuditPage.js"), "AuditPage");
+const DataPage = page(() => import("./pages/owner/DataPage.js"), "DataPage");
 const CatalogsPage = page(() => import("./pages/owner/CatalogsPage.js"), "CatalogsPage");
 const OwnerUsersPage = page(
   () => import("./pages/owner/OwnerUsersPage.js"),
@@ -211,6 +213,8 @@ export function App() {
             <Route path="ousers" element={<OwnerUsersPage />} />
             <Route path="ostaff" element={<StaffPage />} />
             <Route path="ocatalogs" element={<CatalogsPage />} />
+            <Route path="oaudit" element={<AuditPage />} />
+            <Route path="odata" element={<DataPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

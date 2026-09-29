@@ -10,6 +10,7 @@ import { corsOptions } from "./config/corsOptions.js";
 import { JSON_BODY_LIMIT } from "./config/constants.js";
 import { requestId } from "./middleware/requestId.js";
 import { cfOrigin } from "./middleware/cfOrigin.js";
+import { auditTrail } from "./middleware/auditTrail.js";
 import { generalRateLimit } from "./middleware/rateLimit.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { logger } from "./lib/logger.js";
@@ -89,6 +90,7 @@ export function createApp() {
 
   app.use(cfOrigin);
   app.use("/api", generalRateLimit);
+  app.use("/api", auditTrail);
   app.use("/api", router);
 
   app.use(notFoundHandler);

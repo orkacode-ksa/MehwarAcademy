@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "./Button.js";
 
 /**
@@ -12,6 +12,8 @@ interface Request {
   cancelLabel?: string;
   /** إجراء لا يُتراجع عنه أو يُنهي شيئًا: زرّ التأكيد أحمر */
   danger?: boolean;
+  /** إجراء جسيم: لا يُفعَّل زر التأكيد حتى تُكتب هذه الكلمة */
+  requireText?: string;
   resolve: (ok: boolean) => void;
 }
 
@@ -43,10 +45,12 @@ export function ConfirmHost() {
     () => current,
   );
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const [typed, setTyped] = useState("");
 
   useEffect(() => {
     if (!req) return;
-    confirmRef.current?.focus();
+    setTyped("");
+    if (!req.requireText) confirmRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close(false);
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -66,8 +70,25 @@ export function ConfirmHost() {
           {req.title}
         </h2>
         {req.body && <p className="text-[13px] text-ink-2 mt-1.5 leading-relaxed">{req.body}</p>}
+        {req.requireText && (
+          <label className="block mt-3 text-[12.5px] text-ink-2">
+            اكتب «{req.requireText}» للتأكيد
+            <input
+              autoFocus
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              className="mt-1.5 w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface text-[14px]"
+            />
+          </label>
+        )}
         <div className="flex gap-2 mt-5">
-          <Button ref={confirmRef} variant={req.danger ? "danger" : "primary"} className="flex-1" onClick={() => close(true)}>
+          <Button
+            ref={confirmRef}
+            variant={req.danger ? "danger" : "primary"}
+            className="flex-1"
+            disabled={!!req.requireText && typed.trim() !== req.requireText}
+            onClick={() => close(true)}
+          >
             {req.confirmLabel ?? "تأكيد"}
           </Button>
           <Button variant="secondary" className="flex-1" onClick={() => close(false)}>

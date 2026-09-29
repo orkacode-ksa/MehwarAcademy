@@ -13,6 +13,8 @@ import * as bank from "../bank/bank.service.js";
 import { ownerMfaRequired } from "../account/mfa.js";
 import * as staff from "./staff.service.js";
 import { dashboard } from "./dashboard.service.js";
+import * as audit from "./audit.service.js";
+import * as data from "./data.service.js";
 import { getCatalogs, saveCatalogs } from "../platform/catalogs.js";
 import { STAFF_SCREENS, screenOfPath, type StaffScreen } from "./staff.service.js";
 import { prismaBase } from "../../lib/prisma.js";
@@ -56,6 +58,53 @@ ownerRouter.use(
 // ───────────────────────── الرئيسية ─────────────────────────
 
 ownerRouter.get("/dashboard", asyncHandler(async (req, res) => res.json({ success: true, data: await dashboard(actor(req)) })));
+
+// ───────────────────────── سجل التدقيق وإدارة البيانات (للمالك وحده) ─────────────────────────
+
+/** المالك نفسه لا موظف — سجل التدقيق والحذف لا يُمنحان كشاشة (حارس الشاشات يمنعهما أصلًا، وهذا تأكيد صريح). */
+const ownerOnly = asyncHandler(async (req, _res, next) => {
+  const u = await prismaBase.user.findUnique({ where: { id: actor(req) }, select: { role: true } });
+  if (u?.role !== "OWNER") throw AppError.forbidden("للمالك وحده");
+  next();
+});
+
+ownerRouter.get(
+  "/audit",
+  ownerOnly,
+  validate({
+    query: z.object({
+      q: z.string().trim().max(120).optional(),
+      userId: cuidSchema.optional(),
+      from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      kind: z.enum(["all", "events", "requests"]).default("all"),
+      page: z.coerce.number().int().min(1).max(10000).default(1),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    const q = req.query as unknown as { q?: string; userId?: string; from?: string; to?: string; kind: "all" | "events" | "requests"; page: number };
+    res.json({ success: true, data: await audit.listAudit({ search: q.q, userId: q.userId, from: q.from, to: q.to, kind: q.kind, page: q.page }) });
+  }),
+);
+
+const dataKind = z.enum(data.DATA_KINDS);
+ownerRouter.get(
+  "/data/:kind",
+  ownerOnly,
+  validate({ params: z.object({ kind: dataKind }), query: z.object({ q: z.string().trim().max(120).optional(), tenantId: cuidSchema.optional() }) }),
+  asyncHandler(async (req, res) => {
+    const q = req.query as { q?: string; tenantId?: string };
+    res.json({ success: true, data: await data.listData(req.params.kind as data.DataKind, q.q, q.tenantId) });
+  }),
+);
+ownerRouter.post(
+  "/data/:kind/delete",
+  ownerOnly,
+  validate({ params: z.object({ kind: dataKind }), body: z.object({ ids: z.array(cuidSchema).min(1).max(200), tenantId: cuidSchema.optional() }).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await data.deleteData(actor(req), req.params.kind as data.DataKind, req.body.ids, req.body.tenantId) });
+  }),
+);
 
 // ───────────────────────── القوائم المقنّنة ─────────────────────────
 
