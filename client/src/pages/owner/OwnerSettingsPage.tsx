@@ -60,21 +60,21 @@ export function OwnerSettingsPage() {
         </div>
       </Card>
 
-      <Card title="التكاملات" className="mt-4" hint="ما يعمل الآن وما ينتظر مفاتيحه في متغيّرات Railway (docs/SETUP.md).">
+      <Card title="حالة الخدمات" className="mt-4" hint="ما يعمل الآن من خدمات المنصة.">
         {integ && (
           <ul className="grid gap-2 text-[13px]">
-            <li className="flex justify-between gap-2">
-              التخزين <Chip tone={integ.storage === "r2" ? "teal" : "amber"}>{integ.storage === "r2" ? "Cloudflare R2" : "قاعدة البيانات (مؤقت)"}</Chip>
-            </li>
-            <li className="flex justify-between gap-2">
-              محرّك التوليد والمساعد <Chip tone={integ.ai ? "teal" : "amber"}>{integ.ai ? "Gemini" : "ينتظر GEMINI_API_KEY"}</Chip>
-            </li>
-            <li className="flex justify-between gap-2">
-              الصوت (بودكاست · درس مصوّر) <Chip tone={integ.voice ? "teal" : "amber"}>{integ.voice ? "Gemini TTS" : "ينتظر مفتاح Gemini"}</Chip>
-            </li>
-            <li className="flex justify-between gap-2">
-              Redis <Chip tone={integ.redis ? "teal" : "neutral"}>{integ.redis ? "مفعّل" : "غير لازم الآن"}</Chip>
-            </li>
+            {(
+              [
+                ["حفظ الملفات", integ.storage === "r2"],
+                ["توليد المواد والمساعد", integ.ai],
+                ["الصوت (بودكاست · درس مصوّر)", integ.voice],
+                ["التسريع وحدود الاستخدام", integ.redis],
+              ] as const
+            ).map(([label, ok]) => (
+              <li key={label} className="flex justify-between gap-2">
+                {label} <Chip tone={ok ? "teal" : "amber"}>{ok ? "يعمل" : "غير مفعّل"}</Chip>
+              </li>
+            ))}
           </ul>
         )}
       </Card>

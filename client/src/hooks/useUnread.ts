@@ -12,7 +12,7 @@ let inflight: Promise<void> | null = null;
 const subs = new Set<(n: number) => void>();
 const emit = () => subs.forEach((f) => f(count));
 
-export function refreshUnread(force = false): Promise<void> {
+function refreshUnread(force = false): Promise<void> {
   if (inflight) return inflight;
   if (!force && Date.now() - last < 60_000) return Promise.resolve();
   inflight = api

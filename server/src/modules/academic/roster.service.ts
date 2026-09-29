@@ -5,7 +5,7 @@ import { AppError } from "../../lib/AppError.js";
 import { hashPassword } from "../../lib/password.js";
 import { randomToken } from "../../lib/crypto.js";
 import { recordAudit } from "../../lib/auditLog.js";
-import { EnrollStudentInput } from "./academic.service.js";
+import type { EnrollStudentInput } from "./academic.service.js";
 
 /** كشوف الشعب: عرضها وتسجيل طالب واستيراد كشف كامل. */
 export async function listSectionRoster(workspaceId: string, sectionId: string) {

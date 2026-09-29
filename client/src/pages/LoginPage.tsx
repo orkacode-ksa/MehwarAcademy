@@ -53,7 +53,7 @@ export function LoginPage() {
       navigate(`/${me.role === "ADMIN" || me.role === "OWNER" ? "ohome" : ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`);
     } catch (err) {
       if (err instanceof ApiError && (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID")) setNeedCode(true);
-      setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال بالخادم");
+      setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا");
     }
   }
 

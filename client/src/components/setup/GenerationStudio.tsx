@@ -12,7 +12,7 @@ import { formatNum } from "../../lib/numerals.js";
 import { Money } from "../../components/ui/Riyal.js";
 
 interface Source { id: string; title: string; mimeType: keyof typeof SOURCE_MIME; sizeBytes: number; readable: boolean }
-export interface StudioTopic { id: string; title: string; lectures: { kind: string }[] }
+interface StudioTopic { id: string; title: string; lectures: { kind: string }[] }
 export interface GenStatus {
   enabled: boolean;
   kinds: Record<GenerationKind, boolean>;

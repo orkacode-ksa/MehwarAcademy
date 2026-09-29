@@ -36,7 +36,7 @@ export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: Bot
 
   const itemCls = "relative z-[1] flex-1 min-w-0 flex flex-col items-center justify-center gap-[3px] h-full select-none active:scale-[.94] transition-transform duration-150";
   const label = (active: boolean) =>
-    `text-[10px] leading-none max-w-full truncate transition-colors duration-200 ${active ? "text-deep font-semibold" : "text-ink-3 font-medium"}`;
+    `text-[10px] leading-[1.45] max-w-full truncate px-0.5 transition-colors duration-200 ${active ? "text-deep font-semibold" : "text-ink-3 font-medium"}`;
 
   return (
     <nav aria-label="التنقّل الرئيسي" className="sm:hidden fixed inset-x-0 bottom-0 z-50 px-3 pointer-events-none" style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}>
@@ -51,10 +51,9 @@ export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: Bot
         {primary.map((item, i) => [
           i === center && onOpenAssistant ? (
             <button key="assistant" type="button" onClick={onOpenAssistant} aria-label="المساعد" className={itemCls}>
-              <span className="grid place-items-center w-[54px] h-[54px] -mt-7 rounded-full bg-deep text-white shadow-[0_8px_20px_-6px_rgba(15,70,60,.6)] ring-[5px] ring-canvas">
+              <span className="grid place-items-center w-[54px] h-[54px] -mt-5 rounded-full bg-deep text-white shadow-[0_8px_20px_-6px_rgba(15,70,60,.6)] ring-[5px] ring-canvas">
                 <Icon name="sparks" active className="w-[24px] h-[24px]" />
               </span>
-              <span className="text-[10px] leading-none text-deep font-semibold">المساعد</span>
             </button>
           ) : null,
           <NavLink

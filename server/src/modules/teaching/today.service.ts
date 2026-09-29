@@ -2,7 +2,8 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
 import { campusToday, holidayOn, isEscalated, scheduledDates, weekdayOf, type AbsencePolicy, type Meeting } from "../rules/rules.js";
-export { startSession, endSession, RosterRow, getSessionRoster, saveAttendance } from "./session.service.js";
+export { startSession, endSession, getSessionRoster, saveAttendance } from "./session.service.js";
+export type { RosterRow } from "./session.service.js";
 
 /**
  * «محاضرة اليوم» — الشاشة التي لا يختار فيها الأستاذ شيئًا.

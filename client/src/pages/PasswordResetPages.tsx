@@ -52,7 +52,7 @@ export function ForgotPasswordPage() {
       const r = await api.post<{ message: string }>("/auth/forgot-password", parsed.data);
       setDone(r.message);
     } catch (e2) {
-      setErr(e2 instanceof ApiError ? e2.message : "تعذّر الاتصال بالخادم");
+      setErr(e2 instanceof ApiError ? e2.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا");
     } finally {
       setBusy(false);
     }
@@ -98,7 +98,7 @@ export function ResetPasswordPage() {
       await api.post("/auth/reset-password", { token, password: pw });
       navigate("/login?reset=1");
     } catch (e2) {
-      setErr(e2 instanceof ApiError ? e2.message : "تعذّر الاتصال بالخادم");
+      setErr(e2 instanceof ApiError ? e2.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا");
     } finally {
       setBusy(false);
     }

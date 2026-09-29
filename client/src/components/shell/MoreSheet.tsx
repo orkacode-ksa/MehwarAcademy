@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
 import { ROLE_HOME, type Role } from "../../nav/nav.js";
-import { visibleNav } from "../../nav/nav.js";
+import { moreItems } from "../../nav/nav.js";
 import { useSession } from "../../hooks/useSession.js";
 
 interface MoreSheetProps {
@@ -87,7 +87,7 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
 
   if (!render) return null;
 
-  const items = visibleNav(role, user);
+  const items = moreItems(role, user);
   // بطاقة الصدارة تتبع الدور: «التنبيهات الوقائية» أداة عضو هيئة التدريس وحده،
   // وكانت تظهر لكل الأدوار — فيرى الطالب تنبيهات أستاذه، وفتحها يقلب هيكل الشاشة
   // إلى تنقّل عضو هيئة التدريس. الطالب يرى ما يخصّه: تسليماته المفتوحة.

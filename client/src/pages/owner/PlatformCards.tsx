@@ -27,7 +27,7 @@ interface Usage {
 const FEATURE: Record<string, string> = { GENERATION: "توليد المواد", ASSISTANT: "المساعد", BANK_REVIEW: "تقييم البنك", REGULATION_EXTRACT: "استخراج اللوائح" };
 
 /** بطاقات إعدادات المنصة في صفحة المالك: تكلفة المحرّك · الإعدادات العامة · الإعلانات. */
-export const sar = (n: number) => <Money>{n.toLocaleString("en-US", { maximumFractionDigits: 2 })}</Money>;
+const sar = (n: number) => <Money>{n.toLocaleString("en-US", { maximumFractionDigits: 2 })}</Money>;
 
 /** تكلفة المحرّك هذا الشهر مقابل السقف — أول ما يراه المالك في إعداداته. */
 export function AiUsageCard() {
@@ -118,7 +118,7 @@ export function PlatformSettingsCard() {
       <Label text="بريد الدعم المعلن (في «عن مِحوَر» وسياسة الخصوصية)" className="mt-3">
         <Input type="email" dir="ltr" value={v.contactEmail ?? ""} onChange={(e) => setV({ ...v, contactEmail: e.target.value.trim() || null })} placeholder="support@…" />
       </Label>
-      <div className="text-[12.5px] font-medium mt-4 mb-1">أسعار المليون رمز (<Riyal />) — من فاتورة المزوّد</div>
+      <div className="text-[12.5px] font-medium mt-4 mb-1">أسعار المليون رمز (<Riyal />) — من فاتورة المحرّك</div>
       <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
         {num("نص داخل", v.ai.priceInputPerM, (n) => ai({ priceInputPerM: n }), 0.01)}
         {num("نص خارج", v.ai.priceOutputPerM, (n) => ai({ priceOutputPerM: n }), 0.01)}

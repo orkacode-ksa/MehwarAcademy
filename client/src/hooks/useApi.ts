@@ -26,7 +26,7 @@ export function useApi<T>(path: string | null): State<T> & { reload: () => void 
       .then((data) => alive && setState({ data, loading: false, error: null }))
       .catch((err: unknown) => {
         if (!alive) return;
-        const message = err instanceof ApiError ? err.message : "تعذّر الاتصال بالخادم";
+        const message = err instanceof ApiError ? err.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا";
         setState({ data: null, loading: false, error: message });
       });
     return () => {

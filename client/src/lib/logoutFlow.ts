@@ -6,7 +6,7 @@ import { logout } from "../hooks/useSession.js";
 export async function confirmLogout(navigate: NavigateFunction) {
   const ok = await confirmDialog({
     title: "تسجيل الخروج؟",
-    body: "ستحتاج بريدك وكلمة المرور للعودة. ما يجري توليده الآن يكتمل على الخادم ولا يضيع.",
+    body: "ستحتاج بريدك وكلمة المرور للعودة. ما يجري توليده الآن يكتمل ولا يضيع.",
     confirmLabel: "خروج",
     cancelLabel: "البقاء",
     danger: true,

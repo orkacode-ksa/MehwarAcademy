@@ -15,7 +15,7 @@ interface Wallet {
   entries: { id: string; kind: "TOPUP" | "GENERATION" | "ADJUST"; amount: number; note: string; at: string }[];
 }
 
-export const sar = (h: number) => <Money>{formatNum((h / 100).toFixed(2))}</Money>;
+const sar = (h: number) => <Money>{formatNum((h / 100).toFixed(2))}</Money>;
 const KIND_LABEL: Record<string, string> = { TEXT: "محاضرة مكتوبة", SLIDES: "عرض", AUDIO: "بودكاست", VIDEO: "درس مصوّر" };
 
 /**

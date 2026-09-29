@@ -5,11 +5,6 @@ import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
 import { ConfirmHost } from "./components/ui/ConfirmDialog.js";
 const LandingPage = page(() => import("./pages/LandingPage.js"), "LandingPage");
-const GuidePage = page(() => import("./pages/GuidePage.js"), "GuidePage");
-const ShowcasePage = page(
-  () => import("./pages/ShowcasePage.js"),
-  "ShowcasePage",
-);
 const SignupPage = page(() => import("./pages/SignupPage.js"), "SignupPage");
 const LoginPage = page(() => import("./pages/LoginPage.js"), "LoginPage");
 const TodayPage = page(
@@ -134,7 +129,7 @@ const CourseReportPage = page(
   "CourseReportPage",
 );
 
-const PUBLIC = new Set(["", "signup", "login", "forgot-password", "reset-password", "guide", "legal", "showcase"]);
+const PUBLIC = new Set(["", "signup", "login", "forgot-password", "reset-password", "legal"]);
 
 /**
  * الصفحات العامة (الهبوط · الدخول · التسجيل) تدخل بانزلاق ناعم بينها. داخل المنصة يتولّى
@@ -168,9 +163,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/guide" element={<GuidePage />} />
           <Route path="/legal/:doc" element={<LegalPage />} />
-          <Route path="/showcase" element={<ShowcasePage />} />
 
           <Route element={<AppShell />}>
             {/* الأستاذ */}

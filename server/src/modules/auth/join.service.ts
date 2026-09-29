@@ -2,7 +2,7 @@ import { prismaBase } from "../../lib/prisma.js";
 import { hashPassword } from "../../lib/password.js";
 import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
-import { IssuedTokens, issueTokenPair } from "./auth.service.js";
+import { issueTokenPair, type IssuedTokens } from "./auth.service.js";
 
 /** انضمام الطالب إلى شعبته برمزها — إنشاء حسابه أو ربط حسابه القائم. */
 export async function joinSection(

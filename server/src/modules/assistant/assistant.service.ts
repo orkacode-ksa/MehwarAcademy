@@ -10,7 +10,7 @@ import { getPlatformSettings } from "../platform/settings.js";
 import { getToday, getSessionRoster, saveAttendance } from "../teaching/today.service.js";
 import { requestGeneration } from "../generation/generation.service.js";
 import { getQualityFile } from "../quality/quality.service.js";
-import { myCourses, MyCourse, TOOLS, systemPrompt, sign, verify } from "./assistant.context.js";
+import { myCourses, TOOLS, systemPrompt, sign, verify, type MyCourse } from "./assistant.context.js";
 
 /**
  * المساعد الشخصي للأستاذ — «النموذج يقترح والخادم ينفّذ» (docs/ai-assistant.md).

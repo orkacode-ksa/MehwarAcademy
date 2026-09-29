@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../../icons/Icon.js";
 import { assetUrl } from "../../api/client.js";
 import { SystemStrip } from "./SystemStrip.js";
-import { greetingFor } from "../../mock/session.js";
+import { greetingFor } from "../../lib/greeting.js";
 import { initialOf, useSession } from "../../hooks/useSession.js";
 import { confirmLogout } from "../../lib/logoutFlow.js";
 import { useUnread } from "../../hooks/useUnread.js";

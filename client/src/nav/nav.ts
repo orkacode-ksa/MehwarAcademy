@@ -9,7 +9,7 @@ export interface NavItem {
 }
 
 /** منسوخ حرفيًا من ثابت `NAV` في mihwar-prototype-v2.html */
-export const NAV: Record<Role, NavItem[]> = {
+const NAV: Record<Role, NavItem[]> = {
   // الأستاذ: ثلاث وجهات لا عشر. كانت سبع منها صفحات بديلة، و«لا زرّ يقود إلى شاشة غير
   // مبنية» (lessons §٣.٧). «القسم» يظهر لرئيس القسم وحده (انظر visibleNav).
   faculty: [
@@ -76,13 +76,6 @@ export const ROLE_HOME: Record<Role, string> = {
   admin: "ohome",
 };
 
-export const ROLE_LABEL: Record<Role, string> = {
-  faculty: "أستاذ",
-  student: "طالب",
-  dept: "رئيس قسم",
-  admin: "مالك",
-};
-
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
   faculty: ["course", "plans", "orders", "cv", "university", "tasks"],
@@ -91,7 +84,7 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
   admin: ["ohome", "institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs"],
 };
 
-export const SCREEN_TO_ROLE: Record<string, Role> = (() => {
+const SCREEN_TO_ROLE: Record<string, Role> = (() => {
   const map: Record<string, Role> = {};
   // «dhome» مذكور تحت الأستاذ والقسم معًا؛ يُنسب للأستاذ لأن رئيس القسم أستاذ.
   (["dept", "student", "admin", "faculty"] as Role[]).forEach((role) => {
@@ -116,4 +109,40 @@ export function roleOfUser(role: string | undefined): Role {
   if (role === "STUDENT") return "student";
   if (role === "OWNER" || role === "ADMIN") return "admin";
   return "faculty";
+}
+
+/**
+ * شاشات يصلها المستخدم من داخل الصفحات لا من الشريط — تُلحق ببطاقات «المزيد» بعد عناصر
+ * التنقّل (بلا تغيير ترتيبها) ليصل منه إلى كل شيء. للموظف ما تسمح به شاشاته فقط.
+ */
+const MORE_EXTRA: Record<Role, NavItem[]> = {
+  faculty: [
+    { key: "tasks", icon: "cal", label: "مهام اليوم" },
+    { key: "cv", icon: "file", label: "سيرتي" },
+    { key: "university", icon: "shield", label: "جامعتي" },
+    { key: "plans", icon: "star", label: "الباقات" },
+    { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "account", icon: "user", label: "حسابي" },
+  ],
+  student: [
+    { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "account", icon: "user", label: "حسابي" },
+  ],
+  dept: [
+    { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "account", icon: "user", label: "حسابي" },
+  ],
+  admin: [
+    { key: "osubmissions", icon: "file", label: "لوائح الجامعات" },
+    { key: "ocatalogs", icon: "tbl", label: "القوائم" },
+    { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "account", icon: "user", label: "حسابي" },
+  ],
+};
+
+export function moreItems(role: Role, user: NavUser | null | undefined): NavItem[] {
+  const base = visibleNav(role, user);
+  const seen = new Set(base.map((i) => i.key));
+  const extra = MORE_EXTRA[role].filter((i) => !seen.has(i.key) && (role !== "admin" || SHARED_SCREENS.has(i.key) || staffCan(user, i.key)));
+  return [...base, ...extra];
 }

@@ -2,7 +2,7 @@ import { Fragment, useMemo, useRef, useState, type ReactNode } from "react";
 import { assetUrl } from "../../api/client.js";
 import { formatNum } from "../../lib/numerals.js";
 
-export interface MaterialLike {
+interface MaterialLike {
   id: string;
   title: string;
   kind: string;

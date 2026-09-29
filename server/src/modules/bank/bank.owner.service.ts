@@ -5,7 +5,7 @@ import { newMeter, writeJson } from "../generation/engine.js";
 import { assertBudget, recordUsage } from "../platform/aiBudget.js";
 import { AppError } from "../../lib/AppError.js";
 import { recordAudit } from "../../lib/auditLog.js";
-import { Snapshot, cardSelect } from "./bank.service.js";
+import { cardSelect, type Snapshot } from "./bank.service.js";
 
 /** بنك المقررات — ما يخص المالك: القائمة والتقييم بالمحرّك والمراجعة والنشر. */
 // ───────────────────────── المالك ─────────────────────────
