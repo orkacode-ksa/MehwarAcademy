@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { forgotPasswordSchema, passwordSchema } from "@mihwar/shared";
 import { AuthLayout } from "../components/auth/AuthLayout.js";
@@ -129,6 +129,39 @@ export function ResetPasswordPage() {
           {busy ? "يُحفظ…" : "احفظ وادخل"}
         </Button>
       </form>
+    </Shell>
+  );
+}
+
+/** الرمز يصلح مرة واحدة: طلب واحد لكل رمز حتى لو رُسمت الصفحة مرتين. */
+const confirming = new Map<string, Promise<unknown>>();
+
+/** رابط تأكيد البريد الجديد: يُرسَل الرمز مرة واحدة عند الفتح. */
+export function ConfirmEmailPage() {
+  const [params] = useSearchParams();
+  const token = params.get("token") ?? "";
+  const [state, setState] = useState<"busy" | "ok" | string>("busy");
+
+  useEffect(() => {
+    if (token.length < 32) return setState("الرابط غير مكتمل — افتحه كما وصلك في البريد.");
+    let alive = true;
+    if (!confirming.has(token)) confirming.set(token, api.post("/auth/confirm-email", { token }));
+    (confirming.get(token) as Promise<unknown>)
+      .then(() => alive && setState("ok"))
+      .catch((e: unknown) => alive && setState(e instanceof ApiError ? e.message : "تعذّر الاتصال — حاول مجددًا"));
+    return () => {
+      alive = false;
+    };
+  }, [token]);
+
+  if (state === "busy") return <Shell title="نؤكّد بريدك…" hint="لحظة واحدة.">{null}</Shell>;
+  return (
+    <Shell title={state === "ok" ? "تأكّد بريدك الجديد" : "تعذّر التأكيد"} hint={state === "ok" ? "صار بريد دخولك هو البريد الجديد." : state}>
+      <Link to="/login">
+        <Button variant="primary" size="lg" className="w-full">
+          إلى الدخول
+        </Button>
+      </Link>
     </Shell>
   );
 }

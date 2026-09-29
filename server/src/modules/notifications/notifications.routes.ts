@@ -9,11 +9,12 @@ import { listPlans } from "../store/store.service.js";
 import { env } from "../../config/env.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { raw } from "express";
-import { changePasswordSchema, profileUpdateSchema, totpCodeSchema, totpDisableSchema, userPrefsSchema } from "@mihwar/shared";
+import { changeEmailSchema, changePasswordSchema, changePhoneSchema, profileUpdateSchema, totpCodeSchema, totpDisableSchema, userPrefsSchema } from "@mihwar/shared";
 import * as mfa from "../account/mfa.js";
 import { validate } from "../../middleware/validate.js";
 import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
 import { clearAuthCookies } from "../../lib/cookies.js";
+import * as contact from "../account/contactChange.js";
 import * as account from "../account/account.service.js";
 
 /** معلومات عامة بلا دخول (صفحات الخصوصية والشروط): بريد الدعم فقط. */
@@ -114,6 +115,30 @@ meRouter.post(
   asyncHandler(async (req, res) => {
     await account.changePassword(who(req).userId, req.body.current, req.body.next);
     clearAuthCookies(res);
+    res.json({ success: true, data: null });
+  }),
+);
+meRouter.put(
+  "/phone",
+  sensitiveRateLimit((req) => {
+    const id = (req as { auth?: { userId: string } }).auth?.userId;
+    return id && `phone:${id}`;
+  }),
+  validate({ body: changePhoneSchema }),
+  asyncHandler(async (req, res) => {
+    await contact.changePhone(who(req).userId, req.body.phone, req.body.password);
+    res.json({ success: true, data: null });
+  }),
+);
+meRouter.post(
+  "/email",
+  sensitiveRateLimit((req) => {
+    const id = (req as { auth?: { userId: string } }).auth?.userId;
+    return id && `email:${id}`;
+  }),
+  validate({ body: changeEmailSchema }),
+  asyncHandler(async (req, res) => {
+    await contact.requestEmailChange(who(req).userId, req.body.email, req.body.password);
     res.json({ success: true, data: null });
   }),
 );

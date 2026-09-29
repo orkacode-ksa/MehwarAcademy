@@ -189,6 +189,7 @@ model User {
   ownedWorkspaces      Workspace[]          @relation("WorkspaceOwner")
   auditLogs            AuditLog[]
   enrollments          Enrollment[]
+  emailChangeTokens   EmailChangeToken[]
   passwordResetTokens  PasswordResetToken[]
   avatar               UserAvatar?
 
@@ -214,6 +215,22 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+/// تغيير البريد: يُحفظ البريد الجديد ورمز مُجزّأ، ولا يُطبَّق حتى يُفتح الرابط المرسل إليه.
+model EmailChangeToken {
+  id        String    @id @default(cuid())
+  userId    String
+  newEmail  String
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_change_tokens")
 }
 
 model PasswordResetToken {

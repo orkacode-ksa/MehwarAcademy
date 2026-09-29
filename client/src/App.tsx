@@ -113,6 +113,7 @@ const SubmissionsPage = page(
 );
 const ForgotPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ForgotPasswordPage");
 const ResetPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ResetPasswordPage");
+const ConfirmEmailPage = page(() => import("./pages/PasswordResetPages.js"), "ConfirmEmailPage");
 const StaffPage = page(() => import("./pages/owner/StaffPage.js"), "StaffPage");
 const OwnerHomePage = page(() => import("./pages/owner/OwnerHomePage.js"), "OwnerHomePage");
 const AuditPage = page(() => import("./pages/owner/AuditPage.js"), "AuditPage");
@@ -132,7 +133,7 @@ const CourseReportPage = page(
   "CourseReportPage",
 );
 
-const PUBLIC = new Set(["", "signup", "login", "forgot-password", "reset-password", "legal"]);
+const PUBLIC = new Set(["", "signup", "login", "forgot-password", "reset-password", "confirm-email", "legal"]);
 
 /**
  * الصفحات العامة (الهبوط · الدخول · التسجيل) تدخل بانزلاق ناعم بينها. داخل المنصة يتولّى
@@ -166,6 +167,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/confirm-email" element={<ConfirmEmailPage />} />
           <Route path="/legal/:doc" element={<LegalPage />} />
 
           <Route

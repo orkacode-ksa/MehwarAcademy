@@ -7,6 +7,7 @@ import { notify, notifyOwners } from "../notifications/notify.js";
 import { breakdown, creditTopUp } from "../wallet/wallet.service.js";
 import { getPlatformSettings } from "../platform/settings.js";
 import { recordAudit } from "../../lib/auditLog.js";
+import { stripImageMetadata } from "../../lib/stripMetadata.js";
 
 /**
  * المتجر: الباقات · الحسابات البنكية · الطلبات.
@@ -160,6 +161,7 @@ export async function submitTransfer(
   if (!["AWAITING_PAYMENT", "UNDER_REVIEW", "REJECTED"].includes(o.status)) throw AppError.badRequest("الطلب لا يقبل إيصالًا الآن");
   if (!RECEIPT_MIME.has(receipt.mimeType)) throw AppError.badRequest("الإيصال صورة أو PDF");
   if (receipt.data.length === 0 || receipt.data.length > 8 * 1024 * 1024) throw AppError.badRequest("حجم الإيصال حتى ٨ ميجابايت");
+  receipt = { ...receipt, data: stripImageMetadata(receipt.data, receipt.mimeType) };
 
   const storage = getStorageProvider();
   let receiptKey: string | null = null;

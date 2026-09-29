@@ -68,6 +68,10 @@ filesRouter.get(
     res.setHeader("Content-Type", out.file.mimeType);
     res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(out.file.originalName)}`);
     res.setHeader("X-Content-Type-Options", "nosniff");
+    // محتوى المستخدمين حين يُقدَّم من أصل المنصة نفسها: معزول تمامًا — لا سكربت ولا نماذج
+    // ولا وصول لأي شيء، حتى لو صيغ ملف ليبدو صفحة.
+    res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
     res.setHeader("Cache-Control", "private, max-age=300");
     res.setHeader("Accept-Ranges", "bytes");
     // الصوت والدرس المصوّر يحتاجان القفز (Range) — بدونه لا يعمل التقديم ولا الانتقال لشريحة.

@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { registerSchema, loginSchema, joinSectionSchema, forgotPasswordSchema, resetPasswordSchema } from "@mihwar/shared";
+import { registerSchema, loginSchema, joinSectionSchema, forgotPasswordSchema, resetPasswordSchema, confirmEmailSchema } from "@mihwar/shared";
+import { confirmEmailChange } from "../account/contactChange.js";
 import { completePasswordReset, requestPasswordReset } from "./passwordReset.js";
 import { validate } from "../../middleware/validate.js";
 import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
@@ -56,6 +57,17 @@ authRouter.post(
   validate({ body: resetPasswordSchema }),
   asyncHandler(async (req, res) => {
     await completePasswordReset(req.body.token, req.body.password);
+    res.json({ success: true, data: null });
+  }),
+);
+
+/** رابط تأكيد البريد الجديد — يعمل دون جلسة (قد يُفتح من جهاز آخر). */
+authRouter.post(
+  "/confirm-email",
+  sensitiveRateLimit(() => undefined),
+  validate({ body: confirmEmailSchema }),
+  asyncHandler(async (req, res) => {
+    await confirmEmailChange(req.body.token);
     res.json({ success: true, data: null });
   }),
 );

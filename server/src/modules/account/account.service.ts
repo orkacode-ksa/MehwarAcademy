@@ -8,12 +8,14 @@ import { hashPassword, verifyPassword } from "../../lib/password.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { logoutAllDevices } from "../auth/auth.service.js";
+import { stripImageMetadata } from "../../lib/stripMetadata.js";
 
 
 export const AVATAR_MAX = 64 * 1024;
 
-export async function updateProfile(userId: string, input: { fullName: string; phone?: string | undefined }) {
-  await prismaBase.user.update({ where: { id: userId }, data: { fullName: input.fullName, ...(input.phone !== undefined ? { phone: input.phone || null } : {}) } });
+/** الاسم فقط — الجوال والبريد يُغيَّران بكلمة المرور (contactChange). */
+export async function updateProfile(userId: string, input: { fullName: string }) {
+  await prismaBase.user.update({ where: { id: userId }, data: { fullName: input.fullName } });
 }
 
 export async function updatePrefs(userId: string, input: UserPrefs) {
@@ -46,6 +48,7 @@ export async function setAvatar(userId: string, data: Buffer) {
   if (data.length > AVATAR_MAX) throw AppError.badRequest("الصورة أكبر من المسموح — اختر صورة أصغر");
   const mime = sniff(data);
   if (!mime) throw AppError.badRequest("الصورة JPG أو PNG أو WebP");
+  data = stripImageMetadata(data, mime);
   const u = await prismaBase.user.findUnique({ where: { id: userId }, select: { avatarFileId: true } });
   const storage = getStorageProvider();
   let ref: string;

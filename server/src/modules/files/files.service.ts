@@ -3,6 +3,7 @@ import { prisma, withTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { getEntitlements, getUsage } from "../store/entitlements.js";
+import { stripImageMetadata } from "../../lib/stripMetadata.js";
 
 /** الأنواع المقبولة — ما يرفعه الأستاذ فعلًا: مستندات وصور وعروض وصوت وفيديو قصير. */
 export const ALLOWED_MIME = new Set([
@@ -44,6 +45,8 @@ export async function uploadFile(input: {
   if (!ALLOWED_MIME.has(input.mimeType)) throw AppError.badRequest("نوع الملف غير مدعوم — PDF أو صورة أو Word أو PowerPoint أو Excel أو صوت أو فيديو");
   if (input.data.length === 0) throw AppError.badRequest("الملف فارغ");
   if (input.data.length > MAX_UPLOAD_BYTES) throw AppError.badRequest("الملف أكبر من ٢٥ ميجابايت");
+  // الصور تُحفظ بلا بياناتها المخفية (موقع التصوير · الجهاز · التاريخ)
+  input = { ...input, data: stripImageMetadata(input.data, input.mimeType) };
 
   const [ent, usage] = await Promise.all([getEntitlements(input.workspaceId), getUsage(input.workspaceId)]);
   const quota = ent.storageMb * 1024 * 1024;

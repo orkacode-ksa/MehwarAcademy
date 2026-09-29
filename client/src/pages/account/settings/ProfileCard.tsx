@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { profileUpdateSchema } from "@mihwar/shared";
+import { changeEmailSchema, changePhoneSchema, profileUpdateSchema } from "@mihwar/shared";
 import { api, ApiError, assetUrl, uploadRaw } from "../../../api/client.js";
 import { initialOf, refreshSession, type SessionUser } from "../../../hooks/useSession.js";
 import { Button } from "../../../components/ui/Button.js";
@@ -28,7 +28,6 @@ async function toAvatar(file: File): Promise<File> {
 
 export function ProfileCard({ user }: { user: SessionUser }) {
   const [name, setName] = useState(user.fullName);
-  const [phone, setPhone] = useState(user.phone ?? "");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -49,7 +48,7 @@ export function ProfileCard({ user }: { user: SessionUser }) {
   }
 
   async function save() {
-    const parsed = profileUpdateSchema.safeParse({ fullName: name, phone });
+    const parsed = profileUpdateSchema.safeParse({ fullName: name });
     if (!parsed.success) return setErr(parsed.error.issues[0]?.message ?? "بيانات غير صالحة");
     setErr(null);
     try {
@@ -104,20 +103,124 @@ export function ProfileCard({ user }: { user: SessionUser }) {
         <Label text="الاسم كما يظهر لطلابك وفي الوثائق">
           <Input value={name} onChange={(ev) => setName(ev.target.value)} autoComplete="name" />
         </Label>
-        <Label text="رقم الجوال (اختياري)">
-          <Input value={phone} onChange={(ev) => setPhone(ev.target.value)} dir="ltr" inputMode="tel" autoComplete="tel" placeholder="05XXXXXXXX" />
-        </Label>
-        <Label text="البريد الإلكتروني">
-          <Input value={user.email} readOnly dir="ltr" className="opacity-70" />
-        </Label>
       </div>
-      <p className="text-[11.5px] text-ink-3 -mt-2">البريد هو معرّف دخولك — لتغييره راسلنا من «عن مِحوَر».</p>
       <ErrorText>{err}</ErrorText>
       <div>
-        <Button variant="primary" onClick={() => void save()} disabled={name.trim() === user.fullName && phone === (user.phone ?? "")}>
+        <Button variant="primary" onClick={() => void save()} disabled={name.trim() === user.fullName}>
           <Icon name="chk" /> احفظ
         </Button>
       </div>
+
+      <div className="grid gap-2 border-t border-line pt-4">
+        <ContactRow
+          label="البريد الإلكتروني (معرّف دخولك)"
+          value={user.email}
+          field="email"
+          hint="يصل رابط تأكيد إلى البريد الجديد، ولا يتغير شيء قبل فتحه."
+          submit={async (email, password) => {
+            const p = changeEmailSchema.safeParse({ email, password });
+            if (!p.success) throw new Error(p.error.issues[0]?.message ?? "بيانات غير صالحة");
+            await api.post("/me/email", p.data);
+            return "أرسلنا رابط تأكيد إلى البريد الجديد — افتحه خلال ساعة";
+          }}
+        />
+        <ContactRow
+          label="رقم الجوال"
+          value={user.phone ?? ""}
+          field="phone"
+          hint="اتركه فارغًا لإزالته."
+          submit={async (phone, password) => {
+            const p = changePhoneSchema.safeParse({ phone, password });
+            if (!p.success) throw new Error(p.error.issues[0]?.message ?? "بيانات غير صالحة");
+            await api.put("/me/phone", p.data);
+            await refreshSession();
+            return "تغيّر رقم جوالك";
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** تغيير البريد أو الجوال: لا يتم إلا بكلمة المرور الحالية. */
+function ContactRow({ label, value, field, hint, submit }: { label: string; value: string; field: "email" | "phone"; hint: string; submit: (value: string, password: string) => Promise<string> }) {
+  const [open, setOpen] = useState(false);
+  const [next, setNext] = useState(value);
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { showToast } = useToast();
+
+  async function go() {
+    setBusy(true);
+    setErr(null);
+    try {
+      showToast(await submit(next, pw));
+      setOpen(false);
+      setPw("");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "تعذّر الحفظ");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-2 py-1">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="grid min-w-0 flex-1">
+          <span className="text-[12px] text-ink-3">{label}</span>
+          <span dir="ltr" className="text-[14px] text-ink truncate text-end">{value || "—"}</span>
+        </div>
+        {!open && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setNext(value);
+              setOpen(true);
+            }}
+          >
+            <Icon name="pen" /> غيّر
+          </Button>
+        )}
+      </div>
+      {open && (
+        <form
+          className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0 rounded-xl bg-canvas p-3"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void go();
+          }}
+        >
+          <Label text={field === "email" ? "البريد الجديد" : "الرقم الجديد"}>
+            <Input
+              value={next}
+              onChange={(ev) => setNext(ev.target.value)}
+              dir="ltr"
+              type={field === "email" ? "email" : "tel"}
+              inputMode={field === "email" ? "email" : "tel"}
+              autoComplete={field === "email" ? "email" : "tel"}
+              placeholder={field === "email" ? "name@example.com" : "05XXXXXXXX"}
+            />
+          </Label>
+          <Label text="كلمة المرور الحالية">
+            <Input value={pw} onChange={(ev) => setPw(ev.target.value)} type="password" dir="ltr" autoComplete="current-password" />
+          </Label>
+          <p className="text-[11.5px] text-ink-3 sm:col-span-2 -mt-1">{hint}</p>
+          <div className="sm:col-span-2">
+            <ErrorText>{err}</ErrorText>
+          </div>
+          <div className="flex gap-2 sm:col-span-2">
+            <Button type="submit" variant="primary" size="sm" disabled={busy || !pw}>
+              <Icon name="chk" /> {busy ? "يُحفظ…" : "تأكيد"}
+            </Button>
+            <Button type="button" variant="text" size="sm" onClick={() => setOpen(false)}>
+              إلغاء
+            </Button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

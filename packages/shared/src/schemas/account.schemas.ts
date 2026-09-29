@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { passwordSchema } from "./auth.schemas.js";
+import { emailSchema, passwordSchema } from "./auth.schemas.js";
 
 /** تفضيلات العرض — تتبع المستخدم بين أجهزته، وتُطبَّق قبل أول رسم. */
 export const userPrefsSchema = z
@@ -22,18 +22,36 @@ export function normalizeSaudiMobile(raw: string): string {
   return d;
 }
 
+const mobileSchema = z
+  .string()
+  .trim()
+  .max(20)
+  .transform(normalizeSaudiMobile)
+  .refine((v) => v === "" || /^05\d{8}$/.test(v), "رقم الجوال بصيغة 05XXXXXXXX");
+
 export const profileUpdateSchema = z
   .object({
     fullName: z.string().trim().min(3, "الاسم ثلاثة أحرف على الأقل").max(80),
-    phone: z
-      .string()
-      .trim()
-      .max(20)
-      .transform(normalizeSaudiMobile)
-      .refine((v) => v === "" || /^05\d{8}$/.test(v), "رقم الجوال بصيغة 05XXXXXXXX")
-      .optional(),
   })
   .strict();
+
+/** تغيير الجوال يتطلب كلمة المرور — جلسة مفتوحة على جهاز مشترك لا تكفي. فارغ = إزالته. */
+export const changePhoneSchema = z
+  .object({
+    phone: mobileSchema,
+    password: z.string().min(1, "اكتب كلمة المرور").max(128),
+  })
+  .strict();
+
+/** تغيير البريد: كلمة المرور الآن، ثم رابط تأكيد يصل إلى البريد الجديد. */
+export const changeEmailSchema = z
+  .object({
+    email: emailSchema,
+    password: z.string().min(1, "اكتب كلمة المرور").max(128),
+  })
+  .strict();
+
+export const confirmEmailSchema = z.object({ token: z.string().min(20).max(200) }).strict();
 
 export const changePasswordSchema = z
   .object({
