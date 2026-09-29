@@ -17,6 +17,7 @@ import { extractText } from "./extract.js";
 import { notify } from "../notifications/notify.js";
 import { reserveForJob, settleJob, toHalalas } from "../wallet/wallet.service.js";
 import { renderSlidesHtml, type Slide } from "./slides.js";
+import { env } from "../../config/env.js";
 
 /**
  * التوليد من داخل المنصة — «محرّك مِحوَر».
@@ -59,7 +60,14 @@ export async function generationStatus(workspaceId: string) {
 
 async function markStale(workspaceId: string) {
   const stale = await prisma.generationJob.findMany({
-    where: { workspaceId, status: { in: ["PENDING", "RUNNING"] }, updatedAt: { lt: new Date(Date.now() - STALE_MS) } },
+    where: {
+      workspaceId,
+      OR: [
+        { status: "RUNNING", updatedAt: { lt: new Date(Date.now() - STALE_MS) } },
+        // المعلّقة تنتظر دورها في طابور العامل وقت الذروة — لا تُعدّ منقطعة إلا بعد ست ساعات
+        { status: "PENDING", updatedAt: { lt: new Date(Date.now() - 6 * 60 * 60_000) } },
+      ],
+    },
     select: { id: true, tenantId: true, workspaceId: true, paidBy: true, reservedHalalas: true },
   });
   if (stale.length === 0) return;
@@ -249,7 +257,8 @@ export async function requestGeneration(workspaceId: string, userId: string, inp
   if (ids.length === 0 && todo.length > 0 && input.useWallet) {
     throw AppError.badRequest("رصيدك لا يكفي — اشحنه من «حسابي» ← رصيدي");
   }
-  for (const id of ids) enqueue(() => runWithTenant({ tenantId, userId }, () => run(id)));
+  // بعامل مستقل (الإنتاج) تبقى المهام «معلّقة» في القاعدة فيسحبها العامل؛ وإلا تُنفَّذ داخل العملية.
+  if (env.GENERATION_MODE !== "worker") for (const id of ids) enqueue(() => runWithTenant({ tenantId, userId }, () => run(id)));
   const remaining = todo.length - ids.length;
   return {
     started: ids.length,
@@ -283,6 +292,11 @@ function pump() {
 /** للاختبارات: انتظار فراغ الطابور. */
 export async function drainGeneration() {
   while (active > 0 || queue.length > 0) await new Promise((r) => setTimeout(r, 20));
+}
+
+/** تنفيذ مهمة واحدة — يستدعيه الطابور الداخلي أو عامل التوليد المستقل (worker.ts) داخل سياق جامعتها. */
+export async function runGenerationJob(jobId: string) {
+  return run(jobId);
 }
 
 async function run(jobId: string) {

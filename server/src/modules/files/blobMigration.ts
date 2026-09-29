@@ -16,6 +16,14 @@ export async function migrateBlobsToObjectStorage(): Promise<{ files: number; re
   const moved = { files: 0, receipts: 0, avatars: 0 };
   if (storage.mode !== "r2") return moved;
 
+  // فحص ذاتي قبل النقل: كتابة ثم قراءة ثم حذف — مفاتيح خاطئة تظهر في السجل فورًا لا عند أول رفع.
+  const probe = `_health/${crypto.randomUUID()}`;
+  await storage.put(probe, Buffer.from("ok"), "text/plain");
+  const back = await storage.get(probe);
+  await storage.remove(probe);
+  if (back.toString() !== "ok") throw new Error("التخزين الكائني: القراءة لا تطابق الكتابة");
+  logger.info("التخزين الكائني: الفحص الذاتي ناجح (كتابة · قراءة · حذف)");
+
   // ١) محتوى الملفات — الجدول تحت العزل، فيُمرّ عليه جامعةً جامعة.
   const tenants = await prismaBase.tenant.findMany({ select: { id: true } });
   for (const { id: tenantId } of tenants) {

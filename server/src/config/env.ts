@@ -54,6 +54,10 @@ const envSchema = z.object({
   STORAGE_SECRET_KEY: z.string().optional(),
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_REGION: z.string().optional(),
+  /** inline: التوليد داخل خادم الويب (التطوير) · worker: عامل مستقل يسحب من الطابور (الإنتاج) */
+  GENERATION_MODE: z.enum(["inline", "worker"]).default("inline"),
+  /** عدد المهام المتزامنة في العامل الواحد */
+  GENERATION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(3),
   STORAGE_PUBLIC_ORIGIN: z.string().optional(),
   PAYMENT_GATEWAY_API_KEY: z.string().optional(),
   PAYMENT_WEBHOOK_SECRET: z.string().optional(),

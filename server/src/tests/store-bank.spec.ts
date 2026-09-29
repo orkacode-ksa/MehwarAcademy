@@ -6,7 +6,8 @@ import type { AddressInfo } from "node:net";
 import { createApp } from "../app.js";
 import { prismaBase, withExplicitTenantTx } from "../lib/prisma.js";
 import { env } from "../config/env.js";
-import { drainGeneration } from "../modules/generation/generation.service.js";
+import { drainGeneration, runGenerationJob } from "../modules/generation/generation.service.js";
+import { runWithTenant } from "../lib/tenantContext.js";
 import { resetExpensiveLimitForTests } from "../middleware/rateLimit.js";
 import { resetSettingsCache } from "../modules/platform/settings.js";
 import { creditTopUp } from "../modules/wallet/wallet.service.js";
@@ -593,6 +594,34 @@ describe("التوليد داخل المنصة — مصادر المقرر وم�
       expect(w.entries.find((e: { kind: string }) => e.kind === "GENERATION")).toMatchObject({ amount: -job.chargedHalalas });
     } finally {
       for (const p of plans) await prismaBase.plan.update({ where: { id: p.id }, data: { generationsPerMonth: p.generationsPerMonth } });
+    }
+  });
+
+  it("عامل مستقل: المهمة تبقى معلّقة في القاعدة، ويحجزها عامل واحد فقط وينفّذها", async () => {
+    const me = (await a.get("/api/auth/me")).body.data;
+    const t3 = (await a.post(`${W}/teaching/topics`).send({ courseId: aCourse, title: "قانون نيوتن الثالث" })).body.data as { id: string };
+    env.GENERATION_MODE = "worker";
+    try {
+      const r = await a.post(G).send({ courseId: aCourse, topicIds: [t3.id], kind: "TEXT" });
+      expect(r.status).toBe(202);
+      const jobId = r.body.data.jobIds[0] as string;
+      await drainGeneration(); // لا شيء في الطابور الداخلي
+      const pending = await withExplicitTenantTx(me.tenantId, (tx) => tx.generationJob.findUniqueOrThrow({ where: { id: jobId } }));
+      expect(pending.status).toBe("PENDING");
+
+      // عاملان يحجزان معًا: مهمة واحدة لا تُعطى لاثنين
+      type Claimed = { id: string; tenantId: string; createdById: string }[];
+      const [c1, c2] = await Promise.all([
+        prismaBase.$queryRaw<Claimed>`SELECT * FROM mihwar_claim_generation_job()`,
+        prismaBase.$queryRaw<Claimed>`SELECT * FROM mihwar_claim_generation_job()`,
+      ]);
+      const mine = [...c1, ...c2].filter((c) => c.id === jobId);
+      expect(mine).toHaveLength(1);
+      await runWithTenant({ tenantId: me.tenantId, userId: me.id }, () => runGenerationJob(jobId));
+      const done = await withExplicitTenantTx(me.tenantId, (tx) => tx.generationJob.findUniqueOrThrow({ where: { id: jobId } }));
+      expect(done.status).toBe("SUCCEEDED");
+    } finally {
+      env.GENERATION_MODE = "inline";
     }
   });
 
