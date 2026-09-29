@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { loginSchema, type LoginInput } from "@mihwar/shared";
 import { AuthLayout } from "../components/auth/AuthLayout.js";
@@ -37,6 +37,8 @@ export function LoginPage() {
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
   const [authError, setAuthError] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const resetDone = params.get("reset") === "1";
   // التحقق بخطوتين: يظهر حقل الرمز حين يطلبه الخادم فقط — لا يربك من لم يفعّله.
   const [needCode, setNeedCode] = useState(false);
 
@@ -77,6 +79,12 @@ export function LoginPage() {
                 {...register("totp")}
               />
             )}
+            <div className="-mt-1.5 mb-3 text-end">
+              <Link to="/forgot-password" className="text-[12px] text-deep font-semibold">
+                نسيت كلمة المرور؟
+              </Link>
+            </div>
+            {resetDone && !authError && <p className="text-[12px] text-teal-text mb-2">تغيّرت كلمة المرور — ادخل بها الآن.</p>}
             {authError && <p className="text-[12px] text-crim mb-2">{authError}</p>}
             <Button type="submit" variant="primary" size="lg" className="w-full mt-1.5" disabled={isSubmitting}>
               دخول <Icon name="arr" className="w-4 h-4" />

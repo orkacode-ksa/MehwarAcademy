@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../lib/AppError.js";
 import { logger } from "../lib/logger.js";
+import { alertServerError } from "../lib/alerts.js";
 
 export function notFoundHandler(req: Request, res: Response): void {
   res.status(404).json({
@@ -30,6 +31,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   if (err instanceof AppError) {
     if (err.statusCode >= 500) {
       logger.error({ err, requestId }, err.message);
+      alertServerError(err, { requestId: String(requestId), method: req.method, path: req.route?.path ?? req.path });
     }
     res.status(err.statusCode).json({
       success: false,
@@ -48,6 +50,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
 
   logger.error({ err, requestId }, "خطأ غير متوقع");
+  alertServerError(err, { requestId: String(requestId), method: req.method, path: req.route?.path ?? req.path });
   res.status(500).json({
     success: false,
     error: { code: "INTERNAL_ERROR", message: "حدث خطأ غير متوقع", requestId },

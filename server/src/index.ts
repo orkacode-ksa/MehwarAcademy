@@ -7,6 +7,7 @@ import { assertRlsEffective } from "./lib/rlsGuard.js";
 import { redis } from "./lib/redis.js";
 import { closePdfEngine } from "./lib/pdf.js";
 import { startTermCloser } from "./jobs/termCloser.js";
+import { alertServerError } from "./lib/alerts.js";
 import { bootstrapOwner } from "./modules/owner/staff.service.js";
 
 installArabicZodErrorMap();
@@ -58,10 +59,12 @@ process.on("SIGINT", () => void gracefulShutdown("SIGINT"));
 
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "unhandledRejection — إنهاء العملية");
-  process.exit(1);
+  alertServerError(reason, { where: "انهيار العملية (unhandledRejection) — أُعيد تشغيل الخادم" });
+  setTimeout(() => process.exit(1), 3000).unref();
 });
 
 process.on("uncaughtException", (err) => {
   logger.error({ err }, "uncaughtException — إنهاء العملية");
-  process.exit(1);
+  alertServerError(err, { where: "انهيار العملية (uncaughtException) — أُعيد تشغيل الخادم" });
+  setTimeout(() => process.exit(1), 3000).unref();
 });

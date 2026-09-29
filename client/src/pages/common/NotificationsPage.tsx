@@ -25,9 +25,10 @@ const ICON: Record<string, IconName> = {
   UNIVERSITY_APPROVED: "shield",
   BANK_REVIEW: "box",
   BUDGET_80: "chart",
+  SERVER_ERROR: "alert",
   TERM_MISSING: "cal",
 };
-const URGENT = new Set(["ORDER_REJECTED", "GENERATION_FAILED", "ABSENCE_BAN", "BUDGET_80", "TRIAL_ENDING"]);
+const URGENT = new Set(["SERVER_ERROR", "ORDER_REJECTED", "GENERATION_FAILED", "ABSENCE_BAN", "BUDGET_80", "TRIAL_ENDING"]);
 
 function ago(iso: string): string {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);

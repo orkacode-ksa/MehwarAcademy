@@ -8,7 +8,8 @@ import { logger } from "./logger.js";
  * أي نشر بأكثر من نسخة واحدة بلا Redis يفقد اتساق الحدود بين النسخ — موثّق كفجوة.
  */
 export const redis: Redis | null = env.REDIS_URL
-  ? new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2, lazyConnect: true })
+  ? // family: 0 — شبكة Railway الخاصة IPv6؛ بدونه يفشل حلّ redis.railway.internal بصمت
+    new Redis(env.REDIS_URL, { maxRetriesPerRequest: 2, lazyConnect: true, family: 0 })
   : null;
 
 if (redis) {

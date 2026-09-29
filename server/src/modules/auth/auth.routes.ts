@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { registerSchema, loginSchema, joinSectionSchema } from "@mihwar/shared";
+import { registerSchema, loginSchema, joinSectionSchema, forgotPasswordSchema, resetPasswordSchema } from "@mihwar/shared";
+import { completePasswordReset, requestPasswordReset } from "./passwordReset.js";
 import { validate } from "../../middleware/validate.js";
 import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
 import { requireAuth } from "../../middleware/auth.js";
@@ -32,6 +33,26 @@ authRouter.post(
   sensitiveRateLimit((req) => (req.body as { email?: string })?.email),
   validate({ body: loginSchema }),
   asyncHandler(controller.login),
+);
+
+/** الرد واحد دائمًا — وجود البريد لا يُكشف. */
+authRouter.post(
+  "/forgot-password",
+  sensitiveRateLimit((req) => (req.body as { email?: string })?.email),
+  validate({ body: forgotPasswordSchema }),
+  asyncHandler(async (req, res) => {
+    await requestPasswordReset(req.body.email);
+    res.json({ success: true, data: { message: "إن كان هذا البريد مسجلًا فقد أرسلنا إليه رابطًا لإعادة تعيين كلمة المرور." } });
+  }),
+);
+authRouter.post(
+  "/reset-password",
+  sensitiveRateLimit(() => undefined),
+  validate({ body: resetPasswordSchema }),
+  asyncHandler(async (req, res) => {
+    await completePasswordReset(req.body.token, req.body.password);
+    res.json({ success: true, data: null });
+  }),
 );
 
 authRouter.post("/refresh", asyncHandler(controller.refresh));

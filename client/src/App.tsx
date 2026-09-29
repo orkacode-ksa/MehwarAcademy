@@ -114,6 +114,8 @@ const SubmissionsPage = page(
   () => import("./pages/owner/SubmissionsPage.js"),
   "SubmissionsPage",
 );
+const ForgotPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ForgotPasswordPage");
+const ResetPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ResetPasswordPage");
 const StaffPage = page(() => import("./pages/owner/StaffPage.js"), "StaffPage");
 const OwnerUsersPage = page(
   () => import("./pages/owner/OwnerUsersPage.js"),
@@ -143,6 +145,8 @@ export function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/legal/:doc" element={<LegalPage />} />
           <Route path="/showcase" element={<ShowcasePage />} />
