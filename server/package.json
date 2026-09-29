@@ -47,6 +47,7 @@
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
+    "autocannon": "^7.15.0",
     "eslint": "^8.57.0",
     "prisma": "^5.20.0",
     "supertest": "^7.0.0",

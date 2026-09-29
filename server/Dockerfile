@@ -19,6 +19,8 @@ RUN npm run build:shared && npm run build:server
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# خيوط libuv لتجزئة كلمات المرور وضغط الملفات: الافتراضي ٤ يصطفّ عليه كل دخول وقت الذروة
+ENV UV_THREADPOOL_SIZE=16
 WORKDIR /repo/server
 COPY --from=build /repo/node_modules /repo/node_modules
 COPY --from=build /repo/packages/shared/dist /repo/packages/shared/dist
