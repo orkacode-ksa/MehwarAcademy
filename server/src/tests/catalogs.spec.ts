@@ -15,6 +15,8 @@ const email = () => `c-${crypto.randomUUID()}@mihwar.test`;
 const tag = crypto.randomUUID().slice(0, 6);
 const testKey = `t-${tag}`;
 let original: Record<string, unknown> = {};
+let legacyKey = "";
+let legacyName = "";
 
 beforeAll(async () => {
   const e = email();
@@ -29,7 +31,8 @@ afterAll(async () => {
   // القوائم إعداد عام للمنصة: تُعاد كما كانت، مع إبقاء مفتاح الاختبار إن صار له مساحة.
   const now = (await owner.get("/api/owner/catalogs")).body.data as { universities: { key: string; name: string }[] };
   const orig = original as { universities: { key: string; name: string }[] };
-  const kept = now.universities.filter((u) => u.key === testKey);
+  const kept = now.universities.filter((u) => u.key === testKey || u.key === legacyKey);
+  void legacyName;
   await owner.put("/api/owner/catalogs").send({ ...original, universities: [...orig.universities, ...kept] });
 });
 
@@ -51,6 +54,21 @@ describe("القوائم المقنّنة", () => {
     expect(ta).toBe(tb);
     const t = await prismaBase.tenant.findUniqueOrThrow({ where: { id: ta } });
     expect(t).toMatchObject({ name: "جامعة أم القرى", catalogKey: "uqu" });
+  });
+
+  it("جامعة معتمدة قديمة بالاسم نفسه تُربط بمفتاحها بدل إنشاء مساحة ثانية", async () => {
+    const key = `l-${tag}`;
+    const name = `جامعة قديمة ${tag}`;
+    const legacy = await prismaBase.tenant.create({ data: { slug: `legacy-${tag}`, name, status: "ACTIVE", listed: true } });
+    const cur = (await owner.get("/api/owner/catalogs")).body.data as { universities: { key: string; name: string }[] };
+    expect((await owner.put("/api/owner/catalogs").send({ ...cur, universities: [...cur.universities, { key, name }] })).status).toBe(200);
+    const t = request.agent(app);
+    expect((await t.post("/api/auth/register").send({ fullName: "د. ق", email: email(), password: PW, role: "TEACHER", universityKey: key })).status).toBe(201);
+    expect((await t.get("/api/auth/me")).body.data.tenantId).toBe(legacy.id);
+    expect((await prismaBase.tenant.findUniqueOrThrow({ where: { id: legacy.id } })).catalogKey).toBe(key);
+    // مفتاحها صار مستخدمًا: يبقى في القائمة بعد الاختبار
+    legacyKey = key;
+    legacyName = name;
   });
 
   it("مفتاح ليس في القائمة يُرفض", async () => {

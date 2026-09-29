@@ -99,6 +99,14 @@ async function registerOnce(
     catalogEntry = await universityByKey(input.universityKey);
     if (!catalogEntry) throw AppError.badRequest("اختر جامعتك من القائمة");
     institution = await prismaBase.tenant.findFirst({ where: { catalogKey: catalogEntry.key, deletedAt: null }, select: { id: true } });
+    if (!institution) {
+      // جامعة معتمدة أُنشئت قبل القوائم بالاسم نفسه: تُربط بمفتاحها ويُنضم إليها — لا مساحة ثانية.
+      const legacy = await prismaBase.tenant.findFirst({ where: { name: catalogEntry.name, catalogKey: null, listed: true, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true } });
+      if (legacy) {
+        await prismaBase.tenant.update({ where: { id: legacy.id }, data: { catalogKey: catalogEntry.key } });
+        institution = legacy;
+      }
+    }
   } else if (input.universityId) {
     if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة");
     // الجامعات المعتمدة وحدها (ACTIVE) تُختار من القائمة؛ غيرها يمرّ بالمراجعة أولًا.
