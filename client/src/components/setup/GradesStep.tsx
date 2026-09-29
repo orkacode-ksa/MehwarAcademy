@@ -6,6 +6,8 @@ import { Card, ErrorText, Input } from "../ui/Form.js";
 import { Icon } from "../../icons/Icon.js";
 import { formatNum } from "../../lib/numerals.js";
 import { W, type Course, type GradeComponent } from "./types.js";
+import { SuggestInput } from "../ui/CatalogField.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
 
 /**
  * ④ توزيع الدرجات — منسوخ من لائحة الجامعة، ولا تكتمل الخطوة حتى يُقرّه الأستاذ:
@@ -13,6 +15,7 @@ import { W, type Course, type GradeComponent } from "./types.js";
  */
 export function GradesStep({ course, onChanged }: { course: Course; onChanged: () => void }) {
   const [scheme, setScheme] = useState<GradeComponent[]>(course.gradeScheme ?? []);
+  const catalogs = useCatalogs();
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const total = scheme.reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
@@ -41,7 +44,8 @@ export function GradesStep({ course, onChanged }: { course: Course; onChanged: (
       <div className="grid gap-2">
         {scheme.map((c, i) => (
           <div key={c.key} className="flex items-center gap-2">
-            <Input
+            <SuggestInput
+              options={catalogs?.gradeComponents}
               value={c.label}
               aria-label="اسم المكوّن"
               onChange={(e) => setScheme(scheme.map((x, j) => (j === i ? { ...c, label: e.target.value } : x)))}

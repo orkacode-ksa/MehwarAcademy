@@ -8,14 +8,19 @@ import { z } from "zod";
  * فبيان لائحة مكسور يُنتج شاشات مكسورة عند كل أستاذ في الجامعة.
  */
 
-export const institutionCreateSchema = z.object({
-  name: z.string().min(2).max(120),
-  slug: z
-    .string()
-    .min(2)
-    .max(40)
-    .regex(/^[a-z0-9-]+$/, "أحرف إنجليزية صغيرة وأرقام وشرطات فقط"),
-});
+export const institutionCreateSchema = z
+  .object({
+    /** الجامعة من القائمة المقنّنة — الاسم والمعرّف منها (المسار الأساسي) */
+    catalogKey: z.string().regex(/^[a-z0-9-]{2,40}$/).optional(),
+    name: z.string().min(2).max(120).optional(),
+    slug: z
+      .string()
+      .min(2)
+      .max(40)
+      .regex(/^[a-z0-9-]+$/, "أحرف إنجليزية صغيرة وأرقام وشرطات فقط")
+      .optional(),
+  })
+  .refine((v) => !!v.catalogKey || (!!v.name && !!v.slug), { message: "اختر الجامعة من القائمة" });
 export type InstitutionCreateInput = z.infer<typeof institutionCreateSchema>;
 
 /** بند مطلوب في ملف المقرر — `key` ثابت لا يتغيّر، و`label` هو ما يراه الأستاذ. */

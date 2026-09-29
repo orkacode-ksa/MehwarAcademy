@@ -4,6 +4,7 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../lib/AppError.js";
 import * as service from "./notifications.service.js";
 import { getPlatformSettings } from "../platform/settings.js";
+import { getCatalogs } from "../platform/catalogs.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { raw } from "express";
 import { changePasswordSchema, profileUpdateSchema, totpCodeSchema, totpDisableSchema, userPrefsSchema } from "@mihwar/shared";
@@ -20,6 +21,15 @@ publicRouter.get(
   asyncHandler(async (_req, res) => {
     res.setHeader("Cache-Control", "public, max-age=300");
     res.json({ success: true, data: { email: (await getPlatformSettings()).contactEmail } });
+  }),
+);
+
+/** القوائم المقنّنة للحقول (الجامعات · المستويات · …) — عامة: التسجيل يحتاجها قبل الدخول. */
+publicRouter.get(
+  "/catalogs",
+  asyncHandler(async (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json({ success: true, data: await getCatalogs() });
   }),
 );
 

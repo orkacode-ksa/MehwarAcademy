@@ -9,6 +9,11 @@ import { Card, ErrorText, IconButton, Input, Label, Select, Textarea } from "../
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
+import { CatalogSelect } from "../../components/ui/CatalogField.js";
+
+/** اقتراحات الزملاء أولًا ثم القائمة المعتمدة، بلا تكرار. */
+const uniq = (a: string[] = [], b: string[] = []) => [...new Set([...a, ...b])];
 
 interface Activity { id: string; type: ActivityType; title: string; venue: string | null; date: string; hours: number | null; participation: string | null }
 interface Data { fullName: string; email: string; profile: Partial<FacultyProfile>; activities: Activity[] }
@@ -19,6 +24,7 @@ const RANKS = ["معيد", "محاضر", "أستاذ مساعد", "أستاذ م
 export function CvPage() {
   const { data, reload } = useApi<Data>("/profile");
   const sug = useApi<{ departments: string[]; colleges: string[] }>("/profile/suggestions");
+  const catalogs = useCatalogs();
   const { user } = useSession();
   const [p, setP] = useState<FacultyProfile | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -71,12 +77,13 @@ export function CvPage() {
               ))}
             </Select>
           </Label>
-          {field("specialization", "التخصص")}
+          {field("specialization", "التخصص", false, "cv-specs")}
           {field("department", "القسم", false, "cv-departments")}
           {field("college", "الكلية", false, "cv-colleges")}
           {/* ما كتبه الزملاء في الجامعة نفسها — اختيار لا كتابة */}
-          <datalist id="cv-departments">{sug.data?.departments.map((d) => <option key={d} value={d} />)}</datalist>
-          <datalist id="cv-colleges">{sug.data?.colleges.map((d) => <option key={d} value={d} />)}</datalist>
+          <datalist id="cv-departments">{uniq(sug.data?.departments, catalogs?.departments).map((d) => <option key={d} value={d} />)}</datalist>
+          <datalist id="cv-colleges">{uniq(sug.data?.colleges, catalogs?.colleges).map((d) => <option key={d} value={d} />)}</datalist>
+          <datalist id="cv-specs">{(catalogs?.specializations ?? []).map((d) => <option key={d} value={d} />)}</datalist>
         </div>
         <div className="grid gap-3 mt-3">
           {field("qualifications", "المؤهلات العلمية", true)}
@@ -104,6 +111,7 @@ export function CvPage() {
 }
 
 function Activities({ items, onChanged }: { items: Activity[]; onChanged: () => void }) {
+  const catalogs = useCatalogs();
   const [f, setF] = useState({ type: "RESEARCH" as ActivityType, title: "", venue: "", date: new Date().toISOString().slice(0, 10), hours: "", participation: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -169,7 +177,7 @@ function Activities({ items, onChanged }: { items: Activity[]; onChanged: () => 
         )}
         {f.type !== "RESEARCH" && (
           <Label text="نوع المشاركة">
-            <Input value={f.participation} onChange={(e) => setF({ ...f, participation: e.target.value })} placeholder={f.type === "CONFERENCE" ? "حضور / ورقة بحثية" : "حضور / مدرب"} />
+            <CatalogSelect options={catalogs?.participationTypes} value={f.participation} onChange={(participation) => setF({ ...f, participation })} />
           </Label>
         )}
       </div>

@@ -9,6 +9,8 @@ import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
+import { CatalogSelect } from "../../components/ui/CatalogField.js";
 
 interface Summary { topics?: number; materials?: number; assessments?: number; exams?: number; outcomes?: number }
 interface Evaluation {
@@ -86,6 +88,7 @@ function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
   const [ev, setEv] = useState<Evaluation | null>(r.evaluation);
   const [price, setPrice] = useState(String(r.status === "PUBLISHED" ? r.price : (r.suggestedPrice ?? r.price)));
   const [spec, setSpec] = useState(r.specialization);
+  const catalogs = useCatalogs();
   const [pro, setPro] = useState(r.vipIncluded);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<"eval" | "decide" | null>(null);
@@ -221,7 +224,7 @@ function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
           <Input type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} />
         </Label>
         <Label text="التخصص">
-          <Input value={spec} onChange={(e) => setSpec(e.target.value)} placeholder="مثال: الأحياء" />
+          <CatalogSelect options={catalogs?.specializations} value={spec} onChange={setSpec} />
         </Label>
         <Label text="ملاحظة (اختياري)">
           <Input value={note} onChange={(e) => setNote(e.target.value)} />

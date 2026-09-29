@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { institutionCreateSchema } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
+import { Select } from "../../components/ui/Form.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Icon } from "../../icons/Icon.js";
@@ -16,6 +18,7 @@ interface Institution {
   status: string;
   joinCode: string | null;
   listed: boolean;
+  catalogKey: string | null;
   _count: { users: number; departments: number; AcademicYear: number };
   Regulation: { updatedAt: string } | null;
 }
@@ -24,14 +27,14 @@ interface Institution {
 export function InstitutionsPage() {
   const { data, loading, error, reload } = useApi<Institution[]>("/owner/institutions");
   const { showToast } = useToast();
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
+  const catalogs = useCatalogs();
+  const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = institutionCreateSchema.safeParse({ name, slug });
+    const parsed = institutionCreateSchema.safeParse({ catalogKey: key || undefined });
     if (!parsed.success) {
       setFormError(parsed.error.issues[0]?.message ?? "بيانات غير صالحة");
       return;
@@ -41,8 +44,7 @@ export function InstitutionsPage() {
     try {
       await api.post("/owner/institutions", parsed.data);
       showToast("أُنشئت الجامعة ومعها لائحة افتراضية");
-      setName("");
-      setSlug("");
+      setKey("");
       reload();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "تعذّر الإنشاء");
@@ -56,19 +58,27 @@ export function InstitutionsPage() {
       <PageHeader kicker="المالك" title="الجامعات" description="كل جامعة مستأجر مستقل بلائحته وتقويمه." />
       <PendingSubmissions />
 
-      <form onSubmit={create} className="bg-surface border border-line rounded-[14px] p-4 mb-6 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form onSubmit={create} className="bg-surface border border-line rounded-[14px] p-4 mb-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <label className="block">
-          <span className="block text-xs font-medium text-ink-2 mb-1.5">اسم الجامعة</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-line rounded-[11px] px-3.5 py-2.5 bg-surface" placeholder="جامعة أم القرى" />
+          <span className="block text-xs font-medium text-ink-2 mb-1.5">الجامعة</span>
+          <Select value={key} onChange={(e) => setKey(e.target.value)}>
+            <option value="">اختر من القائمة…</option>
+            {(catalogs?.universities ?? [])
+              .filter((u) => !data?.some((i) => i.catalogKey === u.key))
+              .map((u) => (
+                <option key={u.key} value={u.key}>
+                  {u.name}
+                </option>
+              ))}
+          </Select>
         </label>
-        <label className="block">
-          <span className="block text-xs font-medium text-ink-2 mb-1.5">المعرّف</span>
-          <input value={slug} onChange={(e) => setSlug(e.target.value)} dir="ltr" className="w-full border border-line rounded-[11px] px-3.5 py-2.5 bg-surface text-start" placeholder="uqu" />
-        </label>
-        <Button type="submit" variant="primary" disabled={busy}>
+        <Button type="submit" variant="primary" disabled={busy || !key}>
           <Icon name="plus" /> إضافة
         </Button>
-        {formError && <p className="text-[12px] text-crim sm:col-span-3">{formError}</p>}
+        <p className="text-[12px] text-ink-3 sm:col-span-2">
+          جامعة ليست في القائمة؟ أضفها أولًا من <Link to="/ocatalogs" className="text-deep underline">القوائم</Link>.
+        </p>
+        {formError && <p className="text-[12px] text-crim sm:col-span-2">{formError}</p>}
       </form>
 
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}

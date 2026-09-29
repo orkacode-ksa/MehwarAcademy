@@ -3,13 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "../components/auth/AuthLayout.js";
 import { WizDots } from "../components/auth/WizDots.js";
 import { SignupRoleStep, type SignupRole } from "../components/auth/SignupRoleStep.js";
-import { SignupFacultyDetailsStep, type FacultyDetails } from "../components/auth/SignupFacultyDetailsStep.js";
+import { OTHER, SignupFacultyDetailsStep, type FacultyDetails } from "../components/auth/SignupFacultyDetailsStep.js";
 import { SignupStudentJoinStep, type StudentJoinDetails } from "../components/auth/SignupStudentJoinStep.js";
 import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME } from "../nav/nav.js";
 import { api, ApiError } from "../api/client.js";
 import { resetSession } from "../hooks/useSession.js";
-import { useApi } from "../hooks/useApi.js";
 
 type Step = 1 | 2;
 
@@ -26,16 +25,16 @@ type Step = 1 | 2;
  *    وهذا خلل وظيفي (لا يمكن إنشاء حساب فعلي بلا كلمة مرور)، لا تفصيلاً تصميميًا.
  * الأستاذ: `POST /auth/register` (بجامعته: معتمدة من القائمة أو اسم جديد). الطالب: `POST /auth/join-section`.
  */
-/** الاسم المطابق لجامعة معتمدة يُرسل معرّفها؛ غيره يُرسل اسمًا جديدًا. */
-function universityOf(name: string | undefined, listed: { id: string; name: string }[]) {
-  const n = (name ?? "").trim();
-  if (!n) return {};
-  const hit = listed.find((u) => u.name === n);
-  return hit ? { universityId: hit.id } : { universityName: n };
+/** جامعة القائمة ← مفتاحها · جامعة معتمدة قديمة ← معرّفها · «ليست في القائمة» ← اسمها كما كُتب. */
+function universityOf(f: Partial<FacultyDetails>) {
+  const v = f.university ?? "";
+  if (!v) return {};
+  if (v === OTHER) return { universityName: (f.universityOther ?? "").trim() };
+  if (v.startsWith("t:")) return { universityId: v.slice(2) };
+  return { universityKey: v };
 }
 
 export function SignupPage() {
-  const { data: unis } = useApi<{ id: string; name: string }[]>("/university/list");
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
   const [role, setRole] = useState<SignupRole | null>(null);
@@ -61,7 +60,7 @@ export function SignupPage() {
           email: faculty.email ?? "",
           password: faculty.password ?? "",
           role: "TEACHER" as const,
-          ...universityOf(faculty.university, unis ?? []),
+          ...universityOf(faculty),
         });
       }
       resetSession();

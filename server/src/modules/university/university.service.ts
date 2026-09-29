@@ -10,6 +10,7 @@ import { extractText } from "../generation/extract.js";
 import { newMeter, writeJson } from "../generation/engine.js";
 import { assertBudget, recordUsage } from "../platform/aiBudget.js";
 import { notify, notifyOwnersOnce } from "../notifications/notify.js";
+import { universityByKey } from "../platform/catalogs.js";
 import { GENERIC_REGULATION } from "../owner/owner.service.js";
 
 /**
@@ -42,7 +43,7 @@ export async function listedUniversities() {
 export async function myUniversity(userId: string) {
   const tenantId = requireTenantId();
   const [tenant, subs, reg, me] = await Promise.all([
-    prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, status: true, listed: true } }),
+    prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, status: true, listed: true, catalogKey: true } }),
     prisma.universitySubmission.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -55,17 +56,30 @@ export async function myUniversity(userId: string) {
     // حسابات ما قبل «جامعتك» حملت مساحتها اسم الأستاذ — فلا يُعرض اسمه اسمًا لجامعته.
     name: tenant.name === me?.fullName ? null : tenant.name,
     listed: tenant.listed,
+    /** مربوطة بجامعة من القائمة — لا تُختار مرة أخرى */
+    linked: !!tenant.catalogKey,
     submissions: subs,
     hasFacultyViolations: ((reg?.facultyViolations as unknown[]) ?? []).length > 0,
   };
 }
 
 /** تسمية جامعة الأستاذ ما دامت غير معتمدة (المعتمدة يسمّيها المالك وحده). */
-export async function renameMyUniversity(name: string) {
+/**
+ * «جامعتك» لمساحة غير معتمدة: تُختار من القائمة فتُربط بمفتاحها. إن كان لها مساحة قائمة
+ * (زملاء سبقوه) لا تُنشأ ثانية — يُبلَّغ المالك لينقله إليها بدل مساحتين لجامعة واحدة.
+ */
+export async function linkMyUniversity(key: string, userName: string) {
   const tenantId = requireTenantId();
-  const t = await prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { listed: true } });
-  if (t.listed) throw AppError.forbidden("اسم الجامعة المعتمدة تعدّله إدارة المنصة");
-  await prismaBase.tenant.update({ where: { id: tenantId }, data: { name } });
+  const t = await prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { listed: true, catalogKey: true } });
+  if (t.listed || t.catalogKey) throw AppError.forbidden("جامعة هذه المساحة محددة — تعديلها لإدارة المنصة");
+  const entry = await universityByKey(key);
+  if (!entry) throw AppError.badRequest("اختر جامعتك من القائمة");
+  const other = await prismaBase.tenant.findUnique({ where: { catalogKey: key }, select: { id: true } });
+  if (other) {
+    await notifyOwnersOnce({ kind: "UNIVERSITY_MERGE", title: `أستاذ من «${entry.name}» في مساحة منفصلة`, body: `${userName} سجّل قبل ربط جامعته — انقله إلى مساحة جامعته.`, link: `/institutions/${tenantId}` }, 7);
+    throw AppError.conflict("لجامعتك مساحة قائمة — أبلغنا الإدارة لتنقلك إليها مع زملائك");
+  }
+  await prismaBase.tenant.update({ where: { id: tenantId }, data: { name: entry.name, catalogKey: entry.key } });
 }
 
 export async function submit(input: { workspaceId: string; userId: string; kind: string; note: string; fileName: string; mimeType: string; data: Buffer }) {
@@ -109,7 +123,7 @@ export async function withdraw(userId: string, id: string) {
 
 /** كل ما ينتظر المراجعة عبر الجامعات، مجمّعًا بالجامعة. */
 export async function ownerQueue() {
-  const tenants = await prismaBase.tenant.findMany({ where: { deletedAt: null }, select: { id: true, name: true, listed: true } });
+  const tenants = await prismaBase.tenant.findMany({ where: { deletedAt: null }, select: { id: true, name: true, listed: true, catalogKey: true } });
   const out = [];
   for (const t of tenants) {
     const subs = await withExplicitTenantTx(t.id, (tx) =>
@@ -125,6 +139,7 @@ export async function ownerQueue() {
       tenantId: t.id,
       university: t.name,
       listed: t.listed,
+      linked: !!t.catalogKey,
       submissions: subs.map((s) => ({ ...s, by: users.find((u) => u.id === s.userId) ?? null })),
     });
   }
@@ -217,9 +232,16 @@ export async function ownerExtract(ownerId: string, tenantId: string): Promise<R
  * اعتماد الجامعة: تظهر في قائمة التسجيل (ينضم إليها زملاء الأستاذ فيرثون لوائحها وتقويمها)،
  * وما رُوجع من ملفاتها يُعلَّم «اعتُمد». الحفظ الفعلي للّائحة يتم من محرّرها قبل هذا.
  */
-export async function ownerApprove(ownerId: string, tenantId: string, name?: string) {
+export async function ownerApprove(ownerId: string, tenantId: string, name?: string, catalogKey?: string) {
   const t = await prismaBase.tenant.findUnique({ where: { id: tenantId } });
   if (!t) throw AppError.notFound("الجامعة غير موجودة");
+  if (catalogKey && catalogKey !== t.catalogKey) {
+    const entry = await universityByKey(catalogKey);
+    if (!entry) throw AppError.badRequest("الجامعة ليست في القائمة");
+    if (await prismaBase.tenant.findUnique({ where: { catalogKey } })) throw AppError.conflict("لهذه الجامعة مساحة معتمدة أخرى");
+    name = entry.name;
+    await prismaBase.tenant.update({ where: { id: tenantId }, data: { catalogKey } });
+  }
   await prismaBase.tenant.update({
     where: { id: tenantId },
     data: { status: "ACTIVE", listed: true, ...(name ? { name } : {}), ...(t.joinCode ? {} : { joinCode: newJoinCode(8) }) },

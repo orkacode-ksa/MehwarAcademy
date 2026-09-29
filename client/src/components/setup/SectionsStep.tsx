@@ -3,6 +3,7 @@ import { WEEKDAYS, setMeetingsSchema } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { Button } from "../ui/Button.js";
+import { SuggestInput } from "../ui/CatalogField.js";
 import { Card, ErrorText, IconButton, Input, Select } from "../ui/Form.js";
 import { RosterImport } from "../faculty/RosterImport.js";
 import { Icon } from "../../icons/Icon.js";
@@ -117,7 +118,7 @@ function MeetingsEditor({ section, onSaved }: { section: Section; onSaved: () =>
                 </option>
               ))}
             </Select>
-            <Input value={m.room ?? ""} onChange={(e) => patch(i, { room: e.target.value })} placeholder="القاعة" aria-label="القاعة" className="sm:order-last" />
+            <SuggestInput options={[...new Set(list.map((x) => x.room).filter((r): r is string => !!r))]} value={m.room ?? ""} onChange={(e) => patch(i, { room: e.target.value })} placeholder="القاعة" aria-label="القاعة" className="sm:order-last" />
             <IconButton
               label="حذف الموعد"
               onClick={() => {

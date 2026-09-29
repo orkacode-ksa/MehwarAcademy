@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import { SUBMISSION_KINDS, type SubmissionKind } from "@mihwar/shared";
 import { api, ApiError, assetUrl } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
-import { Card, Input } from "../../components/ui/Form.js";
+import { Card, Select } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
@@ -14,6 +15,7 @@ interface Group {
   tenantId: string;
   university: string;
   listed: boolean;
+  linked: boolean;
   submissions: { id: string; kind: SubmissionKind; title: string; note: string; createdAt: string; by: { fullName: string; email: string } | null }[];
 }
 
@@ -39,14 +41,16 @@ export function SubmissionsPage() {
 }
 
 function UniversityGroup({ g, onDone }: { g: Group; onDone: () => void }) {
-  const [name, setName] = useState(g.university);
+  const catalogs = useCatalogs();
+  // جامعة من القائمة المعتمدة (تأخذ اسمها المعتمد) — لا اسم مكتوب يدويًا.
+  const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const { showToast } = useToast();
 
   async function approve() {
     setBusy(true);
     try {
-      await api.post(`/owner/institutions/${g.tenantId}/approve`, name.trim() && name.trim() !== g.university ? { name: name.trim() } : {});
+      await api.post(`/owner/institutions/${g.tenantId}/approve`, key ? { catalogKey: key } : {});
       showToast("اعتُمدت الجامعة — تظهر الآن في قائمة التسجيل");
       onDone();
     } catch (e) {
@@ -78,7 +82,14 @@ function UniversityGroup({ g, onDone }: { g: Group; onDone: () => void }) {
         ))}
       </ul>
       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] items-center mt-3 [&>*]:min-w-0">
-        <Input value={name} onChange={(e) => setName(e.target.value)} aria-label="اسم الجامعة المعتمد" />
+        <Select value={key} onChange={(e) => setKey(e.target.value)} aria-label="الجامعة في القائمة">
+          <option value="">{g.linked ? "مربوطة بالقائمة" : `بلا ربط — يبقى «${g.university}»`}</option>
+          {(catalogs?.universities ?? []).map((u) => (
+            <option key={u.key} value={u.key}>
+              {u.name}
+            </option>
+          ))}
+        </Select>
         <Link to={`/institutions/${g.tenantId}`}>
           <Button variant="secondary" className="w-full">
             <Icon name="sparks" /> استخرج لائحتها وراجعها

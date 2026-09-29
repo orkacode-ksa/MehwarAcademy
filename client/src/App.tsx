@@ -117,6 +117,7 @@ const SubmissionsPage = page(
 const ForgotPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ForgotPasswordPage");
 const ResetPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ResetPasswordPage");
 const StaffPage = page(() => import("./pages/owner/StaffPage.js"), "StaffPage");
+const CatalogsPage = page(() => import("./pages/owner/CatalogsPage.js"), "CatalogsPage");
 const OwnerUsersPage = page(
   () => import("./pages/owner/OwnerUsersPage.js"),
   "OwnerUsersPage",
@@ -195,6 +196,7 @@ export function App() {
             <Route path="osubmissions" element={<SubmissionsPage />} />
             <Route path="ousers" element={<OwnerUsersPage />} />
             <Route path="ostaff" element={<StaffPage />} />
+            <Route path="ocatalogs" element={<CatalogsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

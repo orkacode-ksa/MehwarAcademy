@@ -12,6 +12,8 @@ import { logger } from "../../lib/logger.js";
 import { newJoinCode } from "../../lib/joinCode.js";
 import { avatarUrlOf, prefsOf } from "../account/prefs.js";
 import { assertLoginTotp } from "../account/mfa.js";
+import { universityByKey } from "../platform/catalogs.js";
+import { notifyOwnersOnce } from "../notifications/notify.js";
 import { DEFAULT_REGULATION } from "../owner/owner.service.js";
 
 const GENERIC_LOGIN_ERROR = "بيانات الدخول غير صحيحة";
@@ -55,6 +57,26 @@ export async function registerUser(
   input: RegisterInput,
   ctx: { ip?: string; userAgent?: string },
 ): Promise<IssuedTokens & { userId: string }> {
+  try {
+    const out = await registerOnce(input, ctx);
+    if (input.role === "TEACHER" && input.universityName && !input.universityKey && !input.universityId) {
+      // جامعة لم تُدرج في القائمة: يُبلَّغ المالك ليضيفها — فيختارها زملاؤه بعده بدل كتابتها
+      await notifyOwnersOnce({ kind: "UNIVERSITY_UNLISTED", title: `جامعة خارج القائمة: ${input.universityName}`, body: "أضفها إلى قائمة الجامعات لتُختار بدل أن تُكتب.", link: "/ocatalogs" }, 7);
+    }
+    return out;
+  } catch (err) {
+    // أستاذان من الجامعة نفسها سجّلا في اللحظة نفسها: الثاني يصطدم بفريدية مفتاح الجامعة —
+    // يُعاد مرة فيجد المساحة التي أنشأها الأول وينضم إليها.
+    const e = err as { code?: string; meta?: { target?: unknown } };
+    if (input.universityKey && e.code === "P2002" && JSON.stringify(e.meta?.target ?? "").includes("catalogKey")) return registerOnce(input, ctx);
+    throw err;
+  }
+}
+
+async function registerOnce(
+  input: RegisterInput,
+  ctx: { ip?: string; userAgent?: string },
+): Promise<IssuedTokens & { userId: string }> {
   const { trialDays } = await getPlatformSettings();
   // فحص عام للبريد رغم أن الفريدية صارت داخل المستأجر: التسجيل الذاتي يُنشئ **مستأجرًا
   // جديدًا** في كل مرة، فبلا هذا الفحص يصير البريد الواحد مصنعًا لمستأجرين بلا حدّ.
@@ -70,7 +92,14 @@ export async function registerUser(
 
   // الانضمام لجامعة قائمة برمزها — `tenants` خارج RLS فالبحث بلا سياق مشروع.
   let institution: { id: string } | null = null;
-  if (input.universityId) {
+  let catalogEntry: { key: string; name: string } | null = null;
+  if (input.universityKey) {
+    if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة");
+    // الجامعة من القائمة: مساحتها القائمة إن وُجدت (أيًّا كان من سجّل أولًا)، وإلا تُنشأ باسمها الموحّد.
+    catalogEntry = await universityByKey(input.universityKey);
+    if (!catalogEntry) throw AppError.badRequest("اختر جامعتك من القائمة");
+    institution = await prismaBase.tenant.findFirst({ where: { catalogKey: catalogEntry.key, deletedAt: null }, select: { id: true } });
+  } else if (input.universityId) {
     if (input.role !== "TEACHER") throw AppError.badRequest("الطالب ينضم برمز الشعبة");
     // الجامعات المعتمدة وحدها (ACTIVE) تُختار من القائمة؛ غيرها يمرّ بالمراجعة أولًا.
     institution = await prismaBase.tenant.findFirst({ where: { id: input.universityId, listed: true, deletedAt: null }, select: { id: true } });
@@ -94,7 +123,13 @@ export async function registerUser(
       (await tx.tenant.create({
         // جامعة لم تُعتمد بعد: المستأجر يحمل اسمها كما كتبه الأستاذ (أو اسمه إن لم يكتب)،
         // ويبقى «تجريبيًا» حتى يعتمد المالك لوائحها من ملفات أساتذتها.
-        data: { slug: `t-${randomToken(8).toLowerCase()}`, name: input.universityName ?? input.fullName, status: "TRIAL", joinCode: newJoinCode(8) },
+        data: {
+          slug: `t-${randomToken(8).toLowerCase()}`,
+          name: catalogEntry?.name ?? input.universityName ?? input.fullName,
+          catalogKey: catalogEntry?.key ?? null,
+          status: "TRIAL",
+          joinCode: newJoinCode(8),
+        },
       }));
 
     // التسجيل يكتب في مستأجر لم يُحسم في الجلسة بعد، فلا سياق مصادقة يضبط `app.tenant_id`.

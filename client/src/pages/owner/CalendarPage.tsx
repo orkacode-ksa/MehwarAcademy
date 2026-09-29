@@ -7,6 +7,14 @@ import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
+import { CatalogSelect } from "../../components/ui/CatalogField.js";
+
+/** أسماء الأعوام الجامعية الهجرية القريبة (العام الماضي حتى بعد القادم) — بصيغة واحدة ثابتة. */
+function yearLabels(): string[] {
+  const y = Number(new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", { year: "numeric" }).format(new Date()).replace(/\D/g, ""));
+  return [y - 1, y, y + 1, y + 2].map((n) => `${n}هـ`);
+}
 
 interface Holiday { id: string; label: string; startDate: string; endDate: string; kind: string }
 interface Term {
@@ -86,7 +94,7 @@ export function CalendarPage() {
         <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
           <label className="block min-w-0">
             <span className="block text-[11.5px] text-ink-3 mb-1">اسم السنة</span>
-            <input value={year.label} onChange={(e) => setYear({ ...year, label: e.target.value })} placeholder="1447هـ" className="w-full border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
+            <CatalogSelect options={yearLabels()} value={year.label} onChange={(label) => setYear({ ...year, label })} placeholder="اختر العام" className="!py-2 !min-h-0" />
           </label>
           <label className="block">
             <span className="block text-[11.5px] text-ink-3 mb-1">البداية</span>
@@ -190,11 +198,12 @@ export function CalendarPage() {
 }
 
 function HolidayForm({ onAdd }: { onAdd: (body: { label: string; startDate: string; endDate: string; kind: string }) => void }) {
+  const catalogs = useCatalogs();
   const [v, setV] = useState({ label: "", startDate: "", endDate: "", kind: "HOLIDAY" });
   const complete = v.label.length >= 2 && v.startDate !== "" && v.endDate !== "";
   return (
     <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center mt-2.5">
-      <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} placeholder="إجازة منتصف الفصل" className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px] min-w-0" />
+      <CatalogSelect options={catalogs?.holidays} value={v.label} onChange={(label) => setV({ ...v, label })} placeholder="اختر الإجازة" aria-label="الإجازة" className="!py-2 !min-h-0 !text-[13px]" />
       <input type="date" value={v.startDate} onChange={(e) => setV({ ...v, startDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]" />
       <input type="date" value={v.endDate} onChange={(e) => setV({ ...v, endDate: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]" />
       <select value={v.kind} onChange={(e) => setV({ ...v, kind: e.target.value })} className="border border-line rounded-[10px] px-3 py-2 bg-surface text-[13px]">
@@ -223,6 +232,7 @@ function TermForm({
   yearLabel: string;
   onAdd: (body: { label: string; startDate: string; endDate: string; gradeLockAt?: string }) => Promise<string | null>;
 }) {
+  const catalogs = useCatalogs();
   const [v, setV] = useState({ label: "", startDate: "", endDate: "", gradeLockAt: "" });
   const [err, setErr] = useState<string | null>(null);
 
@@ -253,7 +263,7 @@ function TermForm({
       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
         <label className="block min-w-0">
           <span className="block text-[11.5px] text-ink-3 mb-1">اسم الفصل</span>
-          <input value={v.label} onChange={(e) => setV({ ...v, label: e.target.value })} placeholder="الفصل الأول" className="w-full border border-line rounded-[10px] px-3 py-2 bg-surface text-[13.5px]" />
+          <CatalogSelect options={catalogs?.termLabels} value={v.label} onChange={(label) => setV({ ...v, label })} placeholder="اختر الفصل" className="!py-2 !min-h-0" />
         </label>
         <label className="block">
           <span className="block text-[11.5px] text-ink-3 mb-1">البداية</span>

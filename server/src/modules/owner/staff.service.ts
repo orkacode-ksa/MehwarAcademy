@@ -28,7 +28,7 @@ export function screenOfPath(path: string, method: string): StaffScreen | null {
   if (path.startsWith("/users")) return "users";
   if (path.startsWith("/store/orders") || path.startsWith("/store/summary")) return "payments";
   if (path.startsWith("/bank")) return "bank";
-  if (path.startsWith("/store/") || path.startsWith("/platform") || path.startsWith("/integrations")) return "settings";
+  if (path.startsWith("/store/") || path.startsWith("/platform") || path.startsWith("/integrations") || path.startsWith("/catalogs")) return "settings";
   return null;
 }
 

@@ -2,9 +2,10 @@ import { useRef, useState } from "react";
 import { SUBMISSION_KINDS, SUBMISSION_STATUS_LABEL, type SubmissionKind } from "@mihwar/shared";
 import { api, ApiError, uploadRaw } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Button } from "../../components/ui/Button.js";
-import { Card, IconButton, Input } from "../../components/ui/Form.js";
+import { Card, IconButton, Input, Select } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
@@ -12,6 +13,7 @@ import { useToast } from "../../state/ToastContext.js";
 interface Mine {
   name: string | null;
   listed: boolean;
+  linked: boolean;
   hasFacultyViolations: boolean;
   submissions: { id: string; kind: SubmissionKind; title: string; note: string; status: keyof typeof SUBMISSION_STATUS_LABEL; createdAt: string }[];
 }
@@ -36,7 +38,7 @@ export function UniversityPage() {
             : `${uni} — جديدة علينا. ارفع لوائحها فنعتمدها لك ولزملائك، وحتى ذلك تعمل بلائحة عامة.`
         }
       />
-      {!data.listed && <NameCard current={data.name} onSaved={reload} />}
+      {!data.listed && !data.linked && <NameCard current={data.name} onSaved={reload} />}
       <div className="grid gap-3 [&>*]:min-w-0">
         {(Object.keys(SUBMISSION_KINDS) as SubmissionKind[]).map((k) => (
           <KindCard key={k} kind={k} items={data.submissions.filter((s) => s.kind === k)} onChanged={reload} />
@@ -112,30 +114,42 @@ function KindCard({ kind, items, onChanged }: { kind: SubmissionKind; items: Min
   );
 }
 
-/** اسم الجامعة غير المعتمدة يكتبه الأستاذ — وحسابات ما قبل «جامعتك» تبدأ به فارغًا. */
+/**
+ * جامعة لم تُربط بعد (حسابات قديمة أو «جامعتي ليست في القائمة»): يختارها الأستاذ من القائمة
+ * المعتمدة — لا كتابة حرة، كي لا تنشأ لجامعة واحدة مساحات بتهجئات مختلفة.
+ */
 function NameCard({ current, onSaved }: { current: string | null; onSaved: () => void }) {
-  const [name, setName] = useState(current ?? "");
+  const catalogs = useCatalogs();
+  const [key, setKey] = useState("");
   const { showToast } = useToast();
   return (
-    <Card title="اسم جامعتك" className="mb-3">
+    <Card title="حدّد جامعتك" hint={current ? `المسجّل حاليًا: ${current}` : undefined} className="mb-3">
       <form
         className="flex gap-2 flex-wrap"
         onSubmit={(e) => {
           e.preventDefault();
           void api
-            .put("/university/me/name", { name: name.trim() })
+            .put("/university/me/name", { key })
             .then(() => {
-              showToast("حُفظ اسم الجامعة");
+              showToast("رُبطت مساحتك بجامعتك");
               onSaved();
             })
             .catch((err: unknown) => showToast(err instanceof ApiError ? err.message : "تعذّر الحفظ"));
         }}
       >
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: جامعة أم القرى" aria-label="اسم جامعتك" className="flex-1 min-w-[200px]" />
-        <Button type="submit" variant="secondary" size="sm" disabled={name.trim().length < 3 || name.trim() === current}>
+        <Select value={key} onChange={(e) => setKey(e.target.value)} aria-label="جامعتك" className="flex-1 min-w-[200px]">
+          <option value="">اختر جامعتك…</option>
+          {(catalogs?.universities ?? []).map((u) => (
+            <option key={u.key} value={u.key}>
+              {u.name}
+            </option>
+          ))}
+        </Select>
+        <Button type="submit" variant="secondary" size="sm" disabled={!key}>
           احفظ
         </Button>
       </form>
+      <p className="text-xs text-ink-3 mt-2">جامعتك ليست في القائمة؟ أبلغنا من «الدعم» وتُضاف لها.</p>
     </Card>
   );
 }

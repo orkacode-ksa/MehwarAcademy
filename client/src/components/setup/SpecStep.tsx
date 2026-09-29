@@ -6,6 +6,8 @@ import { Card, ErrorText, IconButton, Input, Label, Select, Textarea } from "../
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { W, type Course } from "./types.js";
+import { CatalogSelect, SuggestInput } from "../ui/CatalogField.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
 
 /**
  * ① التوصيف — أساس ملف المقرر كله.
@@ -16,6 +18,7 @@ import { W, type Course } from "./types.js";
 export function SpecStep({ course, onSaved }: { course: Course; onSaved: () => void }) {
   const initial = courseSpecSchema.parse(course.spec ?? {});
   const [spec, setSpec] = useState<CourseSpec>(initial);
+  const catalogs = useCatalogs();
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { showToast } = useToast();
@@ -73,13 +76,13 @@ export function SpecStep({ course, onSaved }: { course: Course; onSaved: () => v
               </Select>
             </Label>
             <Label text="المستوى / السنة">
-              <Input value={spec.level} onChange={(e) => set("level", e.target.value)} placeholder="المستوى الثالث" />
+              <CatalogSelect options={catalogs?.levels} value={spec.level} onChange={(v) => set("level", v)} />
             </Label>
             <Label text="المتطلبات السابقة">
               <Input value={spec.prerequisites} onChange={(e) => set("prerequisites", e.target.value)} placeholder="BIO 101" />
             </Label>
             <Label text="نمط التدريس">
-              <Input value={spec.teachingMode} onChange={(e) => set("teachingMode", e.target.value)} placeholder="حضوري" />
+              <CatalogSelect options={catalogs?.teachingModes} value={spec.teachingMode} onChange={(v) => set("teachingMode", v)} />
             </Label>
           </div>
           <div className="grid gap-3 grid-cols-3 [&>*]:min-w-0">
@@ -112,8 +115,8 @@ export function SpecStep({ course, onSaved }: { course: Course; onSaved: () => v
               </div>
               <Input value={o.text} onChange={(e) => patchOutcome(i, { text: e.target.value })} placeholder="يصف الطالب…" aria-label={`نص المخرج ${o.code}`} />
               <div className="grid gap-2 sm:grid-cols-[1fr_1fr_120px] [&>*]:min-w-0">
-                <Input value={o.teaching} onChange={(e) => patchOutcome(i, { teaching: e.target.value })} placeholder="استراتيجية التدريس (محاضرة، معمل…)" aria-label="استراتيجية التدريس" />
-                <Input value={o.assessment} onChange={(e) => patchOutcome(i, { assessment: e.target.value })} placeholder="طريقة التقييم (اختبار، تقرير…)" aria-label="طريقة التقييم" />
+                <SuggestInput options={catalogs?.teachingStrategies} value={o.teaching} onChange={(e) => patchOutcome(i, { teaching: e.target.value })} placeholder="استراتيجية التدريس (محاضرة، معمل…)" aria-label="استراتيجية التدريس" />
+                <SuggestInput options={catalogs?.assessmentMethods} value={o.assessment} onChange={(e) => patchOutcome(i, { assessment: e.target.value })} placeholder="طريقة التقييم (اختبار، تقرير…)" aria-label="طريقة التقييم" />
                 <Label text="المستوى المستهدف ٪">
                   <Input type="number" min={0} max={100} value={o.target} onChange={(e) => patchOutcome(i, { target: Number(e.target.value) })} />
                 </Label>

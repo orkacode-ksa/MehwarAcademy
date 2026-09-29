@@ -8,6 +8,7 @@ import type {
   TermStatus,
 } from "@mihwar/shared";
 import { prismaBase, withExplicitTenantTx } from "../../lib/prisma.js";
+import { universityByKey } from "../platform/catalogs.js";
 import { AppError } from "../../lib/AppError.js";
 
 /**
@@ -118,6 +119,7 @@ export async function listInstitutions() {
       status: true,
       joinCode: true,
       listed: true,
+      catalogKey: true,
       createdAt: true,
       _count: { select: { users: true, departments: true, AcademicYear: true } },
       Regulation: { select: { updatedAt: true } },
@@ -127,12 +129,19 @@ export async function listInstitutions() {
 }
 
 export async function createInstitution(input: InstitutionCreateInput) {
-  const clash = await prismaBase.tenant.findUnique({ where: { slug: input.slug } });
+  const entry = input.catalogKey ? await universityByKey(input.catalogKey) : null;
+  if (input.catalogKey && !entry) throw AppError.badRequest("الجامعة ليست في القائمة");
+  if (entry && (await prismaBase.tenant.findUnique({ where: { catalogKey: entry.key } }))) {
+    throw AppError.conflict("لهذه الجامعة مساحة قائمة — اعتمدها من «لوائح الجامعات» بدل إنشاء أخرى");
+  }
+  const name = entry?.name ?? (input.name as string);
+  const slug = entry?.key ?? (input.slug as string);
+  const clash = await prismaBase.tenant.findUnique({ where: { slug } });
   if (clash) throw AppError.conflict("المعرّف مستخدم لجامعة أخرى");
 
   return prismaBase.$transaction(async (tx) => {
     const tenant = await tx.tenant.create({
-      data: { name: input.name, slug: input.slug, status: "ACTIVE", listed: true, joinCode: newJoinCode(8) },
+      data: { name, slug, catalogKey: entry?.key ?? null, status: "ACTIVE", listed: true, joinCode: newJoinCode(8) },
     });
     // اللائحة تُنشأ فورًا: جامعة بلا لائحة تعني أستاذًا لا يعرف ما المطلوب منه.
     // ضبط GUC داخل المعاملة نفسها لأن `regulations` تحت RLS.

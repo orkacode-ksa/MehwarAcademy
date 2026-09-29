@@ -7,6 +7,7 @@ import { AppError } from "../../lib/AppError.js";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
 import { MAX_UPLOAD_BYTES } from "../files/files.service.js";
+import { prismaBase } from "../../lib/prisma.js";
 import * as service from "./university.service.js";
 
 export const universityRouter = Router();
@@ -33,9 +34,10 @@ universityRouter.put(
   "/me/name",
   requireAuth,
   requireRole("TEACHER"),
-  validate({ body: z.object({ name: z.string().trim().min(3).max(120) }).strict() }),
+  validate({ body: z.object({ key: z.string().regex(/^[a-z0-9-]{2,40}$/) }).strict() }),
   asyncHandler(async (req, res) => {
-    await service.renameMyUniversity(req.body.name);
+    const me = await prismaBase.user.findUniqueOrThrow({ where: { id: (req as { auth?: { userId: string } }).auth?.userId ?? "" }, select: { fullName: true } });
+    await service.linkMyUniversity(req.body.key, me.fullName);
     res.json({ success: true, data: { ok: true } });
   }),
 );

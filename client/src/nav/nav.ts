@@ -41,6 +41,7 @@ const STAFF_SCREEN_OF: Record<string, string> = {
   payments: "payments",
   obank: "bank",
   osettings: "settings",
+  ocatalogs: "settings",
 };
 
 interface NavUser {
@@ -84,7 +85,7 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
   faculty: ["course", "plans", "orders", "cv", "university", "tasks"],
   student: ["scourse"],
   dept: [],
-  admin: ["institutions", "ousers", "payments", "obank", "osettings", "osubmissions"],
+  admin: ["institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs"],
 };
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {

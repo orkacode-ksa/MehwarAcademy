@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { bankAccountSchema, planSchema } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
@@ -10,6 +11,8 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import type { BankAccount, Plan } from "../account/types.js";
 import { WalletSettingsCard } from "./WalletSettingsCard.js";
+import { useCatalogs } from "../../hooks/useCatalogs.js";
+import { CatalogSelect } from "../../components/ui/CatalogField.js";
 
 interface Integrations { storage: "r2" | "db"; ai: boolean; voice: boolean; redis: boolean }
 interface PlatformSettings {
@@ -38,6 +41,15 @@ export function OwnerSettingsPage() {
   return (
     <>
       <PageHeader kicker="المالك" title="الإعدادات" />
+
+      <Link to="/ocatalogs" className="flex items-center gap-3 bg-surface border border-line rounded-[14px] p-4 mb-4 hover:border-deep">
+        <Icon name="grid" className="w-5 h-5 text-deep flex-none" />
+        <span className="flex-1 min-w-0">
+          <span className="block font-semibold text-[14px]">القوائم</span>
+          <span className="block text-[12px] text-ink-3">الجامعات والفصول والمستويات والتخصصات… ما يختاره المستخدمون بدل الكتابة</span>
+        </span>
+        <Icon name="arrl" className="w-4 h-4 text-ink-3" />
+      </Link>
 
       <AiUsageCard />
       <PlatformSettingsCard />
@@ -84,6 +96,7 @@ export function OwnerSettingsPage() {
 }
 
 function AccountForm({ account, onSaved }: { account: BankAccount | null; onSaved: () => void }) {
+  const catalogs = useCatalogs();
   const [v, setV] = useState({ bankName: "", accountName: "", iban: "", accountNumber: "", active: true });
   const [err, setErr] = useState<string | null>(null);
   const { showToast } = useToast();
@@ -111,7 +124,7 @@ function AccountForm({ account, onSaved }: { account: BankAccount | null; onSave
       {!account && <div className="text-[12.5px] font-medium mb-2">حساب جديد</div>}
       <div className="grid gap-2 sm:grid-cols-2 [&>*]:min-w-0">
         <Label text="البنك">
-          <Input value={v.bankName} onChange={(e) => setV({ ...v, bankName: e.target.value })} />
+          <CatalogSelect options={catalogs?.banks} value={v.bankName} onChange={(bankName) => setV({ ...v, bankName })} />
         </Label>
         <Label text="اسم صاحب الحساب">
           <Input value={v.accountName} onChange={(e) => setV({ ...v, accountName: e.target.value })} />

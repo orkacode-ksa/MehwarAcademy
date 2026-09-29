@@ -33,6 +33,7 @@ import { usageReport } from "../platform/aiBudget.js";
 import { googleConfigured } from "../integrations/google.service.js";
 import { ownerMfaRequired } from "../account/mfa.js";
 import * as staff from "./staff.service.js";
+import { getCatalogs, saveCatalogs } from "../platform/catalogs.js";
 import { STAFF_SCREENS, screenOfPath, type StaffScreen } from "./staff.service.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
@@ -67,6 +68,18 @@ ownerRouter.use(
       if (!screen || !u.staffScreens.includes(screen)) throw AppError.forbidden("هذه الشاشة غير ممنوحة لحسابك");
     }
     next();
+  }),
+);
+
+// ───────────────────────── القوائم المقنّنة ─────────────────────────
+
+ownerRouter.get("/catalogs", asyncHandler(async (_req, res) => res.json({ success: true, data: await getCatalogs() })));
+ownerRouter.put(
+  "/catalogs",
+  asyncHandler(async (req, res) => {
+    const out = await saveCatalogs(req.body);
+    await recordAudit({ userId: actor(req), action: "CATALOGS_UPDATED", entityType: "PlatformSetting", entityId: "catalogs" });
+    res.json({ success: true, data: out });
   }),
 );
 
@@ -487,9 +500,9 @@ ownerRouter.post(
 );
 ownerRouter.post(
   "/institutions/:tenantId/approve",
-  validate({ body: z.object({ name: z.string().trim().min(3).max(120).optional() }).strict() }),
+  validate({ body: z.object({ name: z.string().trim().min(3).max(120).optional(), catalogKey: z.string().regex(/^[a-z0-9-]{2,40}$/).optional() }).strict() }),
   asyncHandler(async (req, res) => {
-    await university.ownerApprove(actor(req), req.params.tenantId as string, req.body.name);
+    await university.ownerApprove(actor(req), req.params.tenantId as string, req.body.name, req.body.catalogKey);
     res.json({ success: true, data: { ok: true } });
   }),
 );

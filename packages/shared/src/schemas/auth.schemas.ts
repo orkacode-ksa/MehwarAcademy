@@ -23,6 +23,8 @@ export const registerSchema = z
     institutionCode: z.string().trim().toUpperCase().max(12).optional(),
     /** جامعة معتمدة من القائمة — ينضم الأستاذ إليها (لائحتها وتقويمها). */
     universityId: z.string().trim().max(40).optional(),
+    /** جامعة من القائمة المقنّنة (مفتاحها) — المسار الأساسي: مساحة واحدة لكل جامعة مهما اختلف من سجّل. */
+    universityKey: z.string().trim().regex(/^[a-z0-9-]{2,40}$/).optional(),
     /** جامعة غير موجودة بعد: اسمها كما يكتبه الأستاذ، فتُجهَّز له بلائحة عامة حتى تُعتمد لوائحها. */
     universityName: z.string().trim().min(3).max(120).optional(),
   })
