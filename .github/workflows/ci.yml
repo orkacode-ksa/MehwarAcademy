@@ -1,4 +1,4 @@
-# فحص آلي لكل رفع: لا يصل إلى النشر كود لا يُبنى أو تفشل اختباراته أو يحمل سرًّا.
+# CI: every push must build, pass typecheck/lint/tests and contain no secrets.
 name: CI
 
 on:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   secrets:
-    name: فحص الأسرار
+    name: Secret scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
           ./gitleaks git . --no-banner --redact --exit-code 1
 
   build-test:
-    name: البناء والاختبارات
+    name: Build and test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -41,7 +41,6 @@ jobs:
     env:
       NODE_ENV: test
       PORT: "4000"
-      # التطبيق يعمل بدور غير خارق فتسري عليه سياسات العزل كما في الإنتاج
       DATABASE_URL: postgresql://mihwar_app:ci_app_password@localhost:5432/mihwar?schema=public
       MIGRATION_URL: postgresql://admin:admin@localhost:5432/mihwar?schema=public
       APP_URL: http://localhost:5173
@@ -57,22 +56,22 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: أسرار اختبار عشوائية لكل تشغيل (لا قيم ثابتة في الريبو)
+      - name: Random per-run test secrets
         run: |
           echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
           echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
           echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run build:shared
-      - name: الهجرات وتفعيل دور التطبيق
+      - name: Migrations and app role
         working-directory: server
         run: |
           DATABASE_URL="$MIGRATION_URL" npx prisma migrate deploy
           echo "ALTER ROLE mihwar_app LOGIN PASSWORD 'ci_app_password';" | npx prisma db execute --stdin --url "$MIGRATION_URL"
           npx prisma generate
-      - name: الخادم — الأنواع والتنسيق
+      - name: Server typecheck and lint
         run: npm run typecheck --workspace=server && npm run lint --workspace=server
-      - name: الخادم — الاختبارات
+      - name: Server tests
         run: npm run test --workspace=server
-      - name: الواجهة — الأنواع والتنسيق والبناء الكامل
+      - name: Client lint and full build
         run: npm run lint --workspace=client && npm run build --workspace=client
