@@ -8,8 +8,10 @@ const envSchema = z.object({
    * استعادة حساب المالك من متغيرات Railway: يُطبَّقان مرة عند الإقلاع، ولا يُعاد التطبيق إلا إن
    * تغيّرا. احذف كلمة المرور من المتغيرات بعد أول دخول وغيّرها من «حسابي».
    */
-  OWNER_EMAIL: z.string().trim().toLowerCase().email().optional(),
-  OWNER_INITIAL_PASSWORD: z.string().min(10).max(128).optional(),
+  // بلا شروط هنا عمدًا: متغير اختياري خاطئ لا يُسقط المنصة كلها عند الإقلاع — يُتحقق منه
+  // عند التطبيق (`bootstrapOwner`) فيُتجاهل برسالة واضحة في السجل.
+  OWNER_EMAIL: z.string().optional(),
+  OWNER_INITIAL_PASSWORD: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(4000),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL مطلوب"),

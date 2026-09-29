@@ -30,6 +30,13 @@ afterAll(() => {
 });
 
 describe("استعادة حساب المالك", () => {
+  it("كلمة مرور قصيرة في المتغيرات: تُتجاهل برسالة ولا تُسقط الخادم", async () => {
+    Object.assign(env, { OWNER_EMAIL: ownerEmail, OWNER_INITIAL_PASSWORD: "short1" });
+    await expect(bootstrapOwner()).resolves.toBeUndefined();
+    const u = await prismaBase.user.findFirstOrThrow({ where: { email: ownerEmail } });
+    expect(u.role).toBe("TEACHER");
+  });
+
   it("يصير مالكًا بكلمة المرور المؤقتة، ولا يُعاد التطبيق عند إعادة التشغيل", async () => {
     Object.assign(env, { OWNER_EMAIL: ownerEmail, OWNER_INITIAL_PASSWORD: "TempOwnerPass!2026" });
     await bootstrapOwner();

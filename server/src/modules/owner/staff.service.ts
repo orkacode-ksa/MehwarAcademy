@@ -98,9 +98,17 @@ export async function setStaffActive(ownerId: string, id: string, active: boolea
  * وتُبطل جلساته القديمة. إن لم يوجد البريد يُنشأ حساب مالك في مستأجر الإدارة.
  */
 export async function bootstrapOwner(): Promise<void> {
-  const email = env.OWNER_EMAIL;
+  const email = env.OWNER_EMAIL?.trim().toLowerCase();
   const password = env.OWNER_INITIAL_PASSWORD;
   if (!email || !password) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    logger.error("استعادة حساب المالك: OWNER_EMAIL ليس بريدًا صالحًا — لم يُطبَّق شيء");
+    return;
+  }
+  if (password.length < 10 || password.length > 128) {
+    logger.error("استعادة حساب المالك: OWNER_INITIAL_PASSWORD يجب أن يكون من ١٠ أحرف على الأقل — لم يُطبَّق شيء");
+    return;
+  }
   const fp = sha256Hex(`${email}:${password}`);
   const mark = await prismaBase.platformSetting.findUnique({ where: { key: "ownerBootstrap" } });
   if ((mark?.value as { fp?: string } | null)?.fp === fp) return;
