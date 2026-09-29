@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { page, PageFallback } from "./lib/lazyPage.js";
 import { AppShell } from "./layouts/AppShell.js";
+import { RequireSession } from "./layouts/RequireSession.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
 import { ConfirmHost } from "./components/ui/ConfirmDialog.js";
 const LandingPage = page(() => import("./pages/LandingPage.js"), "LandingPage");
@@ -167,7 +168,13 @@ export function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/legal/:doc" element={<LegalPage />} />
 
-          <Route element={<AppShell />}>
+          <Route
+            element={
+              <RequireSession>
+                <AppShell />
+              </RequireSession>
+            }
+          >
             {/* الأستاذ */}
             <Route path="home" element={<FacultyHomePage />} />
             <Route path="tasks" element={<TasksPage />} />

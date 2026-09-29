@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { loginSchema, type LoginInput } from "@mihwar/shared";
 import { AuthLayout } from "../components/auth/AuthLayout.js";
@@ -9,7 +9,7 @@ import { PasswordField } from "../components/auth/PasswordField.js";
 import { Button } from "../components/ui/Button.js";
 import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME, type Role } from "../nav/nav.js";
-import { resetSession } from "../hooks/useSession.js";
+import { resetSession, useSession } from "../hooks/useSession.js";
 import { api, ApiError } from "../api/client.js";
 
 /**
@@ -30,6 +30,8 @@ const ROLE_BY_SERVER: Record<string, Role> = {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  // من دخل فعلًا لا يرى نموذج الدخول (زر الرجوع بعد الدخول) — يُعاد لرئيسيته.
+  const { user: signedIn, loading: checking } = useSession();
   const {
     register,
     handleSubmit,
@@ -50,11 +52,18 @@ export function LoginPage() {
       resetSession();
       const me = await api.get<{ role: string; staffScreens?: string[] }>("/auth/me");
       // المالك وكل موظف يبدأ من «الرئيسية» — محتواها بقدر صلاحياته، يصفّيه الخادم.
-      navigate(`/${me.role === "ADMIN" || me.role === "OWNER" ? "ohome" : ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`);
+      // العودة إلى الصفحة التي طُلب الدخول منها (رابط داخلي فقط)، وإلا رئيسية الدور.
+      const next = params.get("next");
+      const home = `/${me.role === "ADMIN" || me.role === "OWNER" ? "ohome" : ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`;
+      navigate(next && /^\/[a-z]/.test(next) ? next : home, { replace: true });
     } catch (err) {
       if (err instanceof ApiError && (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID")) setNeedCode(true);
       setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا");
     }
+  }
+
+  if (!checking && signedIn) {
+    return <Navigate to={`/${signedIn.role === "ADMIN" || signedIn.role === "OWNER" ? "ohome" : ROLE_HOME[ROLE_BY_SERVER[signedIn.role] ?? "faculty"]}`} replace />;
   }
 
   return (

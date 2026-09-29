@@ -21,6 +21,7 @@ interface ApiResponse<T> {
  * «مرة واحدة» مشتركة: عشرة طلبات متزامنة ترى ٤٠١ تنتظر تجديدًا واحدًا — تجديدان متوازيان
  * يقدّمان رمز التحديث نفسه مرتين، وتدويره يعدّ ذلك سرقة فيُخرج المستخدم من كل أجهزته.
  */
+export const SESSION_EXPIRED = "mihwar:session-expired";
 let refreshing: Promise<boolean> | null = null;
 /** مسارات الدخول نفسها لا تُجدَّد (٤٠١ فيها جواب لا انتهاء جلسة) — و/auth/me يُجدَّد: هو أول نداء عند فتح التطبيق. */
 const NO_REFRESH = /^\/auth\/(login|register|refresh|logout|join-section)/;
@@ -50,6 +51,10 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
 
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const body = isJson ? ((await res.json()) as ApiResponse<T>) : undefined;
+
+  // انتهت الجلسة ولم يُفلح التجديد: يُعلَن ذلك للتطبيق فيخرج المستخدم إلى الدخول فورًا
+  // بدل أن تبقى الشاشة مفتوحة برسائل «مطلوب تسجيل الدخول».
+  if (res.status === 401 && !NO_REFRESH.test(path)) window.dispatchEvent(new Event(SESSION_EXPIRED));
 
   if (!res.ok) {
     throw new ApiError(res.status, body?.error?.code ?? "UNKNOWN", body?.error?.message ?? "حدث خطأ غير متوقع");

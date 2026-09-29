@@ -13,5 +13,6 @@ export async function confirmLogout(navigate: NavigateFunction) {
   });
   if (!ok) return;
   await logout();
-  navigate("/login");
+  // استبدال لا إضافة: زر الرجوع بعد الخروج لا يعيد الصفحة السابقة.
+  navigate("/login", { replace: true });
 }

@@ -25,7 +25,7 @@ export function SecurityCard() {
       await api.post("/me/password", parsed.data);
       resetSession();
       showToast("تغيّرت كلمة المرور — ادخل بها من جديد");
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "تعذّر التغيير");
     }
@@ -54,7 +54,7 @@ export function SecurityCard() {
           onClick={() =>
             void api.post("/auth/logout-all", {}).then(() => {
               resetSession();
-              navigate("/login");
+              navigate("/login", { replace: true });
             })
           }
         >
