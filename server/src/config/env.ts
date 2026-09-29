@@ -53,6 +53,7 @@ const envSchema = z.object({
   STORAGE_ACCESS_KEY: z.string().optional(),
   STORAGE_SECRET_KEY: z.string().optional(),
   STORAGE_BUCKET: z.string().optional(),
+  STORAGE_REGION: z.string().optional(),
   STORAGE_PUBLIC_ORIGIN: z.string().optional(),
   PAYMENT_GATEWAY_API_KEY: z.string().optional(),
   PAYMENT_WEBHOOK_SECRET: z.string().optional(),

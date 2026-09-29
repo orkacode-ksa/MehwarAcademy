@@ -9,6 +9,7 @@ import { closePdfEngine } from "./lib/pdf.js";
 import { startTermCloser } from "./jobs/termCloser.js";
 import { alertServerError } from "./lib/alerts.js";
 import { bootstrapOwner } from "./modules/owner/staff.service.js";
+import { migrateBlobsToObjectStorage } from "./modules/files/blobMigration.js";
 
 installArabicZodErrorMap();
 
@@ -25,6 +26,8 @@ const server = app.listen(env.PORT, () => {
 startTermCloser();
 // استعادة حساب المالك من متغيرات Railway إن ضُبطت — مرة لكل قيمة، ولا تُسقط الخادم إن فشلت.
 void bootstrapOwner().catch((err: unknown) => logger.error({ err }, "تعذّرت استعادة حساب المالك"));
+// ما خُزّن في قاعدة البيانات قبل ضبط التخزين الكائني يُنقل إليه في الخلفية (مرة، ويُكمل إن انقطع).
+void migrateBlobsToObjectStorage().catch((err: unknown) => logger.error({ err }, "تعذّر نقل الملفات إلى التخزين الكائني — تبقى تُقرأ من القاعدة"));
 
 server.headersTimeout = 65_000;
 server.requestTimeout = 60_000;

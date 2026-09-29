@@ -89,6 +89,7 @@ export async function readFile(fileId: string) {
     const storage = getStorageProvider();
     const url = await storage.presignGet(file.objectKey, file.originalName);
     if (url) return { kind: "redirect" as const, url, file };
+    return { kind: "bytes" as const, data: await storage.get(file.objectKey), file };
   }
   const blob = await prisma.fileBlob.findFirst({ where: { fileId } });
   if (!blob) throw AppError.notFound("محتوى الملف غير متاح");

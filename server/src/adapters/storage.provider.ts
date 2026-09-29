@@ -4,12 +4,13 @@ import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 
 /**
- * التخزين الكائني — Cloudflare R2 (متوافق مع S3).
+ * التخزين الكائني — أي خدمة متوافقة مع S3. في الإنتاج: حاوية Railway (mihwar-files، أمستردام)؛
+ * وتصلح Cloudflare R2 بالمتغيرات نفسها.
  *
- * لماذا R2: بلا رسوم خروج إطلاقًا (الفيديو والصوت يُشاهَدان كثيرًا، والخروج هو ما يُفلس
- * المنصات التعليمية على S3)، و١٠ جيجابايت مجانًا ثم ~0.015$ للجيجابايت شهريًا.
+ * لماذا هذا لا القاعدة: الملفات (فيديو · صوت · PDF) تُضخّم قاعدة البيانات ونسخها الاحتياطية وتبطئها،
+ * والتنزيل بروابط موقّعة مباشرة من الحاوية لا يمرّ عبر الخادم ولا يُحسب عليه — والخروج من الحاوية مجاني.
  *
- * بلا مفاتيح R2 يعمل النظام بوضع «DB»: يُخزَّن محتوى الملف في جدول `file_blobs`. كان البديل
+ * بلا مفاتيح يعمل النظام بوضع «DB»: يُخزَّن محتوى الملف في جدول `file_blobs`. كان البديل
  * القديم القرص المحلي — وقرص Railway يُمسح مع كل نشر، فكان كل ملف سيضيع بصمت.
  */
 export interface StorageProvider {
@@ -28,7 +29,7 @@ class R2Storage implements StorageProvider {
   private client: S3Client;
   constructor(private bucket: string) {
     this.client = new S3Client({
-      region: "auto",
+      region: env.STORAGE_REGION ?? "auto",
       endpoint: env.STORAGE_ENDPOINT,
       credentials: { accessKeyId: env.STORAGE_ACCESS_KEY as string, secretAccessKey: env.STORAGE_SECRET_KEY as string },
     });
@@ -82,10 +83,10 @@ export function getStorageProvider(): StorageProvider {
   if (instance) return instance;
   if (env.STORAGE_ENDPOINT && env.STORAGE_ACCESS_KEY && env.STORAGE_SECRET_KEY && env.STORAGE_BUCKET) {
     instance = new R2Storage(env.STORAGE_BUCKET);
-    logger.info({ bucket: env.STORAGE_BUCKET }, "التخزين: Cloudflare R2");
+    logger.info({ bucket: env.STORAGE_BUCKET }, "التخزين: حاوية كائنات متوافقة مع S3");
   } else {
     instance = new DbStorage();
-    logger.warn("التخزين: وضع قاعدة البيانات — اضبط STORAGE_* لتفعيل R2 (الملفات الكبيرة والفيديو تحتاجه)");
+    logger.warn("التخزين: وضع قاعدة البيانات — اضبط STORAGE_* لتفعيل التخزين الكائني (الملفات الكبيرة والفيديو تحتاجه)");
   }
   return instance;
 }
