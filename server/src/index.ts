@@ -5,6 +5,7 @@ import { logger } from "./lib/logger.js";
 import { prisma } from "./lib/prisma.js";
 import { assertRlsEffective } from "./lib/rlsGuard.js";
 import { redis } from "./lib/redis.js";
+import { claimOnce } from "./lib/leader.js";
 import { closePdfEngine } from "./lib/pdf.js";
 import { startTermCloser } from "./jobs/termCloser.js";
 import { alertServerError } from "./lib/alerts.js";
@@ -24,10 +25,16 @@ const server = app.listen(env.PORT, () => {
 });
 
 startTermCloser();
-// استعادة حساب المالك من متغيرات Railway إن ضُبطت — مرة لكل قيمة، ولا تُسقط الخادم إن فشلت.
-void bootstrapOwner().catch((err: unknown) => logger.error({ err }, "تعذّرت استعادة حساب المالك"));
-// ما خُزّن في قاعدة البيانات قبل ضبط التخزين الكائني يُنقل إليه في الخلفية (مرة، ويُكمل إن انقطع).
-void migrateBlobsToObjectStorage().catch((err: unknown) => logger.error({ err }, "تعذّر نقل الملفات إلى التخزين الكائني — تبقى تُقرأ من القاعدة"));
+// مهام الإقلاع تتولاها نسخة خادم واحدة حين تعمل أكثر من نسخة (تُقلعان معًا عند كل نشر).
+// ينتظر اتصال Redis لحظة كي لا تفوز كل نسخة بالقفل لأن الاتصال لم يجهز بعد.
+void (async () => {
+  if (redis && redis.status !== "ready") await new Promise((r) => setTimeout(r, 3000));
+  // استعادة حساب المالك من متغيرات Railway إن ضُبطت — مرة لكل قيمة، ولا تُسقط الخادم إن فشلت.
+  if (await claimOnce("boot:owner", 120)) await bootstrapOwner().catch((err: unknown) => logger.error({ err }, "تعذّرت استعادة حساب المالك"));
+  // ما خُزّن في قاعدة البيانات قبل ضبط التخزين الكائني يُنقل إليه في الخلفية (مرة، ويُكمل إن انقطع).
+  if (await claimOnce("boot:blobs", 30 * 60))
+    await migrateBlobsToObjectStorage().catch((err: unknown) => logger.error({ err }, "تعذّر نقل الملفات إلى التخزين الكائني — تبقى تُقرأ من القاعدة"));
+})();
 
 server.headersTimeout = 65_000;
 server.requestTimeout = 60_000;
