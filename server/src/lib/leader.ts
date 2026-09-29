@@ -13,3 +13,13 @@ export async function claimOnce(key: string, ttlSeconds: number): Promise<boolea
     return true;
   }
 }
+
+/** يشغّل `fn` على نسخة واحدة، ثم يحرّر القفل فيُعاد في النشر التالي (لا بعد انتهاء مدته). */
+export async function runOnce(key: string, ttlSeconds: number, fn: () => Promise<unknown>): Promise<void> {
+  if (!(await claimOnce(key, ttlSeconds))) return;
+  try {
+    await fn();
+  } finally {
+    await redis?.del(`lock:${key}`).catch(() => undefined);
+  }
+}
