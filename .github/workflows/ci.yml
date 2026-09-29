@@ -1,0 +1,77 @@
+# فحص آلي لكل رفع: لا يصل إلى النشر كود لا يُبنى أو تفشل اختباراته أو يحمل سرًّا.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: فحص الأسرار
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-test:
+    name: البناء والاختبارات
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: mihwar
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U admin" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      NODE_ENV: test
+      PORT: "4000"
+      # التطبيق يعمل بدور غير خارق فتسري عليه سياسات العزل كما في الإنتاج
+      DATABASE_URL: postgresql://mihwar_app:ci_app_password@localhost:5432/mihwar?schema=public
+      MIGRATION_URL: postgresql://admin:admin@localhost:5432/mihwar?schema=public
+      APP_URL: http://localhost:5173
+      API_ORIGIN: http://localhost:4000
+      CLIENT_ORIGINS: http://localhost:5173
+      JWT_ISSUER: mihwar-ci
+      JWT_AUDIENCE: mihwar-ci
+      REDIS_URL: redis://localhost:6379
+      CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: أسرار اختبار عشوائية لكل تشغيل (لا قيم ثابتة في الريبو)
+        run: |
+          echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run build:shared
+      - name: الهجرات وتفعيل دور التطبيق
+        working-directory: server
+        run: |
+          DATABASE_URL="$MIGRATION_URL" npx prisma migrate deploy
+          echo "ALTER ROLE mihwar_app LOGIN PASSWORD 'ci_app_password';" | npx prisma db execute --stdin --url "$MIGRATION_URL"
+          npx prisma generate
+      - name: الخادم — الأنواع والتنسيق
+        run: npm run typecheck --workspace=server && npm run lint --workspace=server
+      - name: الخادم — الاختبارات
+        run: npm run test --workspace=server
+      - name: الواجهة — الأنواع والتنسيق والبناء الكامل
+        run: npm run lint --workspace=client && npm run build --workspace=client
