@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/Button.js";
 import { Card, ErrorText, Input, Label } from "../../components/ui/Form.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
+import { Money, Riyal } from "../../components/ui/Riyal.js";
 
 type Kind = "TEXT" | "SLIDES" | "AUDIO" | "VIDEO";
 interface WalletSettings { feePercent: number; packs: number[]; estimateSar: Record<Kind, number> }
@@ -53,15 +54,15 @@ export function WalletSettingsCard() {
         <Label text="رسم الخدمة ٪">
           <Input type="number" min={0} max={90} value={v.feePercent} onChange={(e) => setV({ ...v, feePercent: Number(e.target.value) })} dir="ltr" />
         </Label>
-        <Label text="باقات الشحن (ر.س، مفصولة بفاصلة)">
+        <Label text={<>باقات الشحن (<Riyal />، مفصولة بفاصلة)</>}>
           <Input value={packs} onChange={(e) => setPacks(e.target.value)} dir="ltr" />
         </Label>
       </div>
       <p className="text-[12px] text-ink-3 mt-1.5">
-        مثال: يدفع {formatNum(example)} ر.س ← لك {formatNum(((example * v.feePercent) / 100).toFixed(2))} ر.س ← رصيده {formatNum((example - (example * v.feePercent) / 100).toFixed(2))} ر.س
+        مثال: يدفع <Money>{formatNum(example)}</Money> ← لك <Money>{formatNum(((example * v.feePercent) / 100).toFixed(2))}</Money> ← رصيده <Money>{formatNum((example - (example * v.feePercent) / 100).toFixed(2))}</Money>
       </p>
 
-      <div className="text-[12.5px] font-medium mt-4 mb-1">التقدير المحجوز لكل مادة (ر.س) مقابل الفعلي آخر ٣٠ يومًا</div>
+      <div className="text-[12.5px] font-medium mt-4 mb-1">التقدير المحجوز لكل مادة (<Riyal />) مقابل الفعلي آخر ٣٠ يومًا</div>
       <div className="grid gap-2">
         {(Object.keys(LABEL) as Kind[]).map((k) => {
           const u = usage.data?.costByKind.find((x) => x.kind === k);

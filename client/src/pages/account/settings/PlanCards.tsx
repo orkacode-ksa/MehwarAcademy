@@ -5,6 +5,7 @@ import { Chip } from "../../../components/ui/Chip.js";
 import { Icon } from "../../../icons/Icon.js";
 import { formatNum } from "../../../lib/numerals.js";
 import { ORDER_TONE, mb, type Entitlements, type Order, type Usage } from "../types.js";
+import { RiyalText } from "../../../components/ui/Riyal.js";
 
 export type Store = { entitlements: Entitlements; usage: Usage; orders: Order[] };
 
@@ -57,7 +58,7 @@ export function OrdersCard({ orders }: { orders: Order[] }) {
         <li key={o.id}>
           <Link to={`/orders/${o.id}`} className="flex items-center gap-3 border border-line2 rounded-[10px] px-3 py-2.5 hover:bg-deep/[.03] min-h-[48px]">
             <span className="flex-1 min-w-0">
-              <span className="block text-[13.5px] truncate">{o.titleAr}</span>
+              <span className="block text-[13.5px] truncate"><RiyalText text={o.titleAr} /></span>
               <span className="block text-[11.5px] text-ink-3" dir="ltr">
                 {o.number}
               </span>

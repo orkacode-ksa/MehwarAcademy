@@ -60,4 +60,5 @@ export const ORDER_TONE = {
 
 export const mb = (bytes: number) => Math.round((bytes / (1024 * 1024)) * 10) / 10;
 export const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("ar-SA-u-nu-latn-ca-gregory") : "—");
-export const sar = (n: number) => `${new Intl.NumberFormat("ar-SA-u-nu-latn").format(n)} ر.س`;
+/** المبلغ منسّقًا بلا عملة — يُعرض داخل <Money> ليلحقه رمز الريال. */
+export const sarNum = (n: number) => new Intl.NumberFormat("ar-SA-u-nu-latn").format(n);

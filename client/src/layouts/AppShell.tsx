@@ -75,7 +75,7 @@ export function AppShell() {
         onClose={() => setMoreOpen(false)}
         onLogout={() => void logout().then(() => navigate("/login"))}
       />
-      <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-24 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
+      <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-28 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
         <div className="max-w-[1100px] mx-auto" id="main">
           <Topbar />
           <SubscriptionBanner />

@@ -9,6 +9,7 @@ import { Chip } from "../ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
+import { Money } from "../../components/ui/Riyal.js";
 
 interface Source { id: string; title: string; mimeType: keyof typeof SOURCE_MIME; sizeBytes: number; readable: boolean }
 export interface StudioTopic { id: string; title: string; lectures: { kind: string }[] }
@@ -21,7 +22,7 @@ export interface GenStatus {
   estimates: Record<GenerationKind, number>;
 }
 
-const sar = (h: number) => `${formatNum((h / 100).toFixed(2))} ر.س`;
+const sar = (h: number) => <Money>{formatNum((h / 100).toFixed(2))}</Money>;
 
 const HINTS: Record<GenerationKind, string> = {
   TEXT: "محاضرة مكتوبة: أهداف · شرح · جدول مقارنة · أخطاء شائعة · أسئلة مراجعة بإجاباتها",

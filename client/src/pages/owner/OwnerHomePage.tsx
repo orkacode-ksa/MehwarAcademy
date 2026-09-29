@@ -3,6 +3,7 @@ import { useApi } from "../../hooks/useApi.js";
 import { SectionLabel } from "../../components/home/SectionLabel.js";
 import { Surface } from "../../components/ui/Surface.js";
 import { Icon } from "../../icons/Icon.js";
+import { RiyalText } from "../../components/ui/Riyal.js";
 
 type Tone = "crim" | "amber" | "teal";
 interface Tile { label: string; value: string; hint?: string; link?: string; tone?: Tone }
@@ -63,7 +64,7 @@ export function OwnerHomePage() {
               const body = (
                 <>
                   <Icon name="alert" className="w-4 h-4 flex-none" />
-                  <span className="flex-1 min-w-0">{a.text}</span>
+                  <span className="flex-1 min-w-0"><RiyalText text={a.text} /></span>
                   {a.link && <Icon name="arr" className="w-4 h-4 flex-none" />}
                 </>
               );
@@ -96,8 +97,8 @@ export function OwnerHomePage() {
                 <>
                   <span className={`w-2 h-2 rounded-full flex-none mt-1.5 ${n.unread ? "bg-deep" : "bg-transparent"}`} />
                   <span className="flex-1 min-w-0">
-                    <span className="block text-[13px] font-medium truncate">{n.title}</span>
-                    {n.body && <span className="block text-[11.5px] text-ink-3 truncate">{n.body}</span>}
+                    <span className="block text-[13px] font-medium truncate"><RiyalText text={n.title} /></span>
+                    {n.body && <span className="block text-[11.5px] text-ink-3 truncate"><RiyalText text={n.body} /></span>}
                   </span>
                   <span className="text-[11px] text-ink-3 flex-none">{ago(n.createdAt)}</span>
                 </>
@@ -126,8 +127,8 @@ export function OwnerHomePage() {
               const inner = (
                 <>
                   <span className="block text-[11.5px] text-ink-3 truncate">{t.label}</span>
-                  <span className={`block text-[19px] font-semibold mt-0.5 num truncate ${t.tone ? VALUE_TONE[t.tone] : ""}`}>{t.value}</span>
-                  {t.hint && <span className="block text-[11px] text-ink-3 mt-0.5 truncate">{t.hint}</span>}
+                  <span className={`block text-[19px] font-semibold mt-0.5 num truncate ${t.tone ? VALUE_TONE[t.tone] : ""}`}><RiyalText text={t.value} /></span>
+                  {t.hint && <span className="block text-[11px] text-ink-3 mt-0.5 truncate"><RiyalText text={t.hint} /></span>}
                 </>
               );
               const cls = "block bg-surface border border-line rounded-[14px] p-3.5";
@@ -157,7 +158,7 @@ export function OwnerHomePage() {
                   {q.items.map((it, i) => (
                     <li key={i}>
                       <Link to={it.link} className="block py-2">
-                        <span className="block text-[13px] truncate">{it.title}</span>
+                        <span className="block text-[13px] truncate"><RiyalText text={it.title} /></span>
                         <span className="block text-[11.5px] text-ink-3 truncate">{it.sub}</span>
                       </Link>
                     </li>

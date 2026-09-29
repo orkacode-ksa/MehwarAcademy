@@ -13,7 +13,7 @@ export const NAV: Record<Role, NavItem[]> = {
   // الأستاذ: ثلاث وجهات لا عشر. كانت سبع منها صفحات بديلة، و«لا زرّ يقود إلى شاشة غير
   // مبنية» (lessons §٣.٧). «القسم» يظهر لرئيس القسم وحده (انظر visibleNav).
   faculty: [
-    { key: "home", icon: "grid", label: "الرئيسية" },
+    { key: "home", icon: "home", label: "الرئيسية" },
     { key: "courses", icon: "book", label: "مقرراتي" },
     { key: "bank", icon: "box", label: "البنك" },
     { key: "today", icon: "clock", label: "محاضرة اليوم" },
@@ -24,7 +24,7 @@ export const NAV: Record<Role, NavItem[]> = {
   dept: [{ key: "dhome", icon: "users", label: "القسم" }],
   // المالك: التعقيد مسموح هنا وحده — خمس وجهات تغطي كل شيء.
   admin: [
-    { key: "ohome", icon: "chart", label: "الرئيسية" },
+    { key: "ohome", icon: "home", label: "الرئيسية" },
     { key: "institutions", icon: "grid", label: "الجامعات" },
     { key: "ousers", icon: "users", label: "المستخدمون" },
     { key: "payments", icon: "card", label: "المدفوعات" },

@@ -8,7 +8,8 @@ import { Card, ErrorText, Input } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
-import { ORDER_TONE, fmtDate, sar, type Order } from "../account/types.js";
+import { ORDER_TONE, fmtDate, sarNum, type Order } from "../account/types.js";
+import { Money, RiyalText } from "../../components/ui/Riyal.js";
 
 interface OwnerOrder extends Order {
   transferRef: string | null;
@@ -41,14 +42,14 @@ export function PaymentsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 [&>*]:min-w-0">
         {[
           ["بانتظار مراجعتك", formatNum(summary?.pendingReview ?? 0)],
-          ["مقبوض هذا الشهر", sar(summary?.monthRevenue ?? 0)],
+          ["مقبوض هذا الشهر", <Money>{sarNum(summary?.monthRevenue ?? 0)}</Money>],
           ["طلبات مُفعَّلة هذا الشهر", formatNum(summary?.monthOrders ?? 0)],
-          ["رسوم خدمة الشحن (صافي لك)", sar(summary?.monthCreditFees ?? 0)],
-          ["شُحن رصيدًا للأساتذة", sar(summary?.monthCreditLoaded ?? 0)],
+          ["رسوم خدمة الشحن (صافي لك)", <Money>{sarNum(summary?.monthCreditFees ?? 0)}</Money>],
+          ["شُحن رصيدًا للأساتذة", <Money>{sarNum(summary?.monthCreditLoaded ?? 0)}</Money>],
           // مال مقبوض لم يُستهلك بعد: التزام تشغيل قائم، لا ربح — يُحتفظ بما يغطيه
-          ["أرصدة غير مستهلكة (التزام)", sar(summary?.walletLiability ?? 0)],
+          ["أرصدة غير مستهلكة (التزام)", <Money>{sarNum(summary?.walletLiability ?? 0)}</Money>],
         ].map(([l, v]) => (
-          <div key={l} className="bg-surface border border-line rounded-[14px] p-3 text-center">
+          <div key={String(l)} className="bg-surface border border-line rounded-[14px] p-3 text-center">
             <div className="text-[18px] font-semibold text-deep">{v}</div>
             <div className="text-[11.5px] text-ink-3">{l}</div>
           </div>
@@ -106,13 +107,13 @@ function OrderCard({ o, onDone }: { o: OwnerOrder; onDone: () => void }) {
     <Card>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <div className="font-semibold text-[15px]">{o.titleAr}</div>
+          <div className="font-semibold text-[15px]"><RiyalText text={o.titleAr} /></div>
           <div className="text-[12.5px] text-ink-3 mt-0.5">
             {o.customer.name} · {o.customer.institution} · <span dir="ltr">{o.customer.email}</span>
           </div>
         </div>
         <div className="text-end">
-          <b className="text-[18px] text-deep">{sar(o.amount)}</b>
+          <b className="text-[18px] text-deep"><Money>{sarNum(o.amount)}</Money></b>
           <div>
             <Chip tone={ORDER_TONE[o.status]}>{ORDER_STATUS_LABEL[o.status]}</Chip>
           </div>

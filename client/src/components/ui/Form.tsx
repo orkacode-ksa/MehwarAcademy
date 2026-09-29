@@ -6,7 +6,7 @@ import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAt
  */
 const base = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface text-[13.5px] min-h-[44px]";
 
-export function Label({ text, children, className = "" }: { text: string; children: ReactNode; className?: string }) {
+export function Label({ text, children, className = "" }: { text: ReactNode; children: ReactNode; className?: string }) {
   return (
     <label className={`block min-w-0 ${className}`}>
       <span className="block text-[11.5px] text-ink-3 mb-1">{text}</span>

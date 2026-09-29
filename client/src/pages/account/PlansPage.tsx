@@ -8,6 +8,7 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import type { Plan } from "./types.js";
+import { Money, Riyal } from "../../components/ui/Riyal.js";
 
 /** الباقات — شهري أو سنوي بمفتاح واحد، وزرّ واحد لكل باقة. */
 export function PlansPage() {
@@ -60,11 +61,11 @@ export function PlansPage() {
               </div>
               <div className="mt-2">
                 <span className="text-[26px] font-semibold text-deep">{formatNum(price)}</span>
-                <span className="text-[12.5px] text-ink-3"> ر.س {price > 0 ? (yearly ? "/ سنة" : "/ شهر") : ""}</span>
+                <span className="text-[12.5px] text-ink-3"> <Riyal /> {price > 0 ? (yearly ? "/ سنة" : "/ شهر") : ""}</span>
                 {/* التوفير يُحسب من الأسعار الفعلية — لا نصّ ثابت يكذب إذا غيّر المالك السعر */}
                 {yearly && p.priceMonthly > 0 && p.priceYearly < p.priceMonthly * 12 && (
                   <div className="text-[12px] text-teal mt-0.5">
-                    توفّر {formatNum(Math.round(p.priceMonthly * 12 - p.priceYearly))} ر.س سنويًا
+                    توفّر <Money>{formatNum(Math.round(p.priceMonthly * 12 - p.priceYearly))}</Money> سنويًا
                   </div>
                 )}
               </div>

@@ -11,6 +11,7 @@ import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import { useCatalogs } from "../../hooks/useCatalogs.js";
 import { CatalogSelect } from "../../components/ui/CatalogField.js";
+import { Money, Riyal } from "../../components/ui/Riyal.js";
 
 interface Summary { topics?: number; materials?: number; assessments?: number; exams?: number; outcomes?: number }
 interface Evaluation {
@@ -170,7 +171,7 @@ function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
             <div className="flex items-baseline gap-3 flex-wrap">
               <span className="text-[22px] font-semibold text-deep">{formatNum(ev.overall)}/١٠</span>
               <span>
-                السعر المقترح <strong>{formatNum(ev.suggestedPriceSar)} ر.س</strong> — {ev.priceRationale}
+                السعر المقترح <strong><Money>{formatNum(ev.suggestedPriceSar)}</Money></strong> — {ev.priceRationale}
               </span>
             </div>
             <ul className="grid gap-1 sm:grid-cols-2">
@@ -220,7 +221,7 @@ function BankRow({ r, onDone }: { r: Row; onDone: () => void }) {
 
       {/* القرار */}
       <div className="grid gap-3 sm:grid-cols-3 mt-3 [&>*]:min-w-0 items-end">
-        <Label text="السعر (ر.س) — ٠ مجاني">
+        <Label text={<>السعر (<Riyal />) — ٠ مجاني</>}>
           <Input type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} />
         </Label>
         <Label text="التخصص">

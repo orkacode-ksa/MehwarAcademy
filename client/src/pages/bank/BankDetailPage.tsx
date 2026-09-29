@@ -9,6 +9,7 @@ import { Chip } from "../../components/ui/Chip.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import type { BankCard } from "./BankPage.js";
+import { Money } from "../../components/ui/Riyal.js";
 
 interface Detail extends BankCard {
   outline: string[];
@@ -76,7 +77,7 @@ export function BankDetailPage() {
             {formatNum(data.summary.topics ?? 0)} موضوعًا · {formatNum(data.summary.materials ?? 0)} مادة · {formatNum(data.summary.assessments ?? 0)} تقييمات ·{" "}
             {formatNum(data.summary.outcomes ?? 0)} مخرجات · الإصدار {formatNum(data.version)}
           </div>
-          {data.owned ? <Chip tone="teal">لديك</Chip> : <b className="text-[18px] text-deep">{data.price === 0 ? "مجاني" : `${formatNum(data.price)} ر.س`}</b>}
+          {data.owned ? <Chip tone="teal">لديك</Chip> : <b className="text-[18px] text-deep">{data.price === 0 ? "مجاني" : <Money>{formatNum(data.price)}</Money>}</b>}
         </div>
         {data.owned ? (
           <div className="flex gap-2 flex-wrap mt-4">

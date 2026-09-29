@@ -5,6 +5,7 @@ import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Input } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { formatNum } from "../../lib/numerals.js";
+import { Money } from "../../components/ui/Riyal.js";
 
 export interface BankCard {
   id: string;
@@ -62,7 +63,7 @@ export function BankPage() {
                   <span dir="ltr">{c.code}</span> · {c.specialization} · {c.university}
                 </div>
               </div>
-              {c.owned ? <Chip tone="teal">لديك</Chip> : <Chip tone={c.price === 0 ? "teal" : "amber"}>{c.price === 0 ? "مجاني" : `${formatNum(c.price)} ر.س`}</Chip>}
+              {c.owned ? <Chip tone="teal">لديك</Chip> : <Chip tone={c.price === 0 ? "teal" : "amber"}>{c.price === 0 ? "مجاني" : <Money>{formatNum(c.price)}</Money>}</Chip>}
             </div>
             <div className="text-[12px] text-ink-2 mt-2">
               {formatNum(c.summary.topics ?? 0)} موضوعًا · {formatNum(c.summary.materials ?? 0)} مادة · {formatNum(c.summary.assessments ?? 0)} تقييمات

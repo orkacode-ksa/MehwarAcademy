@@ -34,8 +34,12 @@ export function Rail({ role }: { role: Role }) {
             }`
           }
         >
-          <Icon name={item.icon} className="w-[19px] h-[19px]" />
-          <i className="not-italic text-[9.5px] font-medium">{item.label}</i>
+          {({ isActive }) => (
+            <>
+              <Icon name={item.icon} active={isActive} className="w-[21px] h-[21px]" />
+              <i className="not-italic text-[9.5px] font-medium">{item.label}</i>
+            </>
+          )}
         </NavLink>
       ))}
 

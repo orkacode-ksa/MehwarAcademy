@@ -9,7 +9,8 @@ import { Card, ErrorText, Input, Label } from "../../components/ui/Form.js";
 import { Chip } from "../../components/ui/Chip.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
-import { ORDER_TONE, sar, type BankAccount, type Order } from "./types.js";
+import { ORDER_TONE, sarNum, type BankAccount, type Order } from "./types.js";
+import { Money } from "../../components/ui/Riyal.js";
 
 /**
  * الدفع بالتحويل البنكي — خطوتان واضحتان: ① حوّل المبلغ واكتب رقم الطلب في الوصف ② ارفع الإيصال.
@@ -58,7 +59,7 @@ export function OrderPage() {
           <Card title="① حوّل المبلغ" hint="إلى أحد الحسابات التالية، واكتب رقم الطلب في وصف التحويل.">
             <div className="flex items-center justify-between gap-3 rounded-[12px] bg-deep/[.05] px-3.5 py-3 mb-3">
               <span className="text-[13px]">المبلغ</span>
-              <b className="text-[20px] text-deep">{sar(o.amount)}</b>
+              <b className="text-[20px] text-deep"><Money>{sarNum(o.amount)}</Money></b>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-[12px] border border-gold2/40 bg-gold2/[.08] px-3.5 py-3 mb-3">
               <span className="text-[13px]">رقم الطلب — اكتبه في الوصف</span>

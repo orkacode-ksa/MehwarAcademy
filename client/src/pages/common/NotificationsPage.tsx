@@ -6,6 +6,7 @@ import { clearUnread } from "../../hooks/useUnread.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Icon, type IconName } from "../../icons/Icon.js";
 import { formatNum } from "../../lib/numerals.js";
+import { RiyalText } from "../../components/ui/Riyal.js";
 
 interface Notice { id: string; kind: string; title: string; body: string; link: string | null; createdAt: string; unread: boolean }
 
@@ -70,10 +71,10 @@ export function NotificationsPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start gap-2">
-                  <span className={`flex-1 min-w-0 text-[14px] leading-snug ${n.unread ? "font-semibold" : "font-medium"}`}>{n.title}</span>
+                  <span className={`flex-1 min-w-0 text-[14px] leading-snug ${n.unread ? "font-semibold" : "font-medium"}`}><RiyalText text={n.title} /></span>
                   <span className="flex-none text-[11px] text-ink-3 mt-0.5">{ago(n.createdAt)}</span>
                 </div>
-                {n.body && <p className="text-[12.5px] text-ink-2 mt-1 leading-relaxed">{n.body}</p>}
+                {n.body && <p className="text-[12.5px] text-ink-2 mt-1 leading-relaxed"><RiyalText text={n.body} /></p>}
               </div>
               {n.unread && <span aria-label="جديد" className="w-2 h-2 rounded-full bg-crim flex-none mt-2" />}
             </div>

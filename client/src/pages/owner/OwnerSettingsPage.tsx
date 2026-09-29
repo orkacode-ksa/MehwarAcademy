@@ -1,3 +1,4 @@
+import type React from "react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { bankAccountSchema, planSchema } from "@mihwar/shared";
@@ -13,6 +14,7 @@ import type { BankAccount, Plan } from "../account/types.js";
 import { WalletSettingsCard } from "./WalletSettingsCard.js";
 import { useCatalogs } from "../../hooks/useCatalogs.js";
 import { CatalogSelect } from "../../components/ui/CatalogField.js";
+import { Money, Riyal } from "../../components/ui/Riyal.js";
 
 interface Integrations { storage: "r2" | "db"; ai: boolean; voice: boolean; redis: boolean }
 interface PlatformSettings {
@@ -181,7 +183,7 @@ function PlanForm({ plan, onSaved }: { plan: Plan; onSaved: () => void }) {
       setErr(e instanceof ApiError ? e.message : "تعذّر الحفظ");
     }
   }
-  const num = (k: "priceMonthly" | "priceYearly" | "storageMb" | "generationsPerMonth" | "bankCoursesPerYear", label: string) => (
+  const num = (k: "priceMonthly" | "priceYearly" | "storageMb" | "generationsPerMonth" | "bankCoursesPerYear", label: React.ReactNode) => (
     <Label text={label}>
       <Input type="number" min={0} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value as unknown as number })} />
     </Label>
@@ -199,8 +201,8 @@ function PlanForm({ plan, onSaved }: { plan: Plan; onSaved: () => void }) {
         <Label text="الاسم">
           <Input value={v.nameAr} onChange={(e) => setV({ ...v, nameAr: e.target.value })} />
         </Label>
-        {num("priceMonthly", "شهري ر.س")}
-        {num("priceYearly", "سنوي ر.س")}
+        {num("priceMonthly", <>شهري <Riyal /></>)}
+        {num("priceYearly", <>سنوي <Riyal /></>)}
         <Label text="حدّ المقررات">
           <Input type="number" min={1} value={v.maxCourses} placeholder="بلا حد" onChange={(e) => setV({ ...v, maxCourses: e.target.value })} />
         </Label>
@@ -227,7 +229,7 @@ function PlanForm({ plan, onSaved }: { plan: Plan; onSaved: () => void }) {
   );
 }
 
-const sar = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} ر.س`;
+const sar = (n: number) => <Money>{n.toLocaleString("en-US", { maximumFractionDigits: 2 })}</Money>;
 
 /** تكلفة المحرّك هذا الشهر مقابل السقف — أول ما يراه المالك في إعداداته. */
 function AiUsageCard() {
@@ -285,7 +287,7 @@ function PlatformSettingsCard() {
     if (data) setV(structuredClone(data));
   }, [data]);
   if (!v) return null;
-  const num = (label: string, value: number, set: (n: number) => void, step = 1) => (
+  const num = (label: React.ReactNode, value: number, set: (n: number) => void, step = 1) => (
     <Label text={label}>
       <Input type="number" min={0} step={step} value={value} onChange={(e) => set(Number(e.target.value))} dir="ltr" />
     </Label>
@@ -311,14 +313,14 @@ function PlatformSettingsCard() {
       <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
         {num("مدة التجربة (يوم)", v.trialDays, (n) => setV({ ...v, trialDays: n }))}
         {num("إقفال الفصل بعد نهايته (يوم)", v.term.autoCloseDaysAfterEnd, (n) => setV({ ...v, term: { autoCloseDaysAfterEnd: n } }))}
-        {num("سقف تكلفة المحرّك شهريًا (ر.س)", v.ai.monthlyBudgetSar, (n) => ai({ monthlyBudgetSar: n }))}
+        {num(<>سقف تكلفة المحرّك شهريًا (<Riyal />)</>, v.ai.monthlyBudgetSar, (n) => ai({ monthlyBudgetSar: n }))}
         {num("رسائل المساعد لكل أستاذ يوميًا", v.ai.assistantDailyLimit, (n) => ai({ assistantDailyLimit: n }))}
         {num("أقصى مصادر للمقرر", v.ai.maxSourcesPerCourse, (n) => ai({ maxSourcesPerCourse: n }))}
       </div>
       <Label text="بريد الدعم المعلن (في «عن مِحوَر» وسياسة الخصوصية)" className="mt-3">
         <Input type="email" dir="ltr" value={v.contactEmail ?? ""} onChange={(e) => setV({ ...v, contactEmail: e.target.value.trim() || null })} placeholder="support@…" />
       </Label>
-      <div className="text-[12.5px] font-medium mt-4 mb-1">أسعار المليون رمز (ر.س) — من فاتورة المزوّد</div>
+      <div className="text-[12.5px] font-medium mt-4 mb-1">أسعار المليون رمز (<Riyal />) — من فاتورة المزوّد</div>
       <div className="grid gap-3 sm:grid-cols-3 [&>*]:min-w-0">
         {num("نص داخل", v.ai.priceInputPerM, (n) => ai({ priceInputPerM: n }), 0.01)}
         {num("نص خارج", v.ai.priceOutputPerM, (n) => ai({ priceOutputPerM: n }), 0.01)}
