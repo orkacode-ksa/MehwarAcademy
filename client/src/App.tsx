@@ -1,5 +1,5 @@
-import { Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Suspense, type ReactNode } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { page, PageFallback } from "./lib/lazyPage.js";
 import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
@@ -134,6 +134,22 @@ const CourseReportPage = page(
   "CourseReportPage",
 );
 
+const PUBLIC = new Set(["", "signup", "login", "forgot-password", "reset-password", "guide", "legal", "showcase"]);
+
+/**
+ * الصفحات العامة (الهبوط · الدخول · التسجيل) تدخل بانزلاق ناعم بينها. داخل المنصة يتولّى
+ * الهيكل ذلك لكل شاشة، فيبقى الهيكل نفسه (الشريط والرأس) ثابتًا لا يُعاد رسمه.
+ */
+function PublicFade({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  const first = pathname.split("/")[1] ?? "";
+  return (
+    <div key={PUBLIC.has(first) ? pathname : "app"} className={PUBLIC.has(first) ? "page-in" : undefined}>
+      {children}
+    </div>
+  );
+}
+
 /**
  * كل مسار هنا يقود إلى شاشة مبنيّة وموصولة بالخادم. حلقة الصفحات البديلة أُزيلت: «لا زرّ
  * يقود إلى شاشة غير مبنية» (lessons §٣.٧) — والتنقّل لا يعرض إلا ما بُني.
@@ -145,6 +161,7 @@ export function App() {
       <ScrollManager />
       <ConfirmHost />
       <Suspense fallback={<PageFallback />}>
+        <PublicFade>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/signup" element={<SignupPage />} />
@@ -205,6 +222,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </PublicFade>
       </Suspense>
     </BrowserRouter>
   );

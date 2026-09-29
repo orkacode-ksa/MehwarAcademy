@@ -1,353 +1,236 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Icon } from "../icons/Icon.js";
+import { GENERATION_KINDS, type GenerationKind } from "@mihwar/shared";
+import { Icon, type IconName } from "../icons/Icon.js";
 import { Button } from "../components/ui/Button.js";
-import { CourseRing } from "../components/shared/CourseRing.js";
 import { Reveal } from "../components/landing/Reveal.js";
-import { COURSES } from "../mock/courses.js";
-import { FAQ, FEATURES, HOW_IT_WORKS, PLAN_FEATURES, PROBLEMS, STATS } from "../mock/landing.js";
-import { useToast } from "../state/ToastContext.js";
+import { HeroMock } from "../components/landing/HeroMock.js";
+import { BeforeAfter } from "../components/landing/BeforeAfter.js";
+import { Pricing } from "../components/landing/Pricing.js";
+import { useOffer } from "../components/landing/useOffer.js";
 
-const NAV_LINKS: [string, string][] = [
-  ["#how", "كيف يعمل"],
-  ["#feat", "الميزات"],
-  ["#price", "الأسعار"],
-  ["#faq", "الأسئلة"],
+const KIND_ICON: Record<GenerationKind, IconName> = { TEXT: "file", SLIDES: "grid", AUDIO: "mic", VIDEO: "play" };
+
+const STEPS: [IconName, string, string][] = [
+  ["book", "أضف مقررك", "اختر جامعتك وفصلك، وارفع توصيف المقرر."],
+  ["sparks", "اختر موضوعًا", "محاضرته وعرضه وبودكاسته واختباره تُجهَّز لك مسوّدةً تراجعها."],
+  ["shield", "درّس فقط", "الحضور والدرجات والاختبارات تملأ ملف الجودة وأنت تعمل."],
+];
+
+const PROMISES: [IconName, string][] = [
+  ["users", "طلابك مجانًا دائمًا"],
+  ["lock", "محتواك ملكك وتصدّره متى شئت"],
+  ["eye", "لا شيء يُنشر قبل اعتمادك"],
+];
+
+const FAQ: [string, string][] = [
+  ["هل أحتاج ربطًا مع نظام جامعتي؟", "لا. كشف طلابك يُستورد من ملف Excel، والجدول والتوصيف يُرفعان كما هما."],
+  ["هل يدفع الطلاب شيئًا؟", "أبدًا. وصول الطالب لمقرراته ودرجاته مجاني دائمًا."],
+  ["ماذا يفعل الذكاء الاصطناعي بالضبط؟", "يكتب مسوّدات: شرح، عرض، بودكاست، أسئلة. لا يرصد درجة ولا ينشر شيئًا — القرار لك دائمًا."],
+  ["ماذا يحدث بعد التجربة؟", "تختار باقة أو تتوقف. بياناتك تبقى، ولا يُخصم شيء تلقائيًا."],
 ];
 
 /**
- * صفحة الهبوط — منقولة من `landing()` في البروتوتايب. ملاحظة مطابقة واحدة: أُسقطت
- * جملة تذييل «نموذج أوّلي تجريبي — البيانات المعروضة توضيحية» لأنها إشارة ذاتية إلى
- * ملف البروتوتايب نفسه، لا نص تسويقي للمنتج — إبقاؤها في تذييل الإنتاج مضلِّل.
+ * صفحة الهبوط — قصيرة وحيّة: الفكرة تُرى في الواجهة الأولى (ملف يكتمل أمام العين)، ثم
+ * مقارنة «بدون/مع» بمفتاح، ثم ما يخرج من موضوع واحد، ثم ثلاث خطوات والأسعار الحيّة.
+ * كل رقم فيها من الخادم (مدة التجربة · الأسعار) — لا إحصاءات مختلقة ولا شهادات مصطنعة.
  */
 export function LandingPage() {
   const navigate = useNavigate();
-  const { showToast } = useToast();
-
-  function enterDemo() {
-    showToast("وضع استعراض — بيانات توضيحية، بلا حساب فعلي");
-    navigate("/home");
-  }
+  const offer = useOffer();
+  const trial = offer?.trialDays;
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 12);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+  const cta = trial ? `ابدأ مجانًا ${trial} يومًا` : "ابدأ مجانًا";
 
   return (
-    <div className="bg-canvas text-ink" dir="rtl">
-      <header className="sticky top-0 z-[60] bg-canvas/[.86] backdrop-blur-lg border-b border-line">
-        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px] py-3.5 flex items-center gap-6">
-          <div className="flex items-center gap-2.5 font-amiri font-bold text-[19px] flex-none">
-            <span className="w-[34px] h-[34px] rounded-[11px] bg-gradient-to-br from-deep to-deep3 grid place-items-center shadow-s1 text-white">
+    <div className="bg-canvas text-ink overflow-x-hidden" dir="rtl">
+      <header className={`fixed inset-x-0 top-0 z-[60] transition-all duration-300 ${scrolled ? "bg-canvas/80 backdrop-blur-xl border-b border-line shadow-s1" : "bg-transparent"}`}>
+        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px] h-16 flex items-center gap-3">
+          <Link to="/" className={`flex items-center gap-2.5 font-amiri font-bold text-[20px] transition-colors ${scrolled ? "text-ink" : "text-white"}`}>
+            <span className="w-[34px] h-[34px] rounded-[11px] bg-gradient-to-br from-deep to-deep3 grid place-items-center shadow-s1 text-white ring-1 ring-white/20">
               <Icon name="logo" className="w-[19px] h-[19px]" />
             </span>
             مِحوَر
-          </div>
-          <nav className="hidden min-[900px]:flex gap-0.5">
-            {NAV_LINKS.map(([href, label]) => (
-              <a key={href} href={href} className="px-3.5 py-1.5 rounded-lg text-[13px] text-ink-2 hover:text-deep transition-colors">
-                {label}
-              </a>
-            ))}
-          </nav>
+          </Link>
           <div className="flex-1" />
-          <Button variant="text" size="sm" onClick={() => navigate("/login")} className="hidden sm:inline-flex">
-            تسجيل الدخول
-          </Button>
-          <Button variant="primary" size="sm" onClick={() => navigate("/signup")}>
-            ابدأ التجربة
+          <Link to="/login" className={`text-[13px] font-semibold px-3 py-2 rounded-lg transition-colors ${scrolled ? "text-deep hover:bg-deep/[.06]" : "text-white/90 hover:bg-white/10"}`}>
+            دخول
+          </Link>
+          <Button variant={scrolled ? "primary" : "gold"} size="sm" onClick={() => navigate("/signup")}>
+            {cta}
           </Button>
         </div>
       </header>
 
-      <section className="relative overflow-hidden pt-14 sm:pt-[74px] text-white" style={{ background: "linear-gradient(155deg,var(--deep),var(--deep3))" }}>
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(620px 400px at 82% 8%,rgba(176,137,90,.28),transparent 62%),radial-gradient(520px 360px at 10% 92%,rgba(62,142,110,.3),transparent 60%)",
-          }}
-        />
-        <div className="relative max-w-[1160px] mx-auto px-4 sm:px-[26px] text-center">
-          <Reveal>
-            <span className="inline-flex items-center gap-2 px-[15px] py-1.5 rounded-full bg-surface/10 border border-white/20 text-[12.5px] font-medium mb-6">
-              <Icon name="sparks" className="w-4 h-4 text-gold3" /> منصة عربية لإدارة المقرر الأكاديمي وملف الجودة
-            </span>
-          </Reveal>
-          <Reveal delay={1}>
-            <h1 className="font-amiri font-bold leading-[1.28] text-[clamp(32px,5.4vw,58px)]">
-              درِّس مرّة واحدة،
-              <br />
-              <em className="not-italic text-gold3">وملف المقرر يبني نفسه.</em>
-            </h1>
-          </Reveal>
+      {/* الواجهة الأولى */}
+      <section className="relative overflow-hidden text-white pt-28 sm:pt-32 pb-20 sm:pb-28" style={{ background: "linear-gradient(155deg,var(--deep),var(--deep3))" }}>
+        <div aria-hidden className="absolute -top-40 -end-40 w-[520px] h-[520px] rounded-full bg-gold3/20 blur-3xl animate-[drift_14s_ease-in-out_infinite]" />
+        <div aria-hidden className="absolute -bottom-48 -start-32 w-[480px] h-[480px] rounded-full bg-teal/25 blur-3xl animate-[drift_18s_ease-in-out_infinite_reverse]" />
+        <div className="relative max-w-[1160px] mx-auto px-4 sm:px-[26px] grid gap-14 lg:grid-cols-[1.1fr_1fr] items-center">
+          <div className="text-center lg:text-start">
+            <Reveal>
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-[12.5px] font-medium">
+                <Icon name="cap" className="w-4 h-4 text-gold3" /> لعضو هيئة التدريس
+              </span>
+            </Reveal>
+            <Reveal delay={1}>
+              <h1 className="font-amiri font-bold leading-[1.25] text-[clamp(38px,6vw,64px)] mt-5">
+                ملف مقررك يكتمل
+                <br />
+                <span className="bg-gradient-to-l from-gold3 to-[#f3dcb4] bg-clip-text text-transparent">وأنت تُدرّس.</span>
+              </h1>
+            </Reveal>
+            <Reveal delay={2}>
+              <p className="text-white/80 max-w-[520px] mx-auto lg:mx-0 mt-5 text-[clamp(15px,1.7vw,17px)] leading-[1.9]">
+                محاضراتك وعروضك واختباراتك تُجهَّز من توصيف مقررك، وملف الجودة يمتلئ من عملك اليومي. لا ليالي تجميع آخر الفصل.
+              </p>
+            </Reveal>
+            <Reveal delay={3}>
+              <div className="flex gap-3 justify-center lg:justify-start flex-wrap mt-8">
+                <Button variant="gold" size="lg" className="group shadow-[0_12px_30px_-10px_rgba(212,170,110,.7)]" onClick={() => navigate("/signup")}>
+                  {cta}
+                  <Icon name="arr" className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+                </Button>
+                <a href="#how" className="inline-flex items-center gap-2 px-5 py-3 rounded-[13px] text-[14.5px] font-medium text-white/90 border border-white/25 hover:bg-white/10 transition-colors">
+                  كيف يعمل؟
+                </a>
+              </div>
+              <p className="text-[12.5px] text-white/60 mt-4">بلا بطاقة ائتمان · جاهز في دقيقتين · طلابك مجانًا</p>
+            </Reveal>
+          </div>
           <Reveal delay={2}>
-            <p className="text-white/[.82] max-w-[640px] mx-auto mt-5 text-[clamp(14px,1.6vw,16.5px)] leading-[2]">
-              مِحوَر يجعل المقرر مركز عملك: تُبنى محاضراتك من توصيف المقرر ومراجعه، وتُدار الاختبارات والحضور والدرجات مع طلابك، وتمتلئ عناصر ملف الجودة
-              الأحد عشر خلفك أولاً بأول — بدل تجميعها يدوياً آخر كل فصل.
-            </p>
-          </Reveal>
-          <Reveal delay={3} className="flex gap-2.5 justify-center flex-wrap mt-[30px]">
-            <div className="flex gap-2.5 justify-center flex-wrap">
-              <Button variant="gold" size="lg" onClick={() => navigate("/signup")}>
-                ابدأ تجربة أربعة عشر يوماً
-              </Button>
-              <Button variant="ghostLight" size="lg" onClick={enterDemo}>
-                <Icon name="play" className="w-4 h-4" /> استعرض المنصة
-              </Button>
-            </div>
-          </Reveal>
-          <p className="text-xs text-white/60 mt-4">دون بطاقة ائتمانية · إلغاء في أي وقت · وصول الطلاب مجاني دائماً</p>
-
-          <Reveal className="mt-[46px] pb-0">
-            <div className="bg-surface/10 backdrop-blur-md border border-white/20 rounded-t-[22px] p-3 pb-0 shadow-[0_-8px_60px_rgba(0,0,0,.2)]">
-              <div className="flex items-center gap-1.5 px-[15px] py-[11px] bg-surface rounded-t-[13px] border-b border-line">
-                <i className="w-2.5 h-2.5 rounded-full bg-line" />
-                <i className="w-2.5 h-2.5 rounded-full bg-line" />
-                <i className="w-2.5 h-2.5 rounded-full bg-line" />
-                <span className="text-[11.5px] text-ink-3 ms-2.5">لوحة عضو هيئة التدريس</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-5 bg-surface">
-                {COURSES.slice(0, 3).map((c) => (
-                  <div key={c.id} className="flex gap-3.5 items-center p-3.5 rounded-rmd border border-line text-start text-ink">
-                    <CourseRing syllabus={c.syl} quality={c.q} assessments={c.as} size={78} />
-                    <div className="min-w-0">
-                      <div className="font-mono text-[11px] text-ink-3">{c.code}</div>
-                      <div className="font-semibold text-[13.5px]">{c.name}</div>
-                      <div className="text-[11px] text-ink-2 mt-[3px]">
-                        {c.st} طالباً · {c.secs} شعب
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <HeroMock />
           </Reveal>
         </div>
       </section>
 
-      <section className="text-white py-[34px]" style={{ background: "var(--deep2)" }}>
-        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px] grid grid-cols-2 sm:grid-cols-4 gap-5 sm:gap-5 text-center">
-          {STATS.map(([n, t]) => (
-            <Reveal key={t}>
-              <b className="font-amiri font-bold text-[34px] text-gold3 block leading-[1.2]">{n}</b>
-              <span className="text-xs text-white/[.72]">{t}</span>
+      {/* بدون / مع */}
+      <section className="max-w-[1160px] mx-auto px-4 sm:px-[26px] py-20 sm:py-24">
+        <Reveal>
+          <h2 className="font-amiri font-bold text-center text-[clamp(28px,4vw,42px)] leading-tight">
+            الوقت الذي تخسره كل فصل
+            <span className="block text-deep">نعيده إليك.</span>
+          </h2>
+        </Reveal>
+        <Reveal delay={1} className="mt-10">
+          <BeforeAfter />
+        </Reveal>
+      </section>
+
+      {/* موضوع واحد ← أربع مواد */}
+      <section className="bg-surface border-y border-line py-20 sm:py-24">
+        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
+          <Reveal>
+            <h2 className="font-amiri font-bold text-center text-[clamp(28px,4vw,42px)] leading-tight">موضوع واحد. أربع مواد جاهزة.</h2>
+            <p className="text-center text-ink-2 mt-3">مسوّدات من مراجع مقررك — تراجعها وتعتمدها بنفسك.</p>
+          </Reveal>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-10">
+            {(Object.keys(GENERATION_KINDS) as GenerationKind[]).map((k, i) => (
+              <Reveal key={k} delay={(i % 4) as 0 | 1 | 2 | 3}>
+                <div className="group h-full rounded-[22px] border border-line bg-canvas p-5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-20px_rgba(15,70,60,.45)] hover:border-deep/30">
+                  <span className="grid place-items-center w-12 h-12 rounded-[16px] bg-deep/[.08] text-deep transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-6deg]">
+                    <Icon name={KIND_ICON[k]} active className="w-6 h-6" />
+                  </span>
+                  <div className="font-semibold text-[15.5px] mt-4">{GENERATION_KINDS[k]}</div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ثلاث خطوات */}
+      <section id="how" className="max-w-[1160px] mx-auto px-4 sm:px-[26px] py-20 sm:py-24 scroll-mt-20">
+        <Reveal>
+          <h2 className="font-amiri font-bold text-center text-[clamp(28px,4vw,42px)] leading-tight">ثلاث خطوات. ثم تُدرّس.</h2>
+        </Reveal>
+        <div className="relative grid gap-4 sm:grid-cols-3 mt-12">
+          <div aria-hidden className="hidden sm:block absolute top-7 inset-x-[16%] h-px bg-gradient-to-l from-transparent via-deep/30 to-transparent" />
+          {STEPS.map(([icon, title, desc], i) => (
+            <Reveal key={title} delay={(i + 1) as 1 | 2 | 3}>
+              <div className="relative text-center px-3">
+                <span className="relative mx-auto grid place-items-center w-14 h-14 rounded-full bg-deep text-white shadow-[0_10px_24px_-10px_rgba(15,70,60,.8)]">
+                  <Icon name={icon} active className="w-6 h-6" />
+                  <b className="absolute -top-1 -end-1 w-6 h-6 rounded-full bg-gold2 text-on-gold text-[12px] grid place-items-center num">{i + 1}</b>
+                </span>
+                <div className="font-semibold text-[16px] mt-4">{title}</div>
+                <p className="text-[13.5px] text-ink-2 mt-1.5 leading-relaxed max-w-[260px] mx-auto">{desc}</p>
+              </div>
             </Reveal>
           ))}
         </div>
       </section>
 
-      <section className="py-[52px] sm:py-[78px]">
-        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
-          <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">المشكلة</span>
-            <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">تُؤدّى الأعمال مرّة، ثم يُعاد تجميعها مرّة ثانية</h2>
-            <p className="text-ink-2 mt-3.5 text-[14.5px] leading-[1.95]">
-              مع نهاية كل فصل تبدأ رحلة البحث في المجلدات والبريد عن اختبار أُعدّ قبل شهرين، ونموذج إجابة تعذّر تذكّر موضعه.
-            </p>
-          </Reveal>
-          <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px]">
-            {PROBLEMS.map(([n, t, p], i) => (
-              <Reveal key={n} delay={(i % 3) as 0 | 1 | 2}>
-                <article className="p-6 sm:p-[26px] rounded-rlg border border-line bg-canvas h-full">
-                  <span className="font-mono text-xs font-semibold text-crim block mb-2.5">{n}</span>
-                  <h3 className="text-[15.5px] font-semibold mb-2">{t}</h3>
-                  <p className="text-[13px] text-ink-2 leading-[1.75]">{p}</p>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-[52px] sm:py-[78px] bg-surface border-y border-line" id="how">
-        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
-          <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">آلية العمل</span>
-            <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">أربع خطوات، ثم يعمل النظام معك</h2>
-            <p className="text-ink-2 mt-3.5 text-[14.5px] leading-[1.95]">
-              تُنشأ السنة الدراسية وفصولها وإجازاتها وفترات اختباراتها تلقائياً من التقويم الأكاديمي، فتبدأ من مقررك مباشرة.
-            </p>
-          </Reveal>
-          <ol className="grid grid-cols-1 min-[900px]:grid-cols-4 gap-4">
-            {HOW_IT_WORKS.map((s, i) => (
-              <Reveal key={s.title} delay={(i % 3) as 0 | 1 | 2}>
-                <li className="relative p-6 sm:p-[26px] rounded-rlg border border-line bg-canvas h-full">
-                  <span className="w-[42px] h-[42px] rounded-[13px] bg-deep text-white grid place-items-center mb-4">
-                    <Icon name={s.icon} className="w-[19px] h-[19px]" />
-                  </span>
-                  <span className="absolute top-[22px] end-[22px] font-amiri font-bold text-[30px] text-line">{s.num}</span>
-                  <h3 className="text-[15.5px] font-semibold mb-2">{s.title}</h3>
-                  <p className="text-[12.5px] text-ink-2 leading-[1.85]">{s.desc}</p>
-                </li>
-              </Reveal>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section className="py-[52px] sm:py-[78px]" id="feat">
-        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
-          <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">القدرات</span>
-            <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">كل ما يدور حول المقرر في موضع واحد</h2>
-          </Reveal>
-          <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px]">
-            {FEATURES.map((f, i) => (
-              <Reveal key={f.title} delay={(i % 3) as 0 | 1 | 2}>
-                <article className="p-6 sm:p-[26px] rounded-rlg border border-line bg-canvas h-full">
-                  <span className="w-10 h-10 rounded-[13px] bg-deep/[.07] text-deep grid place-items-center mb-[15px]">
-                    <Icon name={f.icon} className="w-[19px] h-[19px]" />
-                  </span>
-                  <h3 className="text-[16px] font-semibold mb-2.5">{f.title}</h3>
-                  <p className="text-[13px] text-ink-2 leading-[1.9]">{f.desc}</p>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-[52px] sm:py-[78px] bg-surface border-y border-line" id="price">
-        <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
-          <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">الاشتراك</span>
-            <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">باقتان، ووصول مجاني دائم للطلاب</h2>
-            <p className="text-ink-2 mt-3.5 text-[14.5px] leading-[1.95]">الأسعار شاملة ضريبة القيمة المضافة · الاشتراك السنوي يوفّر شهرين · تجميد صيفي مجاني</p>
-          </Reveal>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px] max-w-[800px] mx-auto">
-            <Reveal>
-              <article className="p-[30px] rounded-rlg border border-line bg-canvas h-full flex flex-col">
-                <h3 className="font-amiri font-bold text-[22px]">مِحوَر</h3>
-                <p className="text-[12.5px] text-ink-2 mt-1">لنصاب تدريسي معتاد</p>
-                <div className="flex items-baseline gap-1.5 mt-4">
-                  <b className="font-mono text-[40px] font-semibold text-deep tracking-[-.04em]">89</b>
-                  <span className="text-[13px] text-ink-2">ريالاً شهرياً</span>
-                </div>
-                <div className="text-xs text-ink-3 mt-0.5">أو ٣٢٠ للفصل · ٨٩٠ سنوياً</div>
-                <ul className="grid gap-2.5 my-[22px]">
-                  {PLAN_FEATURES.base.map((t) => (
-                    <li key={t} className="flex gap-2 items-start text-[13px] text-ink-2">
-                      <Icon name="chk" className="w-[15px] h-[15px] text-deep flex-none mt-[3px]" strokeWidth={2.5} />
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="secondary" size="md" className="w-full mt-auto" onClick={() => navigate("/signup")}>
-                  ابدأ التجربة
-                </Button>
-              </article>
-            </Reveal>
-            <Reveal delay={1}>
-              <article className="relative p-[30px] rounded-rlg border border-deep bg-canvas h-full flex flex-col shadow-[0_0_0_3px_rgba(15,71,57,.08)]">
-                <span className="absolute -top-3 start-[30px] px-[13px] py-1 rounded-full bg-deep text-white text-[11px] font-semibold">الأنسب لأغلب الأعضاء</span>
-                <h3 className="font-amiri font-bold text-[22px]">مِحوَر برو</h3>
-                <p className="text-[12.5px] text-ink-2 mt-1">لنصاب أوسع وإنتاج محتوى أكثف</p>
-                <div className="flex items-baseline gap-1.5 mt-4">
-                  <b className="font-mono text-[40px] font-semibold text-deep tracking-[-.04em]">179</b>
-                  <span className="text-[13px] text-ink-2">ريالاً شهرياً</span>
-                </div>
-                <div className="text-xs text-ink-3 mt-0.5">أو ٦٤٠ للفصل · ١٧٩٠ سنوياً</div>
-                <ul className="grid gap-2.5 my-[22px]">
-                  {PLAN_FEATURES.pro.map((t) => (
-                    <li key={t} className="flex gap-2 items-start text-[13px] text-ink-2">
-                      <Icon name="chk" className="w-[15px] h-[15px] text-deep flex-none mt-[3px]" strokeWidth={2.5} />
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="primary" size="md" className="w-full mt-auto" onClick={() => navigate("/signup")}>
-                  ابدأ التجربة
-                </Button>
-              </article>
-            </Reveal>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px] max-w-[800px] mx-auto mt-[18px]">
-            <Reveal>
-              <article className="p-6 rounded-rlg border border-line bg-canvas h-full flex flex-col">
-                <h4 className="font-amiri font-bold text-lg">باقة القسم</h4>
-                <div className="flex items-baseline gap-1.5 mt-3">
-                  <b className="font-mono text-[28px] font-semibold text-deep">69</b>
-                  <span className="text-[13px] text-ink-2">ريالاً لكل عضو شهرياً</span>
-                </div>
-                <p className="text-[12.5px] text-ink-2 leading-[1.9] my-4">
-                  بحد أدنى عشرة أعضاء وعقد سنوي، وتشمل لوحة رئيس القسم، وبنكاً مشتركاً، وهوية الجامعة، وتصديراً مؤسسياً لملفات الجودة استعداداً للاعتماد الأكاديمي.
-                </p>
-                <Button variant="secondary" size="sm" className="mt-auto self-start" onClick={() => navigate("/signup")}>
-                  تواصل معنا
-                </Button>
-              </article>
-            </Reveal>
-            <Reveal delay={1}>
-              <article className="p-6 rounded-rlg border border-line bg-canvas h-full flex flex-col">
-                <h4 className="font-amiri font-bold text-lg">حساب الطالب</h4>
-                <div className="mt-3">
-                  <b className="text-[28px] font-semibold">مجاناً</b>
-                </div>
-                <p className="text-[12.5px] text-ink-2 leading-[1.9] my-4">
-                  وصول كامل إلى محتوى المقررات والدرجات والحضور، دائماً وبلا مقابل. وتتوفّر باقة اختيارية بتسعة عشر ريالاً شهرياً لأدوات المراجعة الشخصية.
-                </p>
-                <Button variant="secondary" size="sm" className="mt-auto self-start" onClick={() => navigate("/signup")}>
-                  الانضمام بكود شعبة
-                </Button>
-              </article>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-[52px] sm:py-[78px]" id="faq">
-        <div className="max-w-[780px] mx-auto px-4 sm:px-[26px]">
-          <Reveal className="max-w-[660px] mx-auto mb-11 text-center">
-            <span className="text-[11.5px] font-semibold tracking-[.11em] text-goldText uppercase block mb-3">الأسئلة الشائعة</span>
-            <h2 className="font-amiri font-bold text-[clamp(24px,3.3vw,36px)] leading-[1.4]">ما يستفسر عنه أعضاء هيئة التدريس</h2>
-          </Reveal>
-          <Reveal>
-            <div>
-              {FAQ.map(({ q, a }, i) => (
-                <details key={q} className="group border-b border-line" open={i === 0}>
-                  <summary className="flex justify-between items-center gap-[18px] py-5 px-0.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                    <h3 className="text-base font-semibold flex-1 group-hover:text-deep transition-colors">{q}</h3>
-                    <span className="w-7 h-7 rounded-full border border-line grid place-items-center text-deep text-lg flex-none transition-transform duration-300 group-open:rotate-[135deg] group-open:bg-deep group-open:text-white group-open:border-deep">
-                      +
-                    </span>
-                  </summary>
-                  <p className="text-sm text-ink-2 leading-[2] pb-[22px] max-w-[680px]">{a}</p>
-                </details>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="py-[52px] sm:py-[78px]">
+      {/* الأسعار */}
+      <section id="price" className="bg-surface border-y border-line py-20 sm:py-24 scroll-mt-20">
         <div className="max-w-[1160px] mx-auto px-4 sm:px-[26px]">
           <Reveal>
-            <div
-              className="relative rounded-[26px] p-9 sm:p-[60px_32px] text-center text-white overflow-hidden"
-              style={{ background: "linear-gradient(155deg,var(--deep),var(--deep3))" }}
-            >
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{ background: "radial-gradient(560px 320px at 80% 12%,rgba(176,137,90,.3),transparent 62%)" }}
-              />
-              <div className="relative">
-                <h2 className="font-amiri font-bold text-[clamp(24px,3.4vw,34px)]">ابدأ فصلك القادم دون تجميع يدوي</h2>
-                <p className="text-white/80 mx-auto max-w-[480px] mt-3.5 mb-7 text-[14.5px] leading-[1.95]">
-                  أربعة عشر يوماً مجاناً دون بطاقة ائتمانية. استورد جدولك، وشاهد مقرراتك تُبنى خلال دقائق.
-                </p>
-                <Button variant="gold" size="lg" onClick={() => navigate("/signup")}>
-                  إنشاء حساب
-                </Button>
-              </div>
-            </div>
+            <h2 className="font-amiri font-bold text-center text-[clamp(28px,4vw,42px)] leading-tight">استثمار صغير. وقت كبير.</h2>
+            <p className="text-center text-ink-2 mt-3 mb-10">{trial ? `${trial} يومًا مجانًا بكل المزايا، ثم تقرّر.` : "جرّب مجانًا بكل المزايا، ثم تقرّر."}</p>
           </Reveal>
-          <footer className="pt-[38px] pb-2.5 mt-11 border-t border-line flex justify-between items-center gap-5 flex-wrap">
-            <Link to="/" className="flex items-center gap-2 font-amiri font-bold text-[18px]">
-              <span className="w-7 h-7 rounded-[9px] bg-gradient-to-br from-deep to-deep3 grid place-items-center text-white">
-                <Icon name="logo" className="w-4 h-4" />
+          <Reveal delay={1}>
+            <Pricing offer={offer} />
+          </Reveal>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mt-12">
+            {PROMISES.map(([icon, text]) => (
+              <span key={text} className="flex items-center gap-2 text-[13.5px] text-ink-2">
+                <Icon name={icon} active className="w-5 h-5 text-deep" />
+                {text}
               </span>
-              مِحوَر
-            </Link>
-          </footer>
+            ))}
+          </div>
         </div>
+      </section>
+
+      {/* الأسئلة */}
+      <section className="max-w-[760px] mx-auto px-4 sm:px-[26px] py-20 sm:py-24">
+        <Reveal>
+          <h2 className="font-amiri font-bold text-center text-[clamp(26px,3.6vw,38px)] mb-8">قبل أن تبدأ</h2>
+        </Reveal>
+        <div className="grid gap-2.5">
+          {FAQ.map(([q, a]) => (
+            <details key={q} className="group rounded-[16px] bg-surface border border-line open:border-deep/30 open:shadow-s1 transition-all">
+              <summary className="flex items-center gap-3 cursor-pointer list-none px-5 py-4 font-semibold text-[14.5px]">
+                <span className="flex-1">{q}</span>
+                <Icon name="chevd" className="w-4 h-4 text-ink-3 transition-transform duration-300 group-open:rotate-180" />
+              </summary>
+              <p className="px-5 pb-4 -mt-1 text-[13.5px] text-ink-2 leading-relaxed animate-[swapIn_.3s_ease-out]">{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* الدعوة الأخيرة */}
+      <section className="px-4 sm:px-[26px] pb-16">
+        <Reveal>
+          <div className="relative overflow-hidden max-w-[1100px] mx-auto rounded-[32px] text-white text-center px-6 py-14 sm:py-16" style={{ background: "linear-gradient(135deg,var(--deep),var(--deep3))" }}>
+            <div aria-hidden className="absolute -top-24 -start-24 w-72 h-72 rounded-full bg-gold3/25 blur-3xl animate-[drift_12s_ease-in-out_infinite]" />
+            <h2 className="relative font-amiri font-bold text-[clamp(28px,4.4vw,46px)] leading-tight">فصلك القادم يبدأ بملف مكتمل.</h2>
+            <p className="relative text-white/75 mt-3">أنشئ حسابك الآن — أول مقرر جاهز قبل أن تبرد قهوتك.</p>
+            <Button variant="gold" size="lg" className="relative mt-7" onClick={() => navigate("/signup")}>
+              {cta}
+            </Button>
+          </div>
+        </Reveal>
+        <footer className="max-w-[1100px] mx-auto mt-10 flex flex-wrap items-center justify-between gap-4 text-[12.5px] text-ink-3">
+          <span className="flex items-center gap-2 font-amiri font-bold text-[17px] text-ink">
+            <span className="w-7 h-7 rounded-[9px] bg-gradient-to-br from-deep to-deep3 grid place-items-center text-white">
+              <Icon name="logo" className="w-4 h-4" />
+            </span>
+            مِحوَر
+          </span>
+          <nav className="flex gap-4">
+            <Link to="/legal/about" className="hover:text-deep">عن المنصة</Link>
+            <Link to="/legal/terms" className="hover:text-deep">الشروط</Link>
+            <Link to="/legal/privacy" className="hover:text-deep">الخصوصية</Link>
+          </nav>
+        </footer>
       </section>
     </div>
   );

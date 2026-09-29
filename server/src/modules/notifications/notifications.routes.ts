@@ -5,6 +5,7 @@ import { AppError } from "../../lib/AppError.js";
 import * as service from "./notifications.service.js";
 import { getPlatformSettings } from "../platform/settings.js";
 import { getCatalogs } from "../platform/catalogs.js";
+import { listPlans } from "../store/store.service.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { raw } from "express";
 import { changePasswordSchema, profileUpdateSchema, totpCodeSchema, totpDisableSchema, userPrefsSchema } from "@mihwar/shared";
@@ -30,6 +31,27 @@ publicRouter.get(
   asyncHandler(async (_req, res) => {
     res.setHeader("Cache-Control", "public, max-age=300");
     res.json({ success: true, data: await getCatalogs() });
+  }),
+);
+
+/**
+ * العرض الحالي لصفحة الهبوط: مدة التجربة والباقات النشطة للأستاذ بأسعارها — من الإعدادات
+ * والقاعدة مباشرة، فلا يعرض التسويق سعرًا أو مدة غيّرها المالك.
+ */
+publicRouter.get(
+  "/offer",
+  asyncHandler(async (_req, res) => {
+    const [settings, plans] = await Promise.all([getPlatformSettings(), listPlans()]);
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json({
+      success: true,
+      data: {
+        trialDays: settings.trialDays,
+        plans: plans
+          .filter((p) => p.audience === "TEACHER")
+          .map((p) => ({ code: p.code, name: p.nameAr, priceMonthly: p.priceMonthly, priceYearly: p.priceYearly, features: p.features })),
+      },
+    });
   }),
 );
 

@@ -87,7 +87,10 @@ export function AppShell() {
             <SubscriptionBanner />
             {(user?.role === "OWNER" || user?.role === "ADMIN") && <OwnerMfaBanner />}
             <Suspense fallback={<PageFallback />}>
-              <Outlet />
+              {/* كل شاشة تدخل بانزلاق قصير — لا ظهور مفاجئ عند التنقّل */}
+              <div key={location.pathname} className="page-in">
+                <Outlet />
+              </div>
             </Suspense>
           </PageTitleProvider>
         </div>
