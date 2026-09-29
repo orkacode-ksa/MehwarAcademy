@@ -175,3 +175,7 @@ svg {
     grid-template-columns: 1fr;
   }
 }
+
+/* نوافذ التأكيد والانتقالات — تُلغى كلها مع «تقليل الحركة» أدناه */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(.96) } to { opacity: 1; transform: none } }

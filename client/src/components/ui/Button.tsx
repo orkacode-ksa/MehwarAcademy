@@ -1,6 +1,6 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "text" | "teal" | "gold" | "ghostLight";
+type Variant = "primary" | "secondary" | "text" | "teal" | "gold" | "ghostLight" | "danger";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -22,6 +22,7 @@ const VARIANT: Record<Variant, string> = {
   text: "border-transparent text-deep px-[11px] hover:bg-deep/[.06]",
   teal: "border-transparent bg-teal text-white hover:bg-teal/90",
   gold: "border-transparent bg-gold2 text-on-gold font-semibold hover:bg-gold3 hover:-translate-y-0.5",
+  danger: "border-transparent bg-crim text-white shadow-s1 hover:bg-crim/90",
   ghostLight: "border-white/[.34] bg-transparent text-white hover:bg-surface/10 hover:border-white/50",
 };
 
@@ -31,13 +32,14 @@ const SIZE: Record<Size, string> = {
   lg: "px-[26px] py-[13px] text-[14.5px] rounded-[13px]",
 };
 
-export function Button({ variant = "primary", size = "md", className = "", children, ...rest }: ButtonProps) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant = "primary", size = "md", className = "", children, ...rest }, ref) {
   return (
     <button
+      ref={ref}
       className={`inline-flex items-center justify-center gap-[7px] font-medium whitespace-nowrap border transition-[color,background-color,border-color,box-shadow,transform] duration-150 [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-45 disabled:pointer-events-none [@media(pointer:coarse)]:min-h-[40px] ${VARIANT[variant]} ${SIZE[size]} ${className}`}
       {...rest}
     >
       {children}
     </button>
   );
-}
+});

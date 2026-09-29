@@ -8,6 +8,7 @@ import { Chip } from "../../components/ui/Chip.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import type { Plan } from "../account/types.js";
+import { confirmDialog } from "../../components/ui/ConfirmDialog.js";
 
 interface Row {
   id: string;
@@ -134,13 +135,13 @@ function UserRow({ r, plans, onDone }: { r: Row; plans: Plan[]; onDone: () => vo
             </Button>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="secondary" onClick={() => window.confirm("إنهاء اشتراكه الآن؟ بياناته تبقى للعرض.") && void act({ action: "EXPIRE" }, "أُنهي الاشتراك")}>
+            <Button size="sm" variant="secondary" onClick={async () => (await confirmDialog({ title: "إنهاء اشتراكه الآن؟", body: "بياناته تبقى للعرض.", confirmLabel: "أنهِ الاشتراك", danger: true })) && void act({ action: "EXPIRE" }, "أُنهي الاشتراك")}>
               أنهِ الاشتراك
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => window.confirm(r.suspended ? "رفع الإيقاف؟" : "إيقاف الحساب؟ يُسجَّل خروجه فورًا.") && void act({ suspended: !r.suspended }, r.suspended ? "رُفع الإيقاف" : "أُوقف الحساب", "suspend")}
+              onClick={async () => (await confirmDialog(r.suspended ? { title: "رفع الإيقاف؟" } : { title: "إيقاف الحساب؟", body: "يُسجَّل خروجه فورًا.", confirmLabel: "أوقف الحساب", danger: true })) && void act({ suspended: !r.suspended }, r.suspended ? "رُفع الإيقاف" : "أُوقف الحساب", "suspend")}
             >
               {r.suspended ? "ارفع الإيقاف" : "أوقف الحساب"}
             </Button>

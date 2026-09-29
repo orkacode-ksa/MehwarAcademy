@@ -1,5 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { logout, useSession } from "../../hooks/useSession.js";
+import { useSession } from "../../hooks/useSession.js";
+import { confirmLogout } from "../../lib/logoutFlow.js";
 import { Icon } from "../../icons/Icon.js";
 import { visibleNav, type Role } from "../../nav/nav.js";
 
@@ -48,7 +49,7 @@ export function Rail({ role }: { role: Role }) {
       <button
         type="button"
         title="خروج"
-        onClick={() => void logout().then(() => navigate("/login"))}
+        onClick={() => void confirmLogout(navigate)}
         className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150"
       >
         <Icon name="logout" className="w-[19px] h-[19px] -scale-x-100" />

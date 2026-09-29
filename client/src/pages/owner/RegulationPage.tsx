@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Button.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
+import { confirmDialog } from "../../components/ui/ConfirmDialog.js";
 
 /**
  * محرّر لائحة الجامعة — الشاشة التي تجعل المنصة صالحة لأكثر من جامعة.
@@ -100,8 +101,8 @@ export function RegulationPage() {
             key={p.key}
             variant="secondary"
             size="sm"
-            onClick={() => {
-              if (window.confirm(`استبدال النموذج بقالب «${p.label}»؟ لن يُحفظ حتى تضغط «حفظ».`)) setForm(structuredClone(p.value));
+            onClick={async () => {
+              if (await confirmDialog({ title: `استبدال النموذج بقالب «${p.label}»؟`, body: "لن يُحفظ حتى تضغط «حفظ».", confirmLabel: "استبدل" })) setForm(structuredClone(p.value));
             }}
           >
             قالب: {p.label}

@@ -38,8 +38,8 @@ export function SignupStudentJoinStep({ initial, onNext, onBack }: SignupStudent
 
   return (
     <>
-      <h2 className="text-2xl font-semibold">انضم إلى شعبتك</h2>
-      <p className="text-ink-2 text-[13px] my-2 mb-[22px]">اطلب رمز الشعبة من أستاذك.</p>
+      <h2 className="text-2xl font-semibold text-center">انضم إلى شعبتك</h2>
+      <p className="text-ink-2 text-[13px] my-2 mb-[22px] text-center">اطلب رمز الشعبة من أستاذك.</p>
       <form onSubmit={handleSubmit(onNext)} noValidate>
         <Field
           label="رمز الشعبة"

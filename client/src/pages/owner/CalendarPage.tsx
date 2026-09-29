@@ -9,6 +9,7 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { useCatalogs } from "../../hooks/useCatalogs.js";
 import { CatalogSelect } from "../../components/ui/CatalogField.js";
+import { confirmDialog } from "../../components/ui/ConfirmDialog.js";
 
 /** أسماء الأعوام الجامعية الهجرية القريبة (العام الماضي حتى بعد القادم) — بصيغة واحدة ثابتة. */
 function yearLabels(): string[] {
@@ -132,11 +133,16 @@ export function CalendarPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           // الإقفال لا يُتراجع عنه بنقرة خاطئة: يجعل بيانات الفصل للقراءة ويسحب مقرراته للبنك.
                           if (
                             NEXT_STATUS[t.status] === "CLOSED" &&
-                            !window.confirm("إقفال الفصل يجعل كل بياناته للقراءة فقط (درجات · حضور · مواد) ويسحب مقرراته إلى بنك المقررات للمراجعة. متابعة؟")
+                            !(await confirmDialog({
+                              title: "إقفال الفصل؟",
+                              body: "تصير كل بياناته للقراءة فقط (درجات · حضور · مواد)، وتُسحب مقرراته إلى بنك المقررات للمراجعة.",
+                              confirmLabel: "أقفل الفصل",
+                              danger: true,
+                            }))
                           )
                             return;
                           void run(

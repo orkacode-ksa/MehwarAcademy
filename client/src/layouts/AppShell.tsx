@@ -7,8 +7,10 @@ import { MoreSheet } from "../components/shell/MoreSheet.js";
 import { Topbar } from "../components/shell/Topbar.js";
 import { SubscriptionBanner } from "../components/shell/SubscriptionBanner.js";
 import { OwnerMfaBanner } from "../components/shell/OwnerMfaBanner.js";
-import { roleOf, roleOfUser, SHARED_SCREENS } from "../nav/nav.js";
-import { logout, useSession } from "../hooks/useSession.js";
+import { ROLE_HOME, roleOf, roleOfUser, SHARED_SCREENS } from "../nav/nav.js";
+import { PageTitleProvider } from "../state/PageTitle.js";
+import { useSession } from "../hooks/useSession.js";
+import { confirmLogout } from "../lib/logoutFlow.js";
 const AssistantPanel = lazy(() => import("../components/assistant/AssistantPanel.js").then((m) => ({ default: m.AssistantPanel })));
 import { Icon } from "../icons/Icon.js";
 
@@ -32,6 +34,9 @@ export function AppShell() {
   const { user } = useSession();
   const role = SHARED_SCREENS.has(screenKey) ? roleOfUser(user?.role) : roleOf(screenKey);
   const teacher = user?.role === "TEACHER" && role === "faculty";
+  // الرأس الكامل (الترحيب وشريط النظام) في رئيسية صاحب الحساب وحدها.
+  const home = ROLE_HOME[roleOfUser(user?.role)];
+  const atHome = location.pathname === `/${home}`;
 
 
   useEffect(() => {
@@ -73,16 +78,18 @@ export function AppShell() {
         role={role}
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
-        onLogout={() => void logout().then(() => navigate("/login"))}
+        onLogout={() => void confirmLogout(navigate)}
       />
       <main className="ms-0 sm:ms-rail min-h-screen px-3.5 pt-4 pb-28 sm:px-[30px] sm:pt-[22px] sm:pb-[70px]">
         <div className="max-w-[1100px] mx-auto" id="main">
-          <Topbar />
-          <SubscriptionBanner />
-          {(user?.role === "OWNER" || user?.role === "ADMIN") && <OwnerMfaBanner />}
-          <Suspense fallback={<PageFallback />}>
-            <Outlet />
-          </Suspense>
+          <PageTitleProvider compact={!atHome}>
+            <Topbar home={home} />
+            <SubscriptionBanner />
+            {(user?.role === "OWNER" || user?.role === "ADMIN") && <OwnerMfaBanner />}
+            <Suspense fallback={<PageFallback />}>
+              <Outlet />
+            </Suspense>
+          </PageTitleProvider>
         </div>
       </main>
     </div>

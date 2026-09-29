@@ -20,8 +20,8 @@ function Shell({ title, hint, children }: { title: string; hint: string; childre
     <AuthLayout
       left={
         <>
-          <h2 className="text-2xl font-semibold">{title}</h2>
-          <p className="text-ink-2 text-[13px] my-2 mb-6">{hint}</p>
+          <h2 className="text-2xl font-semibold text-center">{title}</h2>
+          <p className="text-ink-2 text-[13px] my-2 mb-6 text-center">{hint}</p>
           {children}
           <p className="text-xs text-ink-3 mt-[22px] text-center">
             <Link to="/login" className="text-deep font-semibold">

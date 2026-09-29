@@ -3,25 +3,48 @@ import { Icon } from "../../icons/Icon.js";
 import { assetUrl } from "../../api/client.js";
 import { SystemStrip } from "./SystemStrip.js";
 import { greetingFor } from "../../mock/session.js";
-import { initialOf, logout, useSession } from "../../hooks/useSession.js";
+import { initialOf, useSession } from "../../hooks/useSession.js";
+import { confirmLogout } from "../../lib/logoutFlow.js";
 import { useUnread } from "../../hooks/useUnread.js";
 import { formatNum } from "../../lib/numerals.js";
+import { usePageTitleState } from "../../state/PageTitle.js";
+import { FALLBACK_TITLE, parentOf } from "../../nav/navTree.js";
+import { RiyalText } from "../ui/Riyal.js";
 
 const iconBtn =
   "w-10 h-10 rounded-full grid place-items-center flex-none text-ink-2 bg-surface/55 border border-surface/70 backdrop-blur-sm hover:bg-surface hover:text-deep hover:border-line transition-colors";
 
 /**
- * رأس المنصة:
+ * رأس المنصة — كاملًا في الرئيسية وحدها، ومختصرًا في كل شاشة فرعية:
  * ١) شريط النظام وحده في سطر مستقل (الفصل · الأسبوع · النسبة · إعلانات المالك).
  * ٢) سطر الحساب: الصورة وعليها قلم ← «حسابي»، والترحيب والاسم، ثم الإشعارات · الخروج.
  *    «حسابي» خرج من الشريط السفلي إلى هنا — مكانه الطبيعي بجانب صاحب الحساب.
  */
-export function Topbar() {
+export function Topbar({ home }: { home: string }) {
   const { user } = useSession();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const unread = useUnread(pathname);
+  const { compact, title } = usePageTitleState();
   const name = user?.fullName ?? "";
+
+  // الشاشات الفرعية: رأس مختصر — رجوع إلى الأب المنطقي · العنوان · الرئيسية.
+  if (compact) {
+    const heading = title ?? FALLBACK_TITLE[pathname.split("/")[1] ?? ""] ?? "";
+    return (
+      <div className="sticky top-0 z-40 -mx-3.5 sm:-mx-[30px] px-3.5 sm:px-[30px] pt-[max(8px,env(safe-area-inset-top))] pb-2 mb-4 -mt-4 sm:-mt-[22px] bg-canvas/85 backdrop-blur-xl flex items-center gap-2">
+        <button type="button" aria-label="رجوع" className={iconBtn} onClick={() => navigate(parentOf(pathname, home))}>
+          <Icon name="arrl" className="w-[18px] h-[18px]" />
+        </button>
+        <h1 className="flex-1 min-w-0 text-center text-[16px] sm:text-[18px] font-semibold truncate">
+          <RiyalText text={heading} />
+        </h1>
+        <Link to={`/${home}`} aria-label="الرئيسية" className={iconBtn}>
+          <Icon name="home" className="w-[18px] h-[18px]" />
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-5">
@@ -55,7 +78,7 @@ export function Topbar() {
               </b>
             )}
           </Link>
-          <button type="button" aria-label="تسجيل الخروج" className={iconBtn} onClick={() => void logout().then(() => navigate("/login"))}>
+          <button type="button" aria-label="تسجيل الخروج" className={iconBtn} onClick={() => void confirmLogout(navigate)}>
             <Icon name="logout" className="w-[18px] h-[18px] -scale-x-100" />
           </button>
         </div>

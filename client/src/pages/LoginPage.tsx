@@ -61,8 +61,8 @@ export function LoginPage() {
     <AuthLayout
       left={
         <>
-          <h2 className="text-2xl font-semibold">أهلاً بعودتك</h2>
-          <p className="text-ink-2 text-[13px] my-2 mb-6">ادخل ببريدك وكلمة مرورك.</p>
+          <h2 className="text-2xl font-semibold text-center">أهلاً بعودتك</h2>
+          <p className="text-ink-2 text-[13px] my-2 mb-6 text-center">ادخل ببريدك وكلمة مرورك.</p>
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <Field label="البريد الإلكتروني" type="email" placeholder="name@university.edu.sa" error={errors.email?.message} {...register("email")} />

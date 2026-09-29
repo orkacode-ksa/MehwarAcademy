@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { page, PageFallback } from "./lib/lazyPage.js";
 import { AppShell } from "./layouts/AppShell.js";
 import { ScrollManager } from "./components/shell/ScrollManager.js";
+import { ConfirmHost } from "./components/ui/ConfirmDialog.js";
 const LandingPage = page(() => import("./pages/LandingPage.js"), "LandingPage");
 const GuidePage = page(() => import("./pages/GuidePage.js"), "GuidePage");
 const ShowcasePage = page(
@@ -142,6 +143,7 @@ export function App() {
     <BrowserRouter>
       {/* كل شاشة تُفتح من أعلاها، والرجوع يعيد الموضع — بلاغ المالك في docs/lessons.md §١.٦ */}
       <ScrollManager />
+      <ConfirmHost />
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
