@@ -24,6 +24,7 @@ export const NAV: Record<Role, NavItem[]> = {
   dept: [{ key: "dhome", icon: "users", label: "القسم" }],
   // المالك: التعقيد مسموح هنا وحده — خمس وجهات تغطي كل شيء.
   admin: [
+    { key: "ohome", icon: "chart", label: "الرئيسية" },
     { key: "institutions", icon: "grid", label: "الجامعات" },
     { key: "ousers", icon: "users", label: "المستخدمون" },
     { key: "payments", icon: "card", label: "المدفوعات" },
@@ -53,6 +54,8 @@ interface NavUser {
 /** هل يحقّ لموظف الإدارة فتح هذه الشاشة؟ المالك: كل شيء. */
 export function staffCan(user: NavUser | null | undefined, key: string): boolean {
   if (user?.role !== "ADMIN") return true;
+  // الرئيسية لكل موظف؛ محتواها يصفّيه الخادم بصلاحياته.
+  if (key === "ohome") return true;
   const screen = STAFF_SCREEN_OF[key];
   return !!screen && (user.staffScreens ?? []).includes(screen);
 }
@@ -70,7 +73,7 @@ export const ROLE_HOME: Record<Role, string> = {
   faculty: "home",
   student: "scourses",
   dept: "dhome",
-  admin: "institutions",
+  admin: "ohome",
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -85,7 +88,7 @@ const EXTRA_SCREENS: Record<Role, string[]> = {
   faculty: ["course", "plans", "orders", "cv", "university", "tasks"],
   student: ["scourse"],
   dept: [],
-  admin: ["institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs"],
+  admin: ["ohome", "institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs"],
 };
 
 export const SCREEN_TO_ROLE: Record<string, Role> = (() => {

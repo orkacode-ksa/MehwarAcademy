@@ -33,6 +33,7 @@ import { usageReport } from "../platform/aiBudget.js";
 import { googleConfigured } from "../integrations/google.service.js";
 import { ownerMfaRequired } from "../account/mfa.js";
 import * as staff from "./staff.service.js";
+import { dashboard } from "./dashboard.service.js";
 import { getCatalogs, saveCatalogs } from "../platform/catalogs.js";
 import { STAFF_SCREENS, screenOfPath, type StaffScreen } from "./staff.service.js";
 import { prismaBase } from "../../lib/prisma.js";
@@ -63,13 +64,18 @@ ownerRouter.use(
     });
     if (!u || u.suspendedAt || (u.role !== "OWNER" && u.role !== "ADMIN")) throw AppError.forbidden();
     if (ownerMfaRequired() && !u.totpEnabled) throw new AppError(403, "MFA_REQUIRED", "فعّل التحقق بخطوتين من «حسابي» ← الأمان لتفتح لوحة الإدارة");
-    if (u.role === "ADMIN") {
+    // الرئيسية لكل موظف أيًّا كانت شاشاته — ومحتواها يُصفّى بصلاحياته في الخادم (dashboard.service).
+    if (u.role === "ADMIN" && req.path !== "/dashboard") {
       const screen = screenOfPath(req.path, req.method);
       if (!screen || !u.staffScreens.includes(screen)) throw AppError.forbidden("هذه الشاشة غير ممنوحة لحسابك");
     }
     next();
   }),
 );
+
+// ───────────────────────── الرئيسية ─────────────────────────
+
+ownerRouter.get("/dashboard", asyncHandler(async (req, res) => res.json({ success: true, data: await dashboard(actor(req)) })));
 
 // ───────────────────────── القوائم المقنّنة ─────────────────────────
 

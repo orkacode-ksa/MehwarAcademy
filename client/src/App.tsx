@@ -117,6 +117,7 @@ const SubmissionsPage = page(
 const ForgotPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ForgotPasswordPage");
 const ResetPasswordPage = page(() => import("./pages/PasswordResetPages.js"), "ResetPasswordPage");
 const StaffPage = page(() => import("./pages/owner/StaffPage.js"), "StaffPage");
+const OwnerHomePage = page(() => import("./pages/owner/OwnerHomePage.js"), "OwnerHomePage");
 const CatalogsPage = page(() => import("./pages/owner/CatalogsPage.js"), "CatalogsPage");
 const OwnerUsersPage = page(
   () => import("./pages/owner/OwnerUsersPage.js"),
@@ -180,6 +181,7 @@ export function App() {
             <Route path="scourse/:id" element={<StudentCoursePage />} />
 
             {/* المالك */}
+            <Route path="ohome" element={<OwnerHomePage />} />
             <Route path="institutions" element={<InstitutionsPage />} />
             <Route path="institutions/:tenantId" element={<RegulationPage />} />
             <Route
