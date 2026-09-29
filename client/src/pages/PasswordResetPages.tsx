@@ -6,6 +6,7 @@ import { Field } from "../components/auth/Field.js";
 import { PasswordField } from "../components/auth/PasswordField.js";
 import { Button } from "../components/ui/Button.js";
 import { api, ApiError } from "../api/client.js";
+import { useHumanCheck } from "../components/auth/HumanCheck.js";
 
 const Side = () => (
   <>
@@ -41,6 +42,7 @@ export function ForgotPasswordPage() {
   const [done, setDone] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const human = useHumanCheck();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -49,9 +51,10 @@ export function ForgotPasswordPage() {
     setBusy(true);
     setErr(null);
     try {
-      const r = await api.post<{ message: string }>("/auth/forgot-password", parsed.data);
+      const r = await api.post<{ message: string }>("/auth/forgot-password", { ...parsed.data, ...human.extra });
       setDone(r.message);
     } catch (e2) {
+      human.reset();
       setErr(e2 instanceof ApiError ? e2.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا");
     } finally {
       setBusy(false);
@@ -68,6 +71,7 @@ export function ForgotPasswordPage() {
       ) : (
         <form onSubmit={(e) => void submit(e)} noValidate>
           <Field label="البريد الإلكتروني" type="email" dir="ltr" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={err ?? undefined} />
+          {human.widget}
           <Button type="submit" variant="primary" size="lg" className="w-full mt-1.5" disabled={busy}>
             {busy ? "يُرسل…" : "أرسل الرابط"}
           </Button>

@@ -11,6 +11,7 @@ import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME, type Role } from "../nav/nav.js";
 import { resetSession, useSession } from "../hooks/useSession.js";
 import { api, ApiError } from "../api/client.js";
+import { useHumanCheck } from "../components/auth/HumanCheck.js";
 
 /**
  * شاشة الدخول — منقولة من `login()` في البروتوتايب مع فارق جوهري: حقول فارغة حقيقية
@@ -30,6 +31,7 @@ const ROLE_BY_SERVER: Record<string, Role> = {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const human = useHumanCheck();
   // من دخل فعلًا لا يرى نموذج الدخول (زر الرجوع بعد الدخول) — يُعاد لرئيسيته.
   const { user: signedIn, loading: checking } = useSession();
   const {
@@ -48,7 +50,7 @@ export function LoginPage() {
   async function onSubmit(values: LoginInput) {
     setAuthError(null);
     try {
-      await api.post("/auth/login", values);
+      await api.post("/auth/login", { ...values, ...human.extra });
       resetSession();
       const me = await api.get<{ role: string; staffScreens?: string[] }>("/auth/me");
       // المالك وكل موظف يبدأ من «الرئيسية» — محتواها بقدر صلاحياته، يصفّيه الخادم.
@@ -57,6 +59,7 @@ export function LoginPage() {
       const home = `/${me.role === "ADMIN" || me.role === "OWNER" ? "ohome" : ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`;
       navigate(next && /^\/[a-z]/.test(next) ? next : home, { replace: true });
     } catch (err) {
+      human.reset();
       if (err instanceof ApiError && (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID")) setNeedCode(true);
       setAuthError(err instanceof ApiError ? err.message : "تعذّر الاتصال — تحقّق من الإنترنت وحاول مجددًا");
     }
@@ -93,6 +96,7 @@ export function LoginPage() {
               </Link>
             </div>
             {resetDone && !authError && <p className="text-[12px] text-teal-text mb-2">تغيّرت كلمة المرور — ادخل بها الآن.</p>}
+            {human.widget}
             {authError && <p className="text-[12px] text-crim mb-2">{authError}</p>}
             <Button type="submit" variant="primary" size="lg" className="w-full mt-1.5" disabled={isSubmitting}>
               دخول <Icon name="arr" className="w-4 h-4" />

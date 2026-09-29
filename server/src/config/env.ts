@@ -55,6 +55,10 @@ const envSchema = z.object({
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_REGION: z.string().optional(),
   /** inline: التوليد داخل خادم الويب (التطوير) · worker: عامل مستقل يسحب من الطابور (الإنتاج) */
+  /** Cloudflare Turnstile — يُفعَّل التحقق حين يُضبط المفتاحان */
+  TURNSTILE_SITE_KEY: z.string().optional(),
+  TURNSTILE_SECRET_KEY: z.string().optional(),
+  TURNSTILE_VERIFY_URL: z.string().url().default("https://challenges.cloudflare.com/turnstile/v0/siteverify"),
   GENERATION_MODE: z.enum(["inline", "worker"]).default("inline"),
   /** عدد المهام المتزامنة في العامل الواحد */
   GENERATION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(3),

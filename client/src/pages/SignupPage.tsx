@@ -9,6 +9,7 @@ import { Icon } from "../icons/Icon.js";
 import { ROLE_HOME } from "../nav/nav.js";
 import { api, ApiError } from "../api/client.js";
 import { resetSession } from "../hooks/useSession.js";
+import { useHumanCheck } from "../components/auth/HumanCheck.js";
 
 type Step = 1 | 2;
 
@@ -41,6 +42,7 @@ export function SignupPage() {
   const [facultyData, setFacultyData] = useState<Partial<FacultyDetails>>({});
   const [studentData, setStudentData] = useState<Partial<StudentJoinDetails>>({});
   const [authError, setAuthError] = useState<string | null>(null);
+  const human = useHumanCheck();
 
   /**
    * إنشاء الحساب فعليًا على الخادم.
@@ -53,7 +55,7 @@ export function SignupPage() {
     try {
       if (role === "student") {
         // الطالب يستلم حسابه الذي أنشأه كشف أستاذه — لا يُنشئ مستأجرًا ولا حسابًا جديدًا.
-        await api.post("/auth/join-section", student);
+        await api.post("/auth/join-section", { ...student, ...human.extra });
       } else {
         await api.post("/auth/register", {
           fullName: faculty.fullName ?? "",
@@ -61,11 +63,13 @@ export function SignupPage() {
           password: faculty.password ?? "",
           role: "TEACHER" as const,
           ...universityOf(faculty),
+          ...human.extra,
         });
       }
       resetSession();
       navigate(`/${ROLE_HOME[role ?? "faculty"]}`);
     } catch (err) {
+      human.reset();
       setAuthError(err instanceof ApiError ? err.message : "تعذّر إنشاء الحساب — تحقّق من اتصالك");
       setStep(2);
     }
@@ -105,6 +109,7 @@ export function SignupPage() {
               }}
             />
           )}
+          {step === 2 && human.widget}
           {authError && <p className="text-[12.5px] text-crim mt-3 text-center">{authError}</p>}
 
           <p className="text-xs text-ink-3 mt-5 text-center">

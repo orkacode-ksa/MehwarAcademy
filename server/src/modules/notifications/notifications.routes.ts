@@ -6,6 +6,7 @@ import * as service from "./notifications.service.js";
 import { getPlatformSettings } from "../platform/settings.js";
 import { getCatalogs } from "../platform/catalogs.js";
 import { listPlans } from "../store/store.service.js";
+import { env } from "../../config/env.js";
 import { prismaBase } from "../../lib/prisma.js";
 import { raw } from "express";
 import { changePasswordSchema, profileUpdateSchema, totpCodeSchema, totpDisableSchema, userPrefsSchema } from "@mihwar/shared";
@@ -22,6 +23,15 @@ publicRouter.get(
   asyncHandler(async (_req, res) => {
     res.setHeader("Cache-Control", "public, max-age=300");
     res.json({ success: true, data: { email: (await getPlatformSettings()).contactEmail } });
+  }),
+);
+
+/** إعدادات عامة يحتاجها المتصفح قبل الدخول: مفتاح التحقق من البشر (العام لا السري). */
+publicRouter.get(
+  "/config",
+  asyncHandler(async (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json({ success: true, data: { turnstileSiteKey: env.TURNSTILE_SECRET_KEY ? (env.TURNSTILE_SITE_KEY ?? null) : null } });
   }),
 );
 

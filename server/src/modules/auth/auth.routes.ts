@@ -4,6 +4,7 @@ import { completePasswordReset, requestPasswordReset } from "./passwordReset.js"
 import { validate } from "../../middleware/validate.js";
 import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
 import { requireAuth } from "../../middleware/auth.js";
+import { requireHuman } from "../../middleware/turnstile.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import * as controller from "./auth.controller.js";
 
@@ -12,6 +13,7 @@ export const authRouter = Router();
 authRouter.post(
   "/register",
   sensitiveRateLimit((req) => (req.body as { email?: string })?.email),
+  requireHuman,
   validate({ body: registerSchema }),
   asyncHandler(controller.register),
 );
@@ -24,6 +26,7 @@ authRouter.post(
     const b = req.body as { joinCode?: string; universityIdNumber?: string };
     return b?.joinCode && b.universityIdNumber ? `${b.joinCode}:${b.universityIdNumber}` : undefined;
   }),
+  requireHuman,
   validate({ body: joinSectionSchema }),
   asyncHandler(controller.joinSection),
 );
@@ -31,6 +34,7 @@ authRouter.post(
 authRouter.post(
   "/login",
   sensitiveRateLimit((req) => (req.body as { email?: string })?.email),
+  requireHuman,
   validate({ body: loginSchema }),
   asyncHandler(controller.login),
 );
@@ -39,6 +43,7 @@ authRouter.post(
 authRouter.post(
   "/forgot-password",
   sensitiveRateLimit((req) => (req.body as { email?: string })?.email),
+  requireHuman,
   validate({ body: forgotPasswordSchema }),
   asyncHandler(async (req, res) => {
     await requestPasswordReset(req.body.email);
