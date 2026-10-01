@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { createAssessmentSchema } from "@mihwar/shared";
 import { api, ApiError, pdfDownloadUrl } from "../../api/client.js";
 import { useSession } from "../../hooks/useSession.js";
@@ -20,6 +21,7 @@ interface Assessment {
   answerKey: string | null;
   outcomes: string[];
   isLab: boolean;
+  online?: boolean;
 }
 
 
@@ -78,6 +80,9 @@ export function AssessmentsStep({ course, onChanged }: { course: Course; onChang
                 <span className="text-[12px] text-ink-3">
                   {formatNum(Number(a.weightPercent))}٪ · من {formatNum(Number(a.maxScore))}
                 </span>
+                <Link to={`/course/${course.id}/exam/${a.id}`} className="text-[12.5px] font-semibold text-deep px-2 py-1">
+                  {a.online ? "الاختبار الإلكتروني ✓" : "اختبار إلكتروني"}
+                </Link>
                 <Button variant="text" size="sm" onClick={() => setEdit(edit === a.id ? null : a.id)}>
                   {a.instructions ? (a.answerKey ? "الأسئلة والإجابة" : "أضف نموذج الإجابة") : "أضف الأسئلة"}
                 </Button>

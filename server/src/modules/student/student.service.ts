@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { absenceStatus, absencesUntilBan, scheduledDates, type Meeting } from "../rules/rules.js";
 import { policyOf, tally } from "../teaching/today.service.js";
+import { statusOf } from "../exams/exam.service.js";
 
 /**
  * شاشات الطالب — أبسط من الأستاذ: مقرراتي · مواد الموضوع · اختباراتي · درجاتي · غيابي.
@@ -74,7 +75,7 @@ export async function myCourse(studentId: string, courseId: string) {
   if (!enrollment) throw AppError.notFound("لست مسجّلًا في هذا المقرر");
   const course = enrollment.section.course;
 
-  const [topics, assessments, grades, absences, violations, reg] = await Promise.all([
+  const [topics, assessments, grades, attempts, absences, violations, reg] = await Promise.all([
     prisma.topic.findMany({
       where: { courseId, deletedAt: null },
       orderBy: { orderIndex: "asc" },
@@ -91,9 +92,10 @@ export async function myCourse(studentId: string, courseId: string) {
     prisma.assessment.findMany({
       where: { courseId, deletedAt: null },
       orderBy: { createdAt: "asc" },
-      select: { id: true, title: true, type: true, maxScore: true, weightPercent: true, dueDate: true, instructions: true, isLab: true },
+      select: { id: true, title: true, type: true, maxScore: true, weightPercent: true, dueDate: true, instructions: true, isLab: true, online: true, opensAt: true, closesAt: true, durationMin: true },
     }),
     prisma.grade.findMany({ where: { enrollmentId: enrollment.id }, select: { assessmentId: true, score: true } }),
+    prisma.examAttempt.findMany({ where: { enrollmentId: enrollment.id } }),
     prisma.attendance.groupBy({
       by: ["enrollmentId", "status"],
       where: { enrollmentId: enrollment.id, status: { in: ["ABSENT", "EXCUSED"] } },
@@ -128,8 +130,12 @@ export async function myCourse(studentId: string, courseId: string) {
       maxScore: Number(a.maxScore),
       weightPercent: Number(a.weightPercent),
       dueDate: a.dueDate,
-      instructions: HIDDEN_CONTENT.has(a.type) ? null : a.instructions,
+      instructions: HIDDEN_CONTENT.has(a.type) || a.online ? null : a.instructions,
       score,
+      // اختبار إلكتروني يحلّه الطالب في المنصة
+      exam: a.online
+        ? { opensAt: a.opensAt, closesAt: a.closesAt, durationMin: a.durationMin ?? 30, status: statusOf(a, attempts.find((t) => t.assessmentId === a.id) ?? null) }
+        : null,
     };
   });
 

@@ -1,4 +1,7 @@
 import { Router } from "express";
+import { bookOfficeSchema, examAnswersSchema } from "@mihwar/shared";
+import * as office from "../office/office.service.js";
+import * as exams from "../exams/exam.service.js";
 import { z } from "zod";
 import { cuidSchema } from "@mihwar/shared";
 import { requireAuth } from "../../middleware/auth.js";
@@ -37,6 +40,62 @@ studentRouter.get(
   validate({ params: z.object({ courseId: cuidSchema }).passthrough() }),
   asyncHandler(async (req, res) => {
     res.json({ success: true, data: await service.myCourse(me(req), req.params.courseId as string) });
+  }),
+);
+
+// ── الساعات المكتبية ──
+studentRouter.get(
+  "/office",
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await office.studentOffice(me(req)) });
+  }),
+);
+studentRouter.post(
+  "/office/book",
+  validate({ body: bookOfficeSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await office.book(me(req), req.body) });
+  }),
+);
+studentRouter.post(
+  "/office/bookings/:bookingId/cancel",
+  validate({ params: z.object({ bookingId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    await office.studentCancel(me(req), req.params.bookingId as string);
+    res.json({ success: true, data: null });
+  }),
+);
+
+// ── الاختبارات الإلكترونية ──
+const examParam = validate({ params: z.object({ assessmentId: cuidSchema }).passthrough() });
+studentRouter.get(
+  "/exams/:assessmentId",
+  examParam,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.studentExam(me(req), req.params.assessmentId as string) });
+  }),
+);
+studentRouter.post(
+  "/exams/:assessmentId/start",
+  examParam,
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.startExam(me(req), req.params.assessmentId as string) });
+  }),
+);
+studentRouter.put(
+  "/exams/:assessmentId/answers",
+  examParam,
+  validate({ body: examAnswersSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.saveAnswers(me(req), req.params.assessmentId as string, req.body.answers) });
+  }),
+);
+studentRouter.post(
+  "/exams/:assessmentId/submit",
+  examParam,
+  validate({ body: examAnswersSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.submitExam(me(req), req.params.assessmentId as string, req.body.answers) });
   }),
 );
 

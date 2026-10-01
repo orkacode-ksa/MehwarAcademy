@@ -11,6 +11,7 @@ import { startTermCloser } from "./jobs/termCloser.js";
 import { alertServerError } from "./lib/alerts.js";
 import { bootstrapOwner } from "./modules/owner/staff.service.js";
 import { migrateBlobsToObjectStorage } from "./modules/files/blobMigration.js";
+import { migrateBucket } from "./modules/files/bucketMigration.js";
 
 installArabicZodErrorMap();
 
@@ -32,6 +33,8 @@ void (async () => {
   // استعادة حساب المالك من متغيرات Railway إن ضُبطت — مرة لكل قيمة، ولا تُسقط الخادم إن فشلت.
   await runOnce("boot:owner", 120, () => bootstrapOwner().catch((err: unknown) => logger.error({ err }, "تعذّرت استعادة حساب المالك")));
   // ما خُزّن في قاعدة البيانات قبل ضبط التخزين الكائني يُنقل إليه في الخلفية (مرة، ويُكمل إن انقطع).
+  // نقل من حاوية سابقة إلى الحالية (Railway ← Cloudflare R2) إن ضُبطت STORAGE_OLD_*
+  await runOnce("boot:bucket", 6 * 3600, () => migrateBucket().catch((err: unknown) => logger.error({ err }, "تعذّر نقل الحاوية")));
   await runOnce("boot:blobs", 30 * 60, () =>
     migrateBlobsToObjectStorage().catch((err: unknown) => logger.error({ err }, "تعذّر نقل الملفات إلى التخزين الكائني — تبقى تُقرأ من القاعدة")),
   );

@@ -6,3 +6,5 @@ export * from "./schemas/owner.schemas.js";
 export * from "./zodErrorMap.js";
 export * from "./schemas/store.schemas.js";
 export * from "./schemas/account.schemas.js";
+export * from "./schemas/exam.schemas.js";
+export * from "./schemas/office.schemas.js";

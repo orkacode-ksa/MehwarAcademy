@@ -20,7 +20,10 @@ const NAV: Record<Role, NavItem[]> = {
     { key: "evalp", icon: "chart", label: "أدائي" },
     { key: "dhome", icon: "users", label: "القسم" },
   ],
-  student: [{ key: "scourses", icon: "book", label: "مقرراتي" }],
+  student: [
+    { key: "scourses", icon: "book", label: "مقرراتي" },
+    { key: "soffice", icon: "cal", label: "الساعات المكتبية" },
+  ],
   dept: [{ key: "dhome", icon: "users", label: "القسم" }],
   // المالك: التعقيد مسموح هنا وحده — خمس وجهات تغطي كل شيء.
   admin: [
@@ -80,8 +83,8 @@ export const ROLE_HOME: Record<Role, string> = {
 
 /** خريطة عكسية: مفتاح الشاشة → الدور المالك لها (لتضمين شاشات لا تظهر في NAV مثل course وexambuild) */
 const EXTRA_SCREENS: Record<Role, string[]> = {
-  faculty: ["course", "plans", "orders", "cv", "university", "tasks", "violations"],
-  student: ["scourse"],
+  faculty: ["course", "plans", "orders", "cv", "university", "tasks", "violations", "officehours"],
+  student: ["scourse", "sexam"],
   dept: [],
   admin: ["ohome", "institutions", "ousers", "payments", "obank", "osettings", "osubmissions", "ocatalogs", "oaudit", "odata"],
 };
@@ -121,6 +124,7 @@ const MORE_EXTRA: Record<Role, NavItem[]> = {
   faculty: [
     { key: "tasks", icon: "cal", label: "مهام اليوم" },
     { key: "violations", icon: "shield", label: "المخالفات" },
+    { key: "officehours", icon: "clock", label: "الساعات المكتبية" },
     { key: "cv", icon: "file", label: "سيرتي" },
     { key: "university", icon: "shield", label: "جامعتي" },
     { key: "plans", icon: "star", label: "الباقات" },
