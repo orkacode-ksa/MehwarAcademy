@@ -83,6 +83,11 @@ export function StudentCoursePage() {
         </div>
       )}
 
+      <Link to="/soffice" className="mt-4 flex items-center justify-between gap-3 bg-surface border border-line rounded-[14px] px-4 py-3 text-[13.5px] hover:border-deep/30">
+        <span>تحتاج أستاذك؟ احجز موعدًا في ساعاته المكتبية</span>
+        <span className="text-deep font-semibold">احجز ←</span>
+      </Link>
+
       <Card title="الاختبارات" className="mt-4">
         <ul className="grid gap-2">
           {data.assessments.map((x) => (

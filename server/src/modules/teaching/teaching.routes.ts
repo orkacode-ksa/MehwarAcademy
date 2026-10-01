@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { gradeAttemptSchema, onlineExamSchema } from "@mihwar/shared";
+import { gradeAttemptSchema, officeHoursSchema, onlineExamSchema } from "@mihwar/shared";
+import * as office from "../office/office.service.js";
 import * as exams from "../exams/exam.service.js";
 import { pageOf } from "../../lib/paging.js";
 import {
@@ -177,6 +178,33 @@ teachingRouter.patch(
     res.json({ success: true, data: await content.updateAssessment(ws(req), req.params.assessmentId as string, req.body) });
   }),
 );
+// ── الساعات المكتبية ──
+teachingRouter.get(
+  "/office-hours",
+  teacherOnly,
+  asyncHandler(async (req, res) => {
+    const [hours, bookings] = await Promise.all([office.myHours(ws(req)), office.teacherBookings(ws(req))]);
+    res.json({ success: true, data: { hours, bookings } });
+  }),
+);
+teachingRouter.put(
+  "/office-hours",
+  teacherOnly,
+  validate({ body: officeHoursSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await office.saveHours(ws(req), req.body) });
+  }),
+);
+teachingRouter.post(
+  "/office-bookings/:bookingId/cancel",
+  teacherOnly,
+  validate({ params: z.object({ bookingId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    await office.teacherCancel(ws(req), req.params.bookingId as string, (req as { auth?: { userId: string } }).auth?.userId ?? "");
+    res.json({ success: true, data: null });
+  }),
+);
+
 // ── الاختبار الإلكتروني ──
 teachingRouter.get(
   "/assessments/:assessmentId/exam",

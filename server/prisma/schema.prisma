@@ -192,6 +192,7 @@ model User {
   emailChangeTokens    EmailChangeToken[]
   passwordResetTokens  PasswordResetToken[]
   avatar               UserAvatar?
+  officeBookings       OfficeBooking[]
 
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
@@ -1340,4 +1341,49 @@ model ExamAttempt {
   @@index([workspaceId])
   @@index([tenantId])
   @@map("exam_attempts")
+}
+
+/// الساعات المكتبية للأستاذ — أسبوعية (يوم · من · إلى · مكان أو رابط)، تُقسَّم مواعيد يحجزها طلابه.
+model OfficeHour {
+  id          String   @id @default(cuid())
+  tenantId    String
+  workspaceId String
+  /// ٠ الأحد … ٦ السبت (كمواعيد الشعب)
+  day         Int
+  start       String
+  end         String
+  location    String
+  /// طول الموعد الواحد بالدقائق
+  slotMin     Int      @default(15)
+  createdAt   DateTime @default(now())
+
+  bookings OfficeBooking[]
+
+  @@index([workspaceId])
+  @@index([tenantId])
+  @@map("office_hours")
+}
+
+/// حجز طالب لموعد من الساعات المكتبية. لا حجزان للموعد نفسه (فهرس فريد جزئي في الهجرة).
+model OfficeBooking {
+  id           String    @id @default(cuid())
+  tenantId     String
+  workspaceId  String
+  officeHourId String
+  studentId    String
+  /// YYYY-MM-DD بتوقيت الجامعة
+  date         String
+  start        String
+  topic        String?
+  canceledAt   DateTime?
+  canceledBy   String?
+  createdAt    DateTime  @default(now())
+
+  officeHour OfficeHour @relation(fields: [officeHourId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([studentId])
+  @@index([tenantId])
+  @@map("office_bookings")
 }

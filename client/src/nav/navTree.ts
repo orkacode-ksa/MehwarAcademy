@@ -33,6 +33,8 @@ export function parentOf(pathname: string, home: string): string {
 export const FALLBACK_TITLE: Record<string, string> = {
   tasks: "مهام اليوم",
   violations: "المخالفات",
+  officehours: "الساعات المكتبية",
+  soffice: "الساعات المكتبية",
   today: "محاضرة اليوم",
   courses: "مقرراتي",
   course: "المقرر",
