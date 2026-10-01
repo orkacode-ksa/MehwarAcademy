@@ -54,6 +54,12 @@ const envSchema = z.object({
   STORAGE_SECRET_KEY: z.string().optional(),
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_REGION: z.string().optional(),
+  /** حاوية سابقة يُنقل منها كل شيء إلى الحالية (مثلًا من Railway إلى Cloudflare R2) — تُحذف بعد اكتمال النقل */
+  STORAGE_OLD_ENDPOINT: z.string().optional(),
+  STORAGE_OLD_ACCESS_KEY: z.string().optional(),
+  STORAGE_OLD_SECRET_KEY: z.string().optional(),
+  STORAGE_OLD_BUCKET: z.string().optional(),
+  STORAGE_OLD_REGION: z.string().optional(),
   /** inline: التوليد داخل خادم الويب (التطوير) · worker: عامل مستقل يسحب من الطابور (الإنتاج) */
   /** Cloudflare Turnstile — يُفعَّل التحقق حين يُضبط المفتاحان */
   TURNSTILE_SITE_KEY: z.string().optional(),
