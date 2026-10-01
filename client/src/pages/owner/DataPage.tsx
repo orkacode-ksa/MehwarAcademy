@@ -7,22 +7,32 @@ import { Input, Select } from "../../components/ui/Form.js";
 import { confirmDialog } from "../../components/ui/ConfirmDialog.js";
 import { useToast } from "../../state/ToastContext.js";
 import { RiyalText } from "../../components/ui/Riyal.js";
+import { WipeCard } from "./WipeCard.js";
 
-type Kind = "tenants" | "users" | "courses" | "bank" | "orders";
+type Kind = "tenants" | "users" | "courses" | "years" | "terms" | "sections" | "topics" | "assessments" | "bank" | "orders" | "plans" | "accounts" | "submissions";
 interface Item {
   id: string;
   title: string;
   sub: string;
   at: string;
-  locked?: boolean;
+  /** تنبيه يُعرض في نافذة التأكيد لعنصر حذفه جسيم (مثل طلب معتمد). */
+  warn?: string;
 }
 
-const KINDS: { key: Kind; label: string; note: string }[] = [
+const KINDS: { key: Kind; label: string; note: string; inTenant?: boolean }[] = [
   { key: "users", label: "المستخدمون", note: "يُحذف الحساب وتُنهى جلساته فورًا، ويستطيع صاحب البريد التسجيل من جديد." },
   { key: "tenants", label: "الجامعات", note: "تُحذف مساحة الجامعة وتُغلق حسابات كل أعضائها." },
-  { key: "courses", label: "المقررات", note: "يُحذف المقرر من أستاذه وطلابه. اختر الجامعة أولًا." },
+  { key: "years", label: "الأعوام", note: "يُحذف العام بفصوله وكل مقرراتها. اختر الجامعة أولًا.", inTenant: true },
+  { key: "terms", label: "الفصول", note: "يُحذف الفصل بكل مقرراته. اختر الجامعة أولًا.", inTenant: true },
+  { key: "courses", label: "المقررات", note: "يُحذف المقرر بشعبه وطلابه ومواده وتقييماته، ويمكن إنشاء الرمز نفسه من جديد. اختر الجامعة أولًا.", inTenant: true },
+  { key: "sections", label: "الشعب", note: "تُحذف الشعبة بتسجيل طلابها وحضورهم. اختر الجامعة أولًا.", inTenant: true },
+  { key: "topics", label: "المواضيع", note: "يُحذف الموضوع بمحاضراته. اختر الجامعة أولًا.", inTenant: true },
+  { key: "assessments", label: "التقييمات", note: "يُحذف التقييم بدرجات طلابه. اختر الجامعة أولًا.", inTenant: true },
   { key: "bank", label: "بنك المقررات", note: "يُزال من البنك؛ من أضافه سابقًا لمقرراته يبقى له." },
-  { key: "orders", label: "الطلبات", note: "الطلب المعتمد سجل مالي ولا يُحذف." },
+  { key: "orders", label: "الطلبات", note: "يُحذف الطلب. حذف المعتمد منها لا يُلغي الاشتراك الذي فعّله." },
+  { key: "plans", label: "الباقات", note: "تُحذف الباقة من المتجر." },
+  { key: "accounts", label: "الحسابات البنكية", note: "يُحذف الحساب من صفحة الدفع." },
+  { key: "submissions", label: "طلبات اللوائح", note: "يُحذف طلب اعتماد اللائحة من قائمة المراجعة." },
 ];
 
 /**
@@ -37,24 +47,25 @@ export function DataPage() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const { showToast } = useToast();
-  const tenants = useApi<Item[]>(kind === "courses" ? "/owner/data/tenants" : null);
-  const path = kind === "courses" && !tenantId ? null : `/owner/data/${kind}?${new URLSearchParams({ ...(search ? { q: search } : {}), ...(kind === "courses" ? { tenantId } : {}) })}`;
-  const { data, loading, error, reload } = useApi<Item[]>(path);
   const info = KINDS.find((k) => k.key === kind);
+  const inTenant = info?.inTenant === true;
+  const tenants = useApi<Item[]>(inTenant ? "/owner/data/tenants" : null);
+  const path = inTenant && !tenantId ? null : `/owner/data/${kind}?${new URLSearchParams({ ...(search ? { q: search } : {}), ...(inTenant ? { tenantId } : {}) })}`;
+  const { data, loading, error, reload } = useApi<Item[]>(path);
 
   async function remove(ids: string[]) {
     const many = ids.length > 1;
     const ok = await confirmDialog({
       title: many ? `حذف ${ids.length} عنصرًا؟` : `حذف «${data?.find((d) => d.id === ids[0])?.title ?? ""}»؟`,
-      body: `${info?.note ?? ""} لا يمكن التراجع.`,
+      body: [info?.note, ...ids.map((id) => data?.find((d) => d.id === id)?.warn).filter(Boolean), "لا يمكن التراجع."].filter(Boolean).join(" "),
       confirmLabel: "احذف",
       danger: true,
-      ...(many ? { requireText: "حذف" } : {}),
+      ...(many || ids.some((id) => data?.find((d) => d.id === id)?.warn) ? { requireText: "حذف" } : {}),
     });
     if (!ok) return;
     setBusy(true);
     try {
-      const r = await api.post<{ deleted: number; failed: { id: string; reason: string }[] }>(`/owner/data/${kind}/delete`, { ids, ...(kind === "courses" ? { tenantId } : {}) });
+      const r = await api.post<{ deleted: number; failed: { id: string; reason: string }[] }>(`/owner/data/${kind}/delete`, { ids, ...(inTenant ? { tenantId } : {}) });
       showToast(r.failed.length ? `حُذف ${r.deleted} · تعذّر ${r.failed.length}: ${r.failed[0]?.reason}` : `حُذف ${r.deleted}`);
       setPicked(new Set());
       reload();
@@ -66,7 +77,7 @@ export function DataPage() {
   }
 
   const toggle = (id: string) => setPicked((p) => (p.has(id) ? new Set([...p].filter((x) => x !== id)) : new Set([...p, id])));
-  const selectable = (data ?? []).filter((d) => !d.locked);
+  const selectable = data ?? [];
 
   return (
     <>
@@ -84,7 +95,7 @@ export function DataPage() {
         ))}
       </div>
       <p className="text-[12px] text-ink-3 mb-3">{info?.note}</p>
-      {kind === "courses" && (
+      {inTenant && (
         <Select value={tenantId} onChange={(e) => (setTenantId(e.target.value), setPicked(new Set()))} aria-label="الجامعة" className="mb-2">
           <option value="">اختر الجامعة…</option>
           {tenants.data?.map((t) => (
@@ -127,25 +138,24 @@ export function DataPage() {
         <ul className="bg-surface border border-line rounded-[14px] divide-y divide-line2">
           {data.map((d) => (
             <li key={d.id} className="flex items-center gap-3 px-3.5 py-2.5">
-              <input type="checkbox" className="w-4 h-4 flex-none accent-deep" disabled={d.locked} checked={picked.has(d.id)} onChange={() => toggle(d.id)} aria-label={`تحديد ${d.title}`} />
+              <input type="checkbox" className="w-4 h-4 flex-none accent-deep" checked={picked.has(d.id)} onChange={() => toggle(d.id)} aria-label={`تحديد ${d.title}`} />
               <span className="flex-1 min-w-0">
                 <span className="block text-[13.5px] font-medium truncate">
                   <RiyalText text={d.title} />
                 </span>
                 <span className="block text-[11.5px] text-ink-3 truncate">{d.sub}</span>
               </span>
-              {d.locked ? (
-                <span className="text-[11px] text-ink-3 flex-none">لا يُحذف</span>
-              ) : (
-                <Button variant="text" size="sm" className="!text-crim flex-none" disabled={busy} onClick={() => void remove([d.id])}>
-                  حذف
-                </Button>
-              )}
+              <Button variant="text" size="sm" className="!text-crim flex-none" disabled={busy} onClick={() => void remove([d.id])}>
+                حذف
+              </Button>
             </li>
           ))}
           {data.length === 0 && <li className="p-6 text-center text-[13px] text-ink-3">لا نتائج.</li>}
         </ul>
       )}
+      {inTenant && !tenantId && <p className="text-[13px] text-ink-3">اختر الجامعة لعرض {info?.label}.</p>}
+
+      <WipeCard />
     </>
   );
 }

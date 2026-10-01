@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import crypto from "node:crypto";
 import { createApp } from "../app.js";
-import { prismaBase } from "../lib/prisma.js";
+import { prismaBase, withExplicitTenantTx } from "../lib/prisma.js";
 import { resetSensitiveLimitForTests } from "../middleware/rateLimit.js";
 
 /**
@@ -90,5 +90,87 @@ describe("إدارة البيانات", () => {
     expect(r.body.data.deleted).toBe(1);
     expect((await t.get("/api/auth/me")).status).toBe(401);
     expect((await prismaBase.tenant.findUniqueOrThrow({ where: { id: tenantId } })).deletedAt).not.toBeNull();
+  });
+});
+
+describe("حذف أي شيء — حتى ما أُنشئ بالخطأ", () => {
+  async function teacherWithCourse() {
+    const t = request.agent(app);
+    const e = email();
+    await t.post("/api/auth/register").send({ fullName: "أستاذ للتجربة", email: e, password: PW, role: "TEACHER" });
+    const { tenantId } = await prismaBase.user.findFirstOrThrow({ where: { email: e }, select: { tenantId: true } });
+    const semesterId = (await t.get("/api/workspaces/me/academic/terms")).body.data[0].id as string;
+    const made = await t.post("/api/workspaces/me/academic/courses").send({ code: "BIO 101", nameAr: "أحياء", creditHours: 3, semesterId });
+    expect(made.status).toBe(201);
+    return { t, tenantId, semesterId, courseId: made.body.data.id as string };
+  }
+
+  it("مقرر: حذف فعلي بكل ما تحته، ويُعاد إنشاء الرمز نفسه فورًا", async () => {
+    const { t, tenantId, semesterId, courseId } = await teacherWithCourse();
+    const ws = await withExplicitTenantTx(tenantId, (tx) => tx.course.findFirstOrThrow({ where: { id: courseId }, select: { workspaceId: true } }));
+    await withExplicitTenantTx(tenantId, async (tx) => {
+      await tx.topic.create({ data: { tenantId, workspaceId: ws.workspaceId, courseId, title: "الخلية", orderIndex: 1 } });
+      await tx.section.create({ data: { tenantId, workspaceId: ws.workspaceId, courseId, label: "1", capacity: 30 } });
+    });
+    const r = await owner.post("/api/owner/data/courses/delete").send({ ids: [courseId], tenantId });
+    expect(r.body.data).toMatchObject({ deleted: 1, failed: [] });
+    const left = await withExplicitTenantTx(tenantId, async (tx) => ({ c: await tx.course.count({ where: { id: courseId } }), t: await tx.topic.count({ where: { courseId } }), s: await tx.section.count({ where: { courseId } }) }));
+    expect(left).toEqual({ c: 0, t: 0, s: 0 });
+    // الرمز نفسه من جديد — كان الحذف الناعم يمنعه بالقيد الفريد
+    const again = await t.post("/api/workspaces/me/academic/courses").send({ code: "BIO 101", nameAr: "أحياء", creditHours: 3, semesterId });
+    expect(again.status).toBe(201);
+  });
+
+  it("شعبة · موضوع · تقييم · فصل · عام: تُسرد وتُحذف مفردة", async () => {
+    const { tenantId, courseId } = await teacherWithCourse();
+    const ws = await withExplicitTenantTx(tenantId, (tx) => tx.course.findFirstOrThrow({ where: { id: courseId }, select: { workspaceId: true } }));
+    const ids = await withExplicitTenantTx(tenantId, async (tx) => ({
+      section: (await tx.section.create({ data: { tenantId, workspaceId: ws.workspaceId, courseId, label: "9", capacity: 10 } })).id,
+      topic: (await tx.topic.create({ data: { tenantId, workspaceId: ws.workspaceId, courseId, title: "بالخطأ", orderIndex: 1 } })).id,
+      assessment: (await tx.assessment.create({ data: { tenantId, workspaceId: ws.workspaceId, courseId, title: "اختبار خطأ", type: "QUIZ", maxScore: 10, weightPercent: 5 } })).id,
+    }));
+    for (const [kind, id] of [["sections", ids.section], ["topics", ids.topic], ["assessments", ids.assessment]] as const) {
+      const listed = (await owner.get(`/api/owner/data/${kind}?tenantId=${tenantId}`)).body.data as { id: string }[];
+      expect(listed.map((x) => x.id), kind).toContain(id);
+      const r = await owner.post(`/api/owner/data/${kind}/delete`).send({ ids: [id], tenantId });
+      expect(r.body.data, kind).toMatchObject({ deleted: 1, failed: [] });
+      const after = (await owner.get(`/api/owner/data/${kind}?tenantId=${tenantId}`)).body.data as { id: string }[];
+      expect(after.map((x) => x.id), kind).not.toContain(id);
+    }
+    // فصل ثم عام بما فيهما من مقررات
+    const terms = (await owner.get(`/api/owner/data/terms?tenantId=${tenantId}`)).body.data as { id: string }[];
+    expect(terms).toHaveLength(1);
+    expect((await owner.post("/api/owner/data/terms/delete").send({ ids: terms.map((x) => x.id), tenantId })).body.data.deleted).toBe(1);
+    expect(await withExplicitTenantTx(tenantId, (tx) => tx.course.count({ where: { id: courseId } }))).toBe(0);
+    const years = (await owner.get(`/api/owner/data/years?tenantId=${tenantId}`)).body.data as { id: string }[];
+    expect((await owner.post("/api/owner/data/years/delete").send({ ids: years.map((y) => y.id), tenantId })).body.data.failed).toEqual([]);
+  });
+
+  it("باقة وحساب بنكي وطلب معتمد: كلها تُحذف، والمعتمد يحمل تنبيهه", async () => {
+    const plan = await prismaBase.plan.create({ data: { code: `T${crypto.randomUUID().slice(0, 6)}`, nameAr: "باقة بالخطأ", priceMonthly: 1, priceYearly: 10, storageMb: 1, generationsPerMonth: 1 } });
+    const acct = await prismaBase.bankAccount.create({ data: { bankName: "بنك بالخطأ", accountName: "س", iban: "SA0000000000000000000000" } });
+    expect((await owner.post("/api/owner/data/plans/delete").send({ ids: [plan.id] })).body.data.deleted).toBe(1);
+    expect((await owner.post("/api/owner/data/accounts/delete").send({ ids: [acct.id] })).body.data.deleted).toBe(1);
+    expect(await prismaBase.plan.count({ where: { id: plan.id } })).toBe(0);
+
+    const t = request.agent(app);
+    const e = email();
+    await t.post("/api/auth/register").send({ fullName: "مشترٍ", email: e, password: PW, role: "TEACHER" });
+    const u = await prismaBase.user.findFirstOrThrow({ where: { email: e }, select: { id: true, tenantId: true } });
+    const order = await prismaBase.order.create({
+      data: { number: `T${Date.now()}`, userId: u.id, tenantId: u.tenantId, titleAr: "طلب معتمد", status: "APPROVED", amount: 10, kind: "PLAN", payerName: "م" },
+    });
+    const listed = (await owner.get("/api/owner/data/orders?q=" + encodeURIComponent("طلب معتمد"))).body.data as { id: string; warn?: string }[];
+    expect(listed.find((x) => x.id === order.id)?.warn).toContain("سجل مالي");
+    expect((await owner.post("/api/owner/data/orders/delete").send({ ids: [order.id] })).body.data.deleted).toBe(1);
+  });
+
+  it("الموظف لا يحذف شيئًا من هذه الأنواع", async () => {
+    const staffEmail = email();
+    const r = await owner.post("/api/owner/staff").send({ fullName: "موظف", email: staffEmail, screens: ["users"] });
+    const s = request.agent(app);
+    await s.post("/api/auth/login").send({ email: staffEmail, password: r.body.data.tempPassword });
+    expect((await s.post("/api/owner/data/plans/delete").send({ ids: ["x".repeat(25)] })).status).toBe(403);
+    expect((await s.post("/api/owner/data/wipe").send({ password: "x", phrase: "امسح المنصة" })).status).toBe(403);
   });
 });

@@ -16,6 +16,8 @@ import * as staff from "./staff.service.js";
 import { dashboard } from "./dashboard.service.js";
 import * as audit from "./audit.service.js";
 import * as data from "./data.service.js";
+import { wipePlatform } from "./wipe.service.js";
+import { sensitiveRateLimit } from "../../middleware/rateLimit.js";
 import { getCatalogs, saveCatalogs } from "../platform/catalogs.js";
 import { STAFF_SCREENS, screenOfPath, type StaffScreen } from "./staff.service.js";
 import { prismaBase } from "../../lib/prisma.js";
@@ -104,6 +106,16 @@ ownerRouter.post(
   validate({ params: z.object({ kind: dataKind }), body: z.object({ ids: z.array(cuidSchema).min(1).max(200), tenantId: cuidSchema.optional() }).strict() }),
   asyncHandler(async (req, res) => {
     res.json({ success: true, data: await data.deleteData(actor(req), req.params.kind as data.DataKind, req.body.ids, req.body.tenantId) });
+  }),
+);
+
+ownerRouter.post(
+  "/data/wipe",
+  ownerOnly,
+  sensitiveRateLimit((req) => req.auth?.userId),
+  validate({ body: z.object({ password: z.string().min(1).max(200), phrase: z.string().max(60), wipeAudit: z.boolean().default(false) }).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await wipePlatform(actor(req), req.body) });
   }),
 );
 
