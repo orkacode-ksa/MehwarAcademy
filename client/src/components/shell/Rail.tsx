@@ -8,7 +8,7 @@ import { visibleNav, type Role } from "../../nav/nav.js";
  * الشريط الجانبي — سطح المكتب فقط (عرضه --rail). الجوال له مكوّن مستقل: BottomNav،
  * لأن دمج السياقين في عنصر واحد كان يفرض حلولًا وسطًا تُسيء للاثنين معًا.
  */
-export function Rail({ role }: { role: Role }) {
+export function Rail({ role, onOpenMore }: { role: Role; onOpenMore: () => void }) {
   const { user } = useSession();
   const items = visibleNav(role, user);
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export function Rail({ role }: { role: Role }) {
           key={item.key}
           to={`/${item.key}`}
           aria-label={item.label}
+          data-tour={`nav-${item.key}`}
           className={({ isActive }) =>
             `w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 transition-colors duration-150 ${
               isActive ? "bg-deep text-white shadow-s2" : "text-ink-2 hover:bg-deep/[.06] hover:text-deep"
@@ -43,6 +44,18 @@ export function Rail({ role }: { role: Role }) {
           )}
         </NavLink>
       ))}
+
+      {/* بقية الشاشات (المخالفات · الساعات المكتبية · المساعدة…) — كما في «المزيد» على الجوال */}
+      <button
+        type="button"
+        aria-label="المزيد"
+        data-tour="nav-more"
+        onClick={onOpenMore}
+        className="w-[56px] py-2 rounded-[14px] grid place-items-center gap-1 text-ink-2 hover:bg-deep/[.06] hover:text-deep transition-colors duration-150"
+      >
+        <Icon name="more" className="w-[21px] h-[21px]" />
+        <i className="not-italic text-[9.5px] font-medium">المزيد</i>
+      </button>
 
       <div className="flex-1" />
 

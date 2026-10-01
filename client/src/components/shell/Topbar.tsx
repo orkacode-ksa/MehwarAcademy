@@ -51,7 +51,7 @@ export function Topbar({ home }: { home: string }) {
       <SystemStrip />
 
       <div className="flex items-center gap-3 mt-3.5">
-        <Link to="/account" aria-label="حسابي — تعديل الملف الشخصي" className="relative flex-none group">
+        <Link to="/account" aria-label="حسابي — تعديل الملف الشخصي" data-tour="account" className="relative flex-none group">
           {user?.avatarUrl ? (
             <img src={assetUrl(user.avatarUrl)} alt="" className="w-11 h-11 rounded-full object-cover shadow-s1" />
           ) : (
@@ -70,7 +70,7 @@ export function Topbar({ home }: { home: string }) {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
-          <Link to="/notifications" aria-label={`الإشعارات${unread ? ` — ${unread} غير مقروء` : ""}`} className={`relative ${iconBtn}`}>
+          <Link to="/notifications" aria-label={`الإشعارات${unread ? ` — ${unread} غير مقروء` : ""}`} data-tour="notifications" className={`relative ${iconBtn}`}>
             <Icon name="bell" className="w-[18px] h-[18px]" />
             {unread > 0 && (
               <b className="absolute -top-0.5 -end-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-crim text-white text-[10px] leading-[18px] text-center ring-2 ring-canvas">

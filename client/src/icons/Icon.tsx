@@ -80,6 +80,8 @@ import { AltArrowDownIcon as DAltArrowDownIcon } from "@solar-icons/react/bold-d
 import { MenuDotsIcon as LMenuDotsIcon } from "@solar-icons/react/linear/menu-dots";
 import { MenuDotsIcon as DMenuDotsIcon } from "@solar-icons/react/bold-duotone/menu-dots";
 import { HomeSmileIcon as LHomeSmileIcon } from "@solar-icons/react/linear/home-smile";
+import { HelpIcon as LHelpIcon } from "@solar-icons/react/linear/help";
+import { HelpIcon as DHelpIcon } from "@solar-icons/react/bold-duotone/help";
 import { HomeSmileIcon as DHomeSmileIcon } from "@solar-icons/react/bold-duotone/home-smile";
 
 /**
@@ -129,7 +131,8 @@ export type IconName =
   | "eye"
   | "chevd"
   | "more"
-  | "home";
+  | "home"
+  | "help";
 
 type SolarIcon = ComponentType<SVGProps<SVGSVGElement> & { strokeWidth?: number | string }>;
 
@@ -175,6 +178,7 @@ const LINEAR: Record<Exclude<IconName, "logo">, SolarIcon> = {
   chevd: LAltArrowDownIcon,
   more: LMenuDotsIcon,
   home: LHomeSmileIcon,
+  help: LHelpIcon,
 };
 const DUOTONE: Record<Exclude<IconName, "logo">, SolarIcon> = {
   grid: DWidget2Icon,
@@ -218,6 +222,7 @@ const DUOTONE: Record<Exclude<IconName, "logo">, SolarIcon> = {
   chevd: DAltArrowDownIcon,
   more: DMenuDotsIcon,
   home: DHomeSmileIcon,
+  help: DHelpIcon,
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

@@ -108,7 +108,7 @@ export function roleOf(screenKey: string): Role {
 }
 
 /** شاشات لكل الأدوار (من رأس الصفحة): تأخذ تنقّل دور صاحبها لا دورًا ثابتًا. */
-export const SHARED_SCREENS = new Set(["account", "notifications"]);
+export const SHARED_SCREENS = new Set(["account", "notifications", "help"]);
 
 export function roleOfUser(role: string | undefined): Role {
   if (role === "STUDENT") return "student";
@@ -129,20 +129,24 @@ const MORE_EXTRA: Record<Role, NavItem[]> = {
     { key: "university", icon: "shield", label: "جامعتي" },
     { key: "plans", icon: "star", label: "الباقات" },
     { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "help", icon: "help", label: "المساعدة" },
     { key: "account", icon: "user", label: "حسابي" },
   ],
   student: [
     { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "help", icon: "help", label: "المساعدة" },
     { key: "account", icon: "user", label: "حسابي" },
   ],
   dept: [
     { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "help", icon: "help", label: "المساعدة" },
     { key: "account", icon: "user", label: "حسابي" },
   ],
   admin: [
     { key: "osubmissions", icon: "file", label: "لوائح الجامعات" },
     { key: "ocatalogs", icon: "tbl", label: "القوائم" },
     { key: "notifications", icon: "bell", label: "الإشعارات" },
+    { key: "help", icon: "help", label: "المساعدة" },
     { key: "account", icon: "user", label: "حسابي" },
   ],
 };

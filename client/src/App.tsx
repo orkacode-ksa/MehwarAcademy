@@ -36,6 +36,7 @@ const ViolationsPage = page(
   () => import("./pages/faculty/ViolationsPage.js"),
   "ViolationsPage",
 );
+const HelpPage = page(() => import("./pages/help/HelpPage.js"), "HelpPage");
 const OfficeHoursPage = page(() => import("./pages/faculty/OfficeHoursPage.js"), "OfficeHoursPage");
 const StudentOfficePage = page(() => import("./pages/student/StudentOfficePage.js"), "StudentOfficePage");
 const OnlineExamPage = page(() => import("./pages/faculty/OnlineExamPage.js"), "OnlineExamPage");
@@ -210,6 +211,7 @@ export function App() {
             <Route path="course/:id/exam/:aid" element={<OnlineExamPage />} />
             <Route path="violations" element={<ViolationsPage />} />
             <Route path="officehours" element={<OfficeHoursPage />} />
+            <Route path="help" element={<HelpPage />} />
             <Route path="course/:id/report" element={<CourseReportPage />} />
             <Route path="evalp" element={<PerformancePage />} />
             <Route path="bank" element={<BankPage />} />

@@ -100,14 +100,14 @@ export function MoreSheet({ role, open, onClose, onLogout }: MoreSheetProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] sm:hidden">
+    <div className="fixed inset-0 z-[90]">
       <div
         className="absolute inset-0 bg-[rgba(18,36,30,.42)] backdrop-blur-[3px] transition-opacity duration-[260ms] ease-out"
         style={{ opacity: shown ? Math.max(0, 1 - dragY / 320) : 0 }}
         onClick={onClose}
       />
       <div
-        className="absolute inset-x-0 bottom-0 bg-surface rounded-t-[22px] shadow-s3 px-[18px] pt-[6px] will-change-transform"
+        className="absolute inset-x-0 bottom-0 mx-auto sm:max-w-[560px] sm:bottom-4 sm:rounded-[22px] bg-surface rounded-t-[22px] shadow-s3 px-[18px] pt-[6px] will-change-transform"
         style={{
           paddingBottom: "calc(20px + env(safe-area-inset-bottom))",
           transform: shown ? `translateY(${dragY}px)` : "translateY(110%)",
