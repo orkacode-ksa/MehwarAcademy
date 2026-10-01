@@ -13,6 +13,8 @@ interface MyCourse {
   teacher: string;
   semester: string;
   meetings: { day: number; start: string; end: string; room?: string }[];
+  /** اختبارات إلكترونية مفتوحة الآن لم يسلّمها */
+  openExams: number;
 }
 
 /** مقرراتي — للطالب: محاضراته اليوم أولًا، ثم مقرراته ومواعيدها. */
@@ -59,7 +61,10 @@ export function StudentCoursesPage() {
           <Link key={c.courseId} to={`/scourse/${c.courseId}`} className="block bg-surface border border-line rounded-[14px] p-4 hover:border-line-strong hover:shadow-s1">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-semibold text-[15.5px] truncate">{c.nameAr}</div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-[15.5px] truncate">{c.nameAr}</span>
+                  {c.openExams > 0 && <span className="flex-none text-[11px] font-semibold rounded-full px-2 py-0.5 bg-teal/[.16] text-teal-text">اختبار مفتوح</span>}
+                </div>
                 <div className="text-[12.5px] text-ink-3 mt-0.5">
                   <span dir="ltr">{c.code}</span> · شعبة {c.sectionLabel} · {c.teacher}
                 </div>

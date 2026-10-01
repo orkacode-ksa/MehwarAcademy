@@ -25,7 +25,7 @@ const dateOf = (d: Date) => d.toISOString().slice(0, 10);
 export async function preventiveAlerts(workspaceId: string, now = new Date()): Promise<HomeAlert[]> {
   const today = campusToday(now);
   const soon = new Date(now.getTime() + 3 * DAY);
-  const [courses, due, bans, ent, compliance] = await Promise.all([
+  const [courses, due, bans, ent, compliance, review, office] = await Promise.all([
     listCourses(workspaceId),
     prisma.assessment.findMany({
       where: { workspaceId, deletedAt: null, dueDate: { gte: new Date(now.getTime() - 7 * DAY), lte: soon }, course: { deletedAt: null, semester: { status: { in: ["ACTIVE", "GRADING"] } } } },
@@ -40,6 +40,10 @@ export async function preventiveAlerts(workspaceId: string, now = new Date()): P
     }),
     getEntitlements(workspaceId),
     getCompliance(workspaceId).catch(() => []),
+    // تسليمات اختبارات إلكترونية فيها مقالي ينتظر تصحيحك
+    prisma.examAttempt.groupBy({ by: ["assessmentId"], where: { workspaceId, needsReview: true }, _count: { _all: true } }),
+    // مواعيد ساعاتك المكتبية اليوم
+    prisma.officeBooking.count({ where: { workspaceId, canceledAt: null, date: today } }),
   ]);
   const live = courses.filter((c) => c.semester.status === "ACTIVE" || c.semester.status === "PREP" || c.semester.status === "GRADING");
   const code = new Map(courses.map((c) => [c.id, c.code]));
@@ -69,6 +73,25 @@ export async function preventiveAlerts(workspaceId: string, now = new Date()): P
       body: past ? "انقضى موعد الاختبار ولا درجات مرصودة — التأخر في الرصد من بنود لائحة أعضاء هيئة التدريس." : "جهّز نموذج الإجابة لتكتمل بنود ملف المقرر.",
       action: { label: past ? "ارصد الدرجات" : "افتح الاختبارات", to: past ? `/course/${a.courseId}/grades` : `/course/${a.courseId}/setup?step=ASSESSMENTS` },
     });
+  }
+  if (review.length) {
+    const titles = await prisma.assessment.findMany({ where: { id: { in: review.map((r) => r.assessmentId) } }, select: { id: true, title: true, courseId: true, course: { select: { code: true } } } });
+    for (const r of review) {
+      const t = titles.find((x) => x.id === r.assessmentId);
+      if (!t) continue;
+      out.push({
+        rank: 1,
+        id: `review-${t.id}`,
+        tone: "amber",
+        icon: "file",
+        title: `${r._count._all} ${r._count._all === 1 ? "تسليم ينتظر" : "تسليمات تنتظر"} تصحيحك في «${t.title}» (${t.course.code})`,
+        body: "فيها أسئلة مقالية — الدرجة تُرصد في الكشف حين تصحّحها.",
+        action: { label: "صحّح", to: `/course/${t.courseId}/exam/${t.id}` },
+      });
+    }
+  }
+  if (office > 0) {
+    out.push({ rank: 2, id: "office", tone: "teal", icon: "cal", title: `${office} ${office === 1 ? "موعد" : "مواعيد"} في ساعاتك المكتبية اليوم`, body: "أسماء الطلاب ومواضيع المواعيد في صفحة الساعات المكتبية.", action: { label: "المواعيد", to: "/officehours" } });
   }
   for (const i of compliance) {
     if (i.status !== "ATTENTION") continue;

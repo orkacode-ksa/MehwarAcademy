@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { questionsAsText, questionsOf } from "../exams/exam.service.js";
 import { z } from "zod";
 import { cuidSchema } from "@mihwar/shared";
 import { requireAuth } from "../../middleware/auth.js";
@@ -86,8 +87,12 @@ documentsRouter.get(
     });
     if (!a) throw AppError.notFound("الاختبار غير موجود");
     const withAnswers = req.query.answers === "1";
-    if (withAnswers && !a.answerKey) throw AppError.badRequest("لا نموذج إجابة لهذا الاختبار بعد");
-    if (!withAnswers && !a.instructions) throw AppError.badRequest("لا أسئلة مكتوبة لهذا الاختبار بعد");
+    // الاختبار الإلكتروني: أسئلته المنظّمة هي نصّه، وإجاباتها الصحيحة نموذج إجابته
+    const online = questionsOf(a.questions).length > 0;
+    const content = a.instructions?.trim() ? a.instructions : online ? questionsAsText(a.questions, false) : "";
+    const answerKey = a.answerKey?.trim() ? a.answerKey : online ? questionsAsText(a.questions, true) : null;
+    if (withAnswers && !answerKey) throw AppError.badRequest("لا نموذج إجابة لهذا الاختبار بعد");
+    if (!withAnswers && !content) throw AppError.badRequest("لا أسئلة مكتوبة لهذا الاختبار بعد");
     const html = renderExamHtml({
       institution: a.course.workspace.tenant.name,
       courseCode: a.course.code,
@@ -96,8 +101,8 @@ documentsRouter.get(
       teacher: a.course.workspace.owner.fullName,
       title: a.title,
       maxScore: Number(a.maxScore),
-      content: a.instructions ?? "",
-      answerKey: a.answerKey,
+      content,
+      answerKey,
       withAnswers,
     });
     const pdf = await renderHtmlToPdf(html);

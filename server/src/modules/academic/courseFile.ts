@@ -1,4 +1,5 @@
 import { isSpecComplete, type CourseSpec, PERFORMANCE_KPIS, type PerformanceKpiKey } from "@mihwar/shared";
+import { questionsOf } from "../exams/exam.service.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { computeSetupProgress, type SetupProgress } from "./courseSetup.js";
@@ -97,6 +98,9 @@ const AUTO_RULES: Record<string, AutoRule> = {
   }),
 };
 
+/** للاختبار أسئلة: نص مكتوب أو أسئلة إلكترونية. */
+const hasQuestions = (a: { instructions: string | null; questions: unknown }) => (a.instructions ?? "").trim().length > 0 || questionsOf(a.questions).length > 0;
+
 export async function loadCourseFacts(workspaceId: string, courseId: string): Promise<CourseFacts> {
   const course = await prisma.course.findFirst({
     where: { id: courseId, workspaceId, deletedAt: null },
@@ -106,7 +110,7 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
         where: { deletedAt: null },
         select: { learningOutcomes: true, _count: { select: { lectures: { where: { deletedAt: null } } } } },
       },
-      assessments: { where: { deletedAt: null }, select: { id: true, type: true, isLab: true, instructions: true, answerKey: true } },
+      assessments: { where: { deletedAt: null }, select: { id: true, type: true, isLab: true, instructions: true, answerKey: true, questions: true } },
       workspace: { select: { owner: { select: { profile: true } } } },
       sections: { where: { deletedAt: null }, select: { id: true, meetings: true } },
       qualityItems: true,
@@ -143,7 +147,7 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
     topicsWithOutcomes: course.topics.filter((t) => t.learningOutcomes.length > 0).length,
     topicsWithMaterials: course.topics.filter((t) => t._count.lectures > 0).length,
     assessments: course.assessments.length,
-    assessmentsWithContent: course.assessments.filter((a) => (a.instructions ?? "").trim().length > 0).length,
+    assessmentsWithContent: course.assessments.filter((a) => hasQuestions(a)).length,
     enrollments,
     gradesEntered,
     gradesExpected: enrollments * course.assessments.length,
@@ -153,8 +157,9 @@ export async function loadCourseFacts(workspaceId: string, courseId: string): Pr
     exams: course.assessments.map((a) => ({
       type: a.type,
       isLab: a.isLab,
-      hasContent: (a.instructions ?? "").trim().length > 0,
-      hasAnswer: (a.answerKey ?? "").trim().length > 0,
+      hasContent: hasQuestions(a),
+      // الاختبار الإلكتروني إجاباته الصحيحة محددة في أسئلته — فهي نموذج إجابته
+      hasAnswer: (a.answerKey ?? "").trim().length > 0 || questionsOf(a.questions).length > 0,
     })),
     profileReady: !!profile.rank?.trim() && !!profile.specialization?.trim(),
     reportWritten: (report.gradeComment ?? "").trim().length > 0,

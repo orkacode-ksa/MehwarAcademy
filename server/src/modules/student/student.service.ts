@@ -36,7 +36,18 @@ export async function myCourses(studentId: string) {
       },
     },
   });
+  // اختبارات إلكترونية مفتوحة الآن لم يسلّمها — تظهر شارة على بطاقة المقرر
+  const now = new Date();
+  const [open, attempts] = await Promise.all([
+    prisma.assessment.findMany({
+      where: { deletedAt: null, online: true, courseId: { in: enrollments.map((e) => e.section.course.id) }, AND: [{ OR: [{ opensAt: null }, { opensAt: { lte: now } }] }, { OR: [{ closesAt: null }, { closesAt: { gt: now } }] }] },
+      select: { id: true, courseId: true },
+    }),
+    prisma.examAttempt.findMany({ where: { enrollmentId: { in: enrollments.map((e) => e.id) }, submittedAt: { not: null } }, select: { assessmentId: true } }),
+  ]);
+  const done = new Set(attempts.map((a) => a.assessmentId));
   return enrollments.map((e) => ({
+    openExams: open.filter((a) => a.courseId === e.section.course.id && !done.has(a.id)).length,
     enrollmentId: e.id,
     courseId: e.section.course.id,
     code: e.section.course.code,

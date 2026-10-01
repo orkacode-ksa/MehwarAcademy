@@ -179,7 +179,13 @@ export async function gradeAttempt(workspaceId: string, attemptId: string, point
     manual[qid] = p;
   }
   const saved = await prisma.examAttempt.update({ where: { id: t.id }, data: { manualPoints: manual } });
-  return finalize(saved, t.submittedAt).then((r) => ({ score: r.score === null ? null : Number(r.score), needsReview: r.needsReview }));
+  const r = await finalize(saved, t.submittedAt);
+  if (t.needsReview && !r.needsReview) {
+    const e = await prisma.enrollment.findUnique({ where: { id: t.enrollmentId }, select: { studentId: true } });
+    const a = await prisma.assessment.findUnique({ where: { id: t.assessmentId }, select: { title: true } });
+    if (e) await notify(requireTenantId(), [e.studentId], { kind: "EXAM_GRADED", title: `صُحِّح اختبارك: ${a?.title ?? ""}`, body: "اكتمل تصحيح إجاباتك.", link: `/sexam/${t.assessmentId}` }).catch(() => undefined);
+  }
+  return { score: r.score === null ? null : Number(r.score), needsReview: r.needsReview };
 }
 
 /** إعادة فتح الاختبار لطالب (عطل تقني): تُحذف محاولته ودرجته. */
@@ -302,4 +308,20 @@ export async function submitExam(studentId: string, assessmentId: string, answer
   const saved = await prisma.examAttempt.update({ where: { id: attempt.id }, data: { answers: merged } });
   await finalize(saved, new Date());
   return studentExam(studentId, assessmentId);
+}
+
+/** أسئلة الاختبار الإلكتروني نصًّا (لطباعة النموذج وملف المقرر) — ومعها الإجابات إن طُلبت. */
+export function questionsAsText(raw: unknown, withAnswers: boolean): string {
+  const letters = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح"];
+  return questionsOf(raw)
+    .map((q, i) => {
+      const head = `${i + 1}) ${q.text} (${q.points} درجة)`;
+      if (q.kind === "MCQ") {
+        const opts = q.options.map((o, k) => `   ${letters[k] ?? k + 1}. ${o}`).join("\n");
+        return `${head}\n${opts}${withAnswers ? `\n   الإجابة: ${letters[q.correct] ?? q.correct + 1}` : ""}`;
+      }
+      if (q.kind === "TF") return `${head}\n   ( صح / خطأ )${withAnswers ? `\n   الإجابة: ${q.correct ? "صح" : "خطأ"}` : ""}`;
+      return `${head}${withAnswers && q.model ? `\n   الإجابة النموذجية: ${q.model}` : "\n   ................................................"}`;
+    })
+    .join("\n\n");
 }

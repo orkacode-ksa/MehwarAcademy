@@ -82,12 +82,19 @@ describe("الاختبار الإلكتروني", () => {
     expect(a.needsReview).toBe(true);
     expect(a.score).toBeNull();
 
+    // تنبيه في رئيسية الأستاذ: تسليم ينتظر تصحيحه
+    const alerts = (await t.get(`${W}/teaching/home`)).body.data.alerts as { id: string }[];
+    expect(alerts.some((x) => x.id === `review-${examId}`)).toBe(true);
+
     const detail = (await t.get(`${W}/teaching/exam-attempts/${a.id}`)).body.data;
     expect(detail.answers).toMatchObject({ q1: 1, q2: true });
     // الأستاذ يصحّح المقالي: 3 آلي + 1.5 مقالي = 4.5 من 5 ← 9 من 10
     expect((await t.post(`${W}/teaching/exam-attempts/${a.id}/grade`).send({ points: { q3: 9 } })).status).toBe(400);
     const graded = (await t.post(`${W}/teaching/exam-attempts/${a.id}/grade`).send({ points: { q3: 1.5 } })).body.data;
     expect(graded).toEqual({ score: 9, needsReview: false });
+    expect(((await t.get(`${W}/teaching/home`)).body.data.alerts as { id: string }[]).some((x) => x.id === `review-${examId}`)).toBe(false);
+    // الطالب أُبلغ بالتصحيح
+    expect(((await s1.get("/api/me/notifications")).body.data.items as { kind: string }[]).some((n) => n.kind === "EXAM_GRADED")).toBe(true);
     // رُصدت في كشف الدرجات: يراها الطالب في مقرره
     const mine = (await s1.get(`/api/student/courses/${courseId}`)).body.data.assessments.find((x: { id: string }) => x.id === examId);
     expect(mine.score).toBe(9);
