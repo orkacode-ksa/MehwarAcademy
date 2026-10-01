@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { markSignedOut } from "../../../lib/exitGuard.js";
 import { useNavigate } from "react-router-dom";
 import { changePasswordSchema } from "@mihwar/shared";
 import { api, ApiError } from "../../../api/client.js";
@@ -58,6 +59,7 @@ export function SecurityCard() {
           variant="secondary"
           onClick={() =>
             void api.post("/auth/logout-all", {}).then(() => {
+              markSignedOut();
               resetSession();
               navigate("/login", { replace: true });
             })

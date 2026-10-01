@@ -11,6 +11,7 @@ import { api, ApiError } from "../api/client.js";
 import { resetSession } from "../hooks/useSession.js";
 import { useHumanCheck } from "../components/auth/HumanCheck.js";
 import { VerifyEmailStep } from "../components/auth/VerifyEmailStep.js";
+import { markSignedIn } from "../lib/exitGuard.js";
 
 type Step = 1 | 2 | 3;
 
@@ -49,6 +50,7 @@ export function SignupPage() {
   const human = useHumanCheck();
 
   function enter(asRole: SignupRole) {
+    markSignedIn();
     resetSession();
     navigate(`/${ROLE_HOME[asRole]}`);
   }

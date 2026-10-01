@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { UserPrefs } from "@mihwar/shared";
 import { api } from "../api/client.js";
 import { apply } from "../lib/prefs.js";
+import { forgetReturn, markSignedIn, markSignedOut } from "../lib/exitGuard.js";
 
 export interface SessionUser {
   id: string;
@@ -34,6 +35,7 @@ function load(): Promise<SessionUser | null> {
     .then((u) => {
       // تفضيلات الحساب تغلب المحفوظ في هذا المتصفح — اختارها على جهاز آخر فتتبعه هنا.
       if (u?.prefs) apply(u.prefs);
+      if (u) markSignedIn();
       return u;
     })
     .catch(() => null);
@@ -79,6 +81,8 @@ export function useSession(): { user: SessionUser | null; loading: boolean } {
 
 /** خروج حقيقي: يُبطل الجلسة في الخادم — كان زرّ «خروج» ينقل للصفحة الأولى والجلسة باقية. */
 export async function logout(): Promise<void> {
+  markSignedOut();
+  forgetReturn();
   await api.post("/auth/logout", {}).catch(() => undefined);
   resetSession();
 }

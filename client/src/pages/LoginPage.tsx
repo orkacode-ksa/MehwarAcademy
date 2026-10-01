@@ -13,6 +13,7 @@ import { resetSession, useSession } from "../hooks/useSession.js";
 import { api, ApiError } from "../api/client.js";
 import { useHumanCheck } from "../components/auth/HumanCheck.js";
 import { CodeInput } from "../components/auth/CodeInput.js";
+import { markSignedIn, takeReturn } from "../lib/exitGuard.js";
 
 /**
  * شاشة الدخول — منقولة من `login()` في البروتوتايب مع فارق جوهري: حقول فارغة حقيقية
@@ -55,13 +56,14 @@ export function LoginPage() {
     setAuthError(null);
     try {
       await api.post("/auth/login", { ...values, ...human.extra });
+      markSignedIn();
       resetSession();
       const me = await api.get<{ role: string; staffScreens?: string[] }>("/auth/me");
       // المالك وكل موظف يبدأ من «الرئيسية» — محتواها بقدر صلاحياته، يصفّيه الخادم.
       // العودة إلى الصفحة التي طُلب الدخول منها (رابط داخلي فقط)، وإلا رئيسية الدور.
-      const next = params.get("next");
+      const next = takeReturn();
       const home = `/${me.role === "ADMIN" || me.role === "OWNER" ? "ohome" : ROLE_HOME[ROLE_BY_SERVER[me.role] ?? "faculty"]}`;
-      navigate(next && /^\/[a-z]/.test(next) ? next : home, { replace: true });
+      navigate(next ?? home, { replace: true });
     } catch (err) {
       human.reset();
       if (err instanceof ApiError && (err.code === "TOTP_REQUIRED" || err.code === "TOTP_INVALID")) setNeedCode(true);

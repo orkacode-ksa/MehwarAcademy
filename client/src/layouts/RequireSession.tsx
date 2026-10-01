@@ -1,14 +1,15 @@
 import { useEffect, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { SESSION_EXPIRED } from "../api/client.js";
+import { markSignedOut, rememberReturn } from "../lib/exitGuard.js";
 import { resetSession, useSession } from "../hooks/useSession.js";
 import { ROLE_HOME, roleOf, roleOfUser, SHARED_SCREENS, staffCan } from "../nav/nav.js";
 
 /**
  * حارس المنصة: لا تُرسم أي شاشة داخلية (ولا حتى هيكلها) بلا جلسة، ولا شاشة دور آخر.
  *
- * - بلا جلسة ← صفحة الدخول مع الوجهة، **باستبدال** السجل: زر الرجوع لا يعيد صفحة مقفلة،
- *   وكتابة الرابط يدويًا لا تفتح شيئًا.
+ * - بلا جلسة ← `/login` وحده **باستبدال** السجل، ولا مسار في الرابط (لا `?next=`): زر الرجوع
+ *   لا يعيد صفحة مقفلة ولا يكشف رابطها، وكتابة الرابط يدويًا لا تفتح شيئًا (انظر lib/exitGuard).
  * - شاشة دور آخر (أستاذ يكتب رابط لوحة المالك · طالب يكتب رابط أستاذ · موظف يكتب رابط
  *   شاشة غير ممنوحة) ← رئيسيته. الخادم يرفض البيانات أصلًا؛ هذا كي لا يُرى حتى الهيكل.
  * - انتهاء الجلسة أثناء الاستخدام ← الدخول فورًا.
@@ -19,8 +20,10 @@ export function RequireSession({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const expired = () => {
+      rememberReturn(window.location.pathname);
+      markSignedOut();
       resetSession();
-      window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+      window.location.replace("/login");
     };
     // الرجوع إلى صفحة محفوظة في ذاكرة المتصفح بعد الخروج: يُعاد التحقق بتحميل جديد.
     const onShow = (e: PageTransitionEvent) => e.persisted && window.location.reload();
@@ -33,7 +36,10 @@ export function RequireSession({ children }: { children: ReactNode }) {
   }, []);
 
   if (loading) return <div className="min-h-dvh bg-canvas" aria-busy="true" />;
-  if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
+  if (!user) {
+    markSignedOut();
+    return <Navigate to="/login" replace />;
+  }
 
   const key = location.pathname.split("/")[1] ?? "";
   const mine = roleOfUser(user.role);
