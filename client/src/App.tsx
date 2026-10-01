@@ -150,12 +150,14 @@ const PUBLIC = new Set(["", "signup", "login", "forgot-password", "reset-passwor
 /**
  * الصفحات العامة (الهبوط · الدخول · التسجيل) تدخل بانزلاق ناعم بينها. داخل المنصة يتولّى
  * الهيكل ذلك لكل شاشة، فيبقى الهيكل نفسه (الشريط والرأس) ثابتًا لا يُعاد رسمه.
+ * الهبوط وحده بتلاشٍ بلا انزلاق: `transform` على أب يجعله مرجع `position:fixed` لأبنائه، فينهار
+ * الريلز إلى ارتفاع صفر (قِيس: ارتفاعه ٠ وصفحة بيضاء).
  */
 function PublicFade({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const first = pathname.split("/")[1] ?? "";
   return (
-    <div key={PUBLIC.has(first) ? pathname : "app"} className={PUBLIC.has(first) ? "page-in" : undefined}>
+    <div key={PUBLIC.has(first) ? pathname : "app"} className={PUBLIC.has(first) ? (first === "" ? "page-fade" : "page-in") : undefined}>
       {children}
     </div>
   );
