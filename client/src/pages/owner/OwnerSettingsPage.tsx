@@ -38,6 +38,15 @@ export function OwnerSettingsPage() {
         <Icon name="arrl" className="w-4 h-4 text-ink-3" />
       </Link>
 
+      <Link to="/odata" className="flex items-center gap-3 bg-surface border border-line rounded-[14px] p-4 mb-4 hover:border-crim">
+        <Icon name="arch" className="w-5 h-5 text-crim flex-none" />
+        <span className="flex-1 min-w-0">
+          <span className="block font-semibold text-[14px]">حذف البيانات وتنظيف المنصة</span>
+          <span className="block text-[12px] text-ink-3">احذف أي شيء أُنشئ بالخطأ، أو امسح المنصة كلها بعد التجربة</span>
+        </span>
+        <Icon name="arrl" className="w-4 h-4 text-ink-3" />
+      </Link>
+
       <AiUsageCard />
       <PlatformSettingsCard />
       <WalletSettingsCard />
