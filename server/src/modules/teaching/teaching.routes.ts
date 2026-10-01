@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { gradeAttemptSchema, onlineExamSchema } from "@mihwar/shared";
+import * as exams from "../exams/exam.service.js";
 import { pageOf } from "../../lib/paging.js";
 import {
   createTopicSchema,
@@ -173,6 +175,48 @@ teachingRouter.patch(
   validate({ params: z.object({ assessmentId: cuidSchema }).passthrough(), body: updateAssessmentSchema }),
   asyncHandler(async (req, res) => {
     res.json({ success: true, data: await content.updateAssessment(ws(req), req.params.assessmentId as string, req.body) });
+  }),
+);
+// ── الاختبار الإلكتروني ──
+teachingRouter.get(
+  "/assessments/:assessmentId/exam",
+  teacherOnly,
+  validate({ params: z.object({ assessmentId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.getExam(ws(req), req.params.assessmentId as string) });
+  }),
+);
+teachingRouter.put(
+  "/assessments/:assessmentId/exam",
+  teacherOnly,
+  validate({ params: z.object({ assessmentId: cuidSchema }).passthrough(), body: onlineExamSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.saveExam(ws(req), req.params.assessmentId as string, req.body) });
+  }),
+);
+teachingRouter.get(
+  "/exam-attempts/:attemptId",
+  teacherOnly,
+  validate({ params: z.object({ attemptId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.getAttempt(ws(req), req.params.attemptId as string) });
+  }),
+);
+teachingRouter.post(
+  "/exam-attempts/:attemptId/grade",
+  teacherOnly,
+  validate({ params: z.object({ attemptId: cuidSchema }).passthrough(), body: gradeAttemptSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await exams.gradeAttempt(ws(req), req.params.attemptId as string, req.body.points) });
+  }),
+);
+teachingRouter.delete(
+  "/exam-attempts/:attemptId",
+  teacherOnly,
+  validate({ params: z.object({ attemptId: cuidSchema }).passthrough() }),
+  asyncHandler(async (req, res) => {
+    await exams.resetAttempt(ws(req), req.params.attemptId as string);
+    res.status(204).send();
   }),
 );
 teachingRouter.delete(

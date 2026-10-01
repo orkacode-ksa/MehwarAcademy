@@ -6,10 +6,12 @@
  * (وسحب الرجوع في الجوال) يبقى على سلوكه المعتاد.
  */
 const RULES: [RegExp, (m: RegExpMatchArray) => string][] = [
+  [/^\/course\/([^/]+)\/exam\/[^/]+$/, (m) => `/course/${m[1]}/setup?step=ASSESSMENTS`],
   [/^\/course\/([^/]+)\/[^/]+$/, (m) => `/course/${m[1]}`],
   [/^\/course\/[^/]+$/, () => "/courses"],
   [/^\/bank\/[^/]+$/, () => "/bank"],
   [/^\/scourse\/[^/]+$/, () => "/scourses"],
+  [/^\/sexam\/[^/]+$/, () => "/scourses"],
   [/^\/orders\/[^/]+$/, () => "/account"],
   [/^\/(plans|cv|university)$/, () => "/account"],
   [/^\/institutions\/([^/]+)\/[^/]+$/, (m) => `/institutions/${m[1]}`],
@@ -44,6 +46,7 @@ export const FALLBACK_TITLE: Record<string, string> = {
   university: "جامعتي",
   dhome: "القسم",
   scourse: "المقرر",
+  sexam: "الاختبار",
   institutions: "الجامعات",
   payments: "المدفوعات",
   obank: "البنك",

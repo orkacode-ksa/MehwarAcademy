@@ -30,18 +30,18 @@ enum TenantStatus {
 /// `PLATFORM_TENANT_SLUG` — فيبقى `tenantId` غير قابل للعدم في كل مكان، وتبقى
 /// سياسات RLS موحّدة الشكل بلا حالة خاصة.
 model Tenant {
-  id       String       @id @default(cuid())
+  id         String       @id @default(cuid())
   /// مُحتفظ به من اليوم الأول: النطاق موحّد الآن، فيصير النطاق الفرعي لاحقًا إعدادًا لا هجرة.
-  slug     String       @unique
-  name     String
+  slug       String       @unique
+  name       String
   /// رمز انضمام أعضاء هيئة التدريس — يُعطيه المالك للأستاذ فيسجّل داخل جامعته
   /// (لائحتها وتقويمها) بدل مستأجر شخصي فارغ.
-  joinCode String?      @unique
-  status   TenantStatus @default(TRIAL)
+  joinCode   String?      @unique
+  status     TenantStatus @default(TRIAL)
   /// ظاهرة في قائمة «جامعتك» عند التسجيل — بقرار المالك وحده (إنشاء جامعة أو اعتمادها).
-  listed   Boolean      @default(false)
+  listed     Boolean      @default(false)
   /// مفتاح الجامعة في قائمة الجامعات المقنّنة — جامعة واحدة = مساحة واحدة مهما اختلف من سجّل أولًا.
-  catalogKey String?    @unique
+  catalogKey String?      @unique
 
   /// توجيه مزوّد الذكاء لكل مستأجر — جامعة ترفض مزوّدًا تُشغَّل على غيره بلا إعادة بناء.
   aiProvider         String?
@@ -175,7 +175,7 @@ model User {
   avatarFileId String?
   /// موظف الإدارة (ADMIN): الشاشات المسموحة له من لوحة المالك
   /// (institutions · users · payments · bank · settings). المالك لا يحتاجها — له كل شيء.
-  staffScreens String[] @default([])
+  staffScreens String[]  @default([])
   /// آخر مرة فتح الإشعارات: ما بعده «غير مقروء» — عدّ واحد مفهرس لا علَم لكل إشعار.
   notifSeenAt  DateTime?
 
@@ -189,7 +189,7 @@ model User {
   ownedWorkspaces      Workspace[]          @relation("WorkspaceOwner")
   auditLogs            AuditLog[]
   enrollments          Enrollment[]
-  emailChangeTokens   EmailChangeToken[]
+  emailChangeTokens    EmailChangeToken[]
   passwordResetTokens  PasswordResetToken[]
   avatar               UserAvatar?
 
@@ -605,11 +605,12 @@ model Enrollment {
   createdAt          DateTime  @default(now())
   deletedAt          DateTime?
 
-  section    Section      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  student    User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  section    Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  student    User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   attendance Attendance[]
   grades     Grade[]
   violations Violation[]
+  attempts   ExamAttempt[]
 
   @@unique([sectionId, studentId])
   @@index([workspaceId])
@@ -778,11 +779,23 @@ model Assessment {
   answerKey     String?
   /// رموز مخرجات التعلّم التي يقيسها التقييم — منها يُحسب «المستوى الفعلي» لكل مخرج في تقرير المقرر.
   outcomes      String[]       @default([])
+  /// اختبار إلكتروني يحلّه الطالب في المنصة: الأسئلة منظَّمة (اختيار · صح/خطأ · مقالي قصير)
+  online        Boolean        @default(false)
+  /// [{ id, kind: MCQ|TF|SHORT, text, options?, correct?, model?, points }] — الإجابات الصحيحة لا تُرسل للطالب أبدًا
+  questions     Json?
+  opensAt       DateTime?
+  closesAt      DateTime?
+  durationMin   Int?
+  /// تُعرض الدرجة للطالب بعد إغلاق الاختبار
+  showScore     Boolean        @default(true)
+  /// ترتيب الأسئلة يختلف من طالب لآخر
+  shuffle       Boolean        @default(true)
   createdAt     DateTime       @default(now())
   deletedAt     DateTime?
 
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  grades Grade[]
+  course   Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  grades   Grade[]
+  attempts ExamAttempt[]
 
   @@index([workspaceId])
   @@index([courseId])
@@ -1016,39 +1029,39 @@ model BankAccount {
 
 /// طلب شراء: اشتراك في باقة أو مقرر من البنك. الدفع حاليًا تحويل بنكي بإيصال يراجعه المالك.
 model Order {
-  id           String    @id @default(cuid())
+  id            String    @id @default(cuid())
   /// رقم قصير يكتبه العميل في وصف التحويل — به يطابق المالك الحوالة بالطلب.
-  number       String    @unique
-  tenantId     String
-  userId       String
+  number        String    @unique
+  tenantId      String
+  userId        String
   /// PLAN · BANK_COURSE
-  kind         String
-  planId       String?
+  kind          String
+  planId        String?
   /// MONTHLY · YEARLY
-  period       String?
-  bankCourseId String?
-  titleAr      String
-  amount       Decimal   @db.Decimal(10, 2)
+  period        String?
+  bankCourseId  String?
+  titleAr       String
+  amount        Decimal   @db.Decimal(10, 2)
   /// AWAITING_PAYMENT · UNDER_REVIEW · APPROVED · REJECTED · CANCELED
-  status       String    @default("AWAITING_PAYMENT")
-  method       String    @default("BANK_TRANSFER")
-  payerName    String?
-  transferRef  String?
-  transferDate DateTime?
-  receiptMime  String?
-  receiptName  String?
-  receiptKey   String?
-  receiptData  Bytes?
-  submittedAt  DateTime?
-  reviewedById String?
-  reviewedAt   DateTime?
-  rejectReason String?
+  status        String    @default("AWAITING_PAYMENT")
+  method        String    @default("BANK_TRANSFER")
+  payerName     String?
+  transferRef   String?
+  transferDate  DateTime?
+  receiptMime   String?
+  receiptName   String?
+  receiptKey    String?
+  receiptData   Bytes?
+  submittedAt   DateTime?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  rejectReason  String?
   /// طلب شحن رصيد (CREDIT): ما يُضاف للمحفظة ورسوم الخدمة بالهللة — يُثبَّتان عند إنشاء الطلب،
   /// فتغيير نسبة الرسوم لاحقًا لا يمسّ طلبًا قائمًا.
   creditHalalas Int?
   feeHalalas    Int?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -1297,4 +1310,34 @@ model PendingSignup {
   @@index([email])
   @@index([expiresAt])
   @@map("pending_signups")
+}
+
+/// محاولة طالب في اختبار إلكتروني — واحدة لكل طالب. الموعد النهائي يحسبه الخادم عند البدء
+/// (المدة أو إغلاق الاختبار، أيهما أقرب)، وما بعده لا يُقبل.
+model ExamAttempt {
+  id           String    @id @default(cuid())
+  tenantId     String
+  workspaceId  String
+  assessmentId String
+  enrollmentId String
+  /// ترتيب الأسئلة لهذا الطالب (معرّفاتها)
+  order        Json
+  answers      Json      @default("{}")
+  startedAt    DateTime  @default(now())
+  deadline     DateTime
+  submittedAt  DateTime?
+  /// درجات الأسئلة المقالية يضعها الأستاذ: { questionId: points }
+  manualPoints Json      @default("{}")
+  needsReview  Boolean   @default(false)
+  /// الدرجة النهائية من العظمى — تُرصد في كشف الدرجات حين تكتمل
+  score        Decimal?  @db.Decimal(6, 2)
+  createdAt    DateTime  @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, enrollmentId])
+  @@index([workspaceId])
+  @@index([tenantId])
+  @@map("exam_attempts")
 }

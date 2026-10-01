@@ -36,6 +36,8 @@ const ViolationsPage = page(
   () => import("./pages/faculty/ViolationsPage.js"),
   "ViolationsPage",
 );
+const OnlineExamPage = page(() => import("./pages/faculty/OnlineExamPage.js"), "OnlineExamPage");
+const StudentExamPage = page(() => import("./pages/student/StudentExamPage.js"), "StudentExamPage");
 const CourseStudentsPage = page(() => import("./pages/faculty/CourseStudentsPage.js"), "CourseStudentsPage");
 
 /** الرابط القديم لمخالفات مقرر ← شاشة المخالفات العامة مصفّاة على المقرر. */
@@ -195,6 +197,7 @@ export function App() {
             <Route path="course/:id/file" element={<CourseFilePage />} />
             <Route path="course/:id/violations" element={<CourseViolationsRedirect />} />
             <Route path="course/:id/students" element={<CourseStudentsPage />} />
+            <Route path="course/:id/exam/:aid" element={<OnlineExamPage />} />
             <Route path="violations" element={<ViolationsPage />} />
             <Route path="course/:id/report" element={<CourseReportPage />} />
             <Route path="evalp" element={<PerformancePage />} />
@@ -211,6 +214,7 @@ export function App() {
             {/* الطالب */}
             <Route path="scourses" element={<StudentCoursesPage />} />
             <Route path="scourse/:id" element={<StudentCoursePage />} />
+            <Route path="sexam/:id" element={<StudentExamPage />} />
 
             {/* المالك */}
             <Route path="ohome" element={<OwnerHomePage />} />

@@ -1,5 +1,5 @@
 import { MaterialView } from "../../components/materials/MaterialView.js";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useApi } from "../../hooks/useApi.js";
 import { PageHeader } from "../../components/shell/PageHeader.js";
 import { Card } from "../../components/ui/Form.js";
@@ -10,7 +10,16 @@ interface Data {
   course: { code: string; nameAr: string; description: string };
   sectionLabel: string;
   topics: { id: string; title: string; lectures: { id: string; title: string; kind: string; url: string | null; scriptText: string | null }[] }[];
-  assessments: { id: string; title: string; maxScore: number; weightPercent: number; dueDate: string | null; instructions: string | null; score: number | null }[];
+  assessments: {
+    id: string;
+    title: string;
+    maxScore: number;
+    weightPercent: number;
+    dueDate: string | null;
+    instructions: string | null;
+    score: number | null;
+    exam: { opensAt: string | null; closesAt: string | null; durationMin: number; status: "UPCOMING" | "OPEN" | "IN_PROGRESS" | "SUBMITTED" | "CLOSED" } | null;
+  }[];
   total: number;
   graded: number;
   absence: { absences: number; planned: number; percent: number; level: "OK" | "WARN" | "BAN"; remaining: number };
@@ -83,6 +92,7 @@ export function StudentCoursePage() {
                 <span className="text-[12px] text-ink-3">{formatNum(x.weightPercent)}٪</span>
                 {x.score === null ? <Chip>لم يُرصد</Chip> : <b>{formatNum(x.score)} / {formatNum(x.maxScore)}</b>}
               </div>
+              {x.exam && <ExamLine id={x.id} exam={x.exam} />}
               {x.dueDate && <div className="text-[12px] text-ink-3">التسليم: {new Date(x.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}</div>}
               {x.instructions && (
                 <details className="mt-1">
@@ -120,5 +130,27 @@ export function StudentCoursePage() {
         </ol>
       </Card>
     </>
+  );
+}
+
+const when = (d: string) => new Date(d).toLocaleString("ar-SA-u-nu-latn", { dateStyle: "medium", timeStyle: "short" });
+
+/** سطر الاختبار الإلكتروني: موعده وحالته وزرّه. */
+function ExamLine({ id, exam }: { id: string; exam: NonNullable<Data["assessments"][number]["exam"]> }) {
+  const label = { UPCOMING: "لم يُفتح بعد", OPEN: "ابدأ الاختبار", IN_PROGRESS: "أكمل الاختبار", SUBMITTED: "سُلِّم", CLOSED: "أُغلق" }[exam.status];
+  const live = exam.status === "OPEN" || exam.status === "IN_PROGRESS";
+  return (
+    <div className="flex items-center gap-2 flex-wrap mt-1.5">
+      <Chip tone={live ? "teal" : exam.status === "SUBMITTED" ? "neutral" : "amber"}>اختبار إلكتروني · {formatNum(exam.durationMin)} دقيقة</Chip>
+      <span className="text-[12px] text-ink-3">
+        {exam.opensAt && exam.status === "UPCOMING" ? `يُفتح ${when(exam.opensAt)}` : exam.closesAt && live ? `يُغلق ${when(exam.closesAt)}` : ""}
+      </span>
+      <Link
+        to={`/sexam/${id}`}
+        className={`ms-auto text-[12.5px] font-semibold px-3 py-1.5 rounded-lg ${live ? "bg-deep text-white" : "text-deep"}`}
+      >
+        {live ? label : exam.status === "SUBMITTED" ? "النتيجة" : label}
+      </Link>
+    </div>
   );
 }
