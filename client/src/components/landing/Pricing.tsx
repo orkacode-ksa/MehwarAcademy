@@ -11,7 +11,7 @@ const fmt = (n: number) => new Intl.NumberFormat("ar-SA-u-nu-latn", { maximumFra
  * الأسعار من الخادم كما ضبطها المالك. السنوي مختار افتراضيًا ويُظهر ما يوفّره (تثبيت مرجعي
  * بالسعر الشهري)، والباقة الأعلى في موضع التمييز.
  */
-export function Pricing({ offer }: { offer: Offer | null }) {
+export function Pricing({ offer, compact = false }: { offer: Offer | null; compact?: boolean }) {
   const navigate = useNavigate();
   const [yearly, setYearly] = useState(true);
   const plans = offer?.plans ?? [];
@@ -41,7 +41,7 @@ export function Pricing({ offer }: { offer: Offer | null }) {
         </span>
       </div>
 
-      <div className={`grid gap-4 max-w-[760px] mx-auto ${plans.length > 1 ? "sm:grid-cols-2" : ""}`}>
+      <div className={`grid ${compact ? "gap-2.5 sm:gap-4 grid-cols-2" : "gap-4"} max-w-[760px] mx-auto text-start ${!compact && plans.length > 1 ? "sm:grid-cols-2" : ""}`}>
         {plans.length === 0 && <div className="h-[340px] rounded-[24px] bg-surface/60 border border-line animate-pulse sm:col-span-2" />}
         {plans.map((p, i) => {
           const featured = i === plans.length - 1 && plans.length > 1;
@@ -49,22 +49,22 @@ export function Pricing({ offer }: { offer: Offer | null }) {
           return (
             <div
               key={p.code}
-              className={`relative flex flex-col rounded-[24px] p-6 border transition-transform duration-300 hover:-translate-y-1 ${
+              className={`relative flex flex-col rounded-[24px] ${compact ? "p-3.5 sm:p-6" : "p-6"} border transition-transform duration-300 hover:-translate-y-1 ${
                 featured ? "bg-deep text-white border-deep shadow-[0_24px_60px_-24px_rgba(15,70,60,.7)]" : "bg-surface border-line"
               }`}
             >
               {featured && <span className="absolute -top-3 start-6 rounded-full bg-gold2 text-on-gold text-[11.5px] font-bold px-3 py-1">الأوفر قيمة</span>}
               <div className={`text-[15px] font-semibold ${featured ? "text-white/85" : "text-ink-2"}`}>{p.name}</div>
               <div className="mt-2 flex items-baseline gap-1.5">
-                <span key={`${p.code}-${yearly}`} className="text-[42px] font-bold num leading-none animate-[swapIn_.35s_ease-out]">
+                <span key={`${p.code}-${yearly}`} className="text-[clamp(28px,8vw,42px)] font-bold num leading-none animate-[swapIn_.35s_ease-out]">
                   <Money>{fmt(price)}</Money>
                 </span>
                 <span className={`text-[13px] ${featured ? "text-white/70" : "text-ink-3"}`}>/ شهريًا</span>
               </div>
               <div className={`text-[12px] mt-1 h-4 ${featured ? "text-white/65" : "text-ink-3"}`}>{yearly && <>تُدفع سنويًا <Money>{fmt(p.priceYearly)}</Money></>}</div>
-              <ul className="grid gap-2 mt-5 mb-6">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[13.5px]">
+              <ul className={`grid gap-2 ${compact ? "mt-3 mb-4" : "mt-5 mb-6"}`}>
+                {(compact ? p.features.slice(0, 3) : p.features).map((f) => (
+                  <li key={f} className={`flex items-start gap-2 text-[13.5px] ${compact ? "[@media(max-height:720px)]:last:hidden" : ""}`}>
                     <Icon name="check" className={`w-[18px] h-[18px] flex-none mt-px ${featured ? "text-gold3" : "text-teal"}`} />
                     {f}
                   </li>
@@ -77,7 +77,7 @@ export function Pricing({ offer }: { offer: Offer | null }) {
           );
         })}
       </div>
-      <p className="text-center text-[12px] text-ink-3 mt-4">التجربة بكل مزايا «{plans.at(-1)?.name ?? "برو"}» — ولا تُطلب بطاقة.</p>
+      <p className="text-center text-[12px] text-ink-3 mt-4 [@media(max-height:720px)]:hidden">التجربة بكل مزايا «{plans.at(-1)?.name ?? "برو"}» — ولا تُطلب بطاقة.</p>
     </div>
   );
 }
