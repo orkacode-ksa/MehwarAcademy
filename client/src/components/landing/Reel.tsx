@@ -98,7 +98,7 @@ export function Reel({ tones, labels, onChange, children }: { tones: Tone[]; lab
         type="button"
         onClick={() => go(last ? 0 : active + 1)}
         aria-label={last ? "العودة إلى البداية" : "القسم التالي"}
-        className={`fixed bottom-4 inset-x-0 mx-auto z-[55] w-11 h-11 rounded-full grid place-items-center backdrop-blur border transition-colors duration-500 ${dark ? "bg-white/10 border-white/25 text-white hover:bg-white/20" : "bg-surface/80 border-line text-deep hover:bg-surface"} ${!touched && active === 0 ? "reel-hint" : ""}`}
+        className={`fixed bottom-4 z-[55] w-11 h-11 rounded-full grid place-items-center backdrop-blur border transition-colors duration-500 ${last ? "end-4" : "inset-x-0 mx-auto"} ${dark ? "bg-white/10 border-white/25 text-white hover:bg-white/20" : "bg-surface/80 border-line text-deep hover:bg-surface"} ${!touched && active === 0 ? "reel-hint" : ""}`}
       >
         <Icon name="chevd" className={`w-5 h-5 transition-transform duration-500 ${last ? "rotate-180" : ""}`} />
       </button>

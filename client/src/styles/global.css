@@ -241,5 +241,10 @@ svg {
 .reel-hint { animation: nudge 1.6s ease-in-out infinite; }
 /* شاشات قصيرة (هواتف صغيرة): يُصغَّر محتوى الإطار كله بنسبة واحدة ليبقى إطارًا واحدًا لا إطارًا يُمرَّر داخله */
 @media (max-height: 700px) { .frame > .relative.z-10 { zoom: .86; } }
-@media (max-height: 600px) { .frame > .relative.z-10 { zoom: .76; } }
+@media (max-height: 600px) { .frame > .relative.z-10 { zoom: .7; } }
 @media (max-height: 700px) { .frame { padding: 66px 16px 62px; } }
+
+/* تبديل النمط بهالة دائرية: الصورة القديمة ثابتة والجديدة تنكشف بقصّ دائري (lib/themeReveal.ts) */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }

@@ -3,16 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { Icon, type IconName } from "../icons/Icon.js";
 import { Button } from "../components/ui/Button.js";
 import { Pricing } from "../components/landing/Pricing.js";
+import { SiteHeader, SITE_LINKS } from "../components/landing/SiteHeader.js";
+import { Copyright } from "../components/landing/Copyright.js";
 import { useOffer } from "../components/landing/useOffer.js";
 import { Reel, type ReelState, type Tone } from "../components/landing/Reel.js";
 import { FileFills, Rise, ScatterToFile, SixSteps, TodayPhone, TopicToFour, useOnFrame } from "../components/landing/scenes.js";
 
 const TONES: Tone[] = ["dark", "light", "dark", "light", "dark", "light", "dark"];
 const LABELS = ["البداية", "المشكلة", "المواد", "الخطوات", "يوم التدريس", "الأسعار", "ابدأ"];
-const NAV: [string, number][] = [
-  ["كيف يعمل", 3],
-  ["الأسعار", 5],
-];
 const go = (i: number) => window.dispatchEvent(new CustomEvent("reel:go", { detail: i }));
 
 /** لوحة الإطار: مستطيل مدوّر بهامش أبيض حوله — كل إطار «بطاقة» لا شاشة مسطّحة. */
@@ -38,7 +36,8 @@ function Pill({ icon, children, dark }: { icon: IconName; children: ReactNode; d
 /** الكلمة المميّزة في العنوان: ذهبية على الداكن، خضراء على الفاتح. */
 const Accent = ({ children, dark }: { children: ReactNode; dark: boolean }) => <span className={dark ? "text-gold3" : "text-deep"}>{children}</span>;
 
-const H2 = "font-amiri font-bold leading-[1.3] text-[clamp(28px,5.2vw,50px)]";
+/* تباعد السطرين: التشكيل (الشدّة والضمّة) يدخل السطر الذي تحته إن قلّ عن ١٫٥ */
+const H2 = "font-amiri font-bold leading-[1.55] text-[clamp(28px,5.2vw,50px)]";
 
 function Frame({ i, children, className = "" }: { i: number; children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -80,30 +79,7 @@ export function LandingPage() {
 
   return (
     <div dir="rtl" className="text-ink">
-      <header className="fixed top-3 sm:top-5 inset-x-0 z-[60] px-4">
-        <div className={`mx-auto max-w-[760px] h-[52px] rounded-full flex items-center gap-1.5 ps-4 pe-1.5 backdrop-blur-xl border transition-colors duration-500 ${dark ? "bg-white/12 border-white/20 text-white" : "bg-surface/85 border-line text-ink shadow-s1"}`}>
-          <Link to="/" className="flex items-center gap-2 font-amiri font-bold text-[19px]" onClick={() => go(0)}>
-            <span className="w-[30px] h-[30px] rounded-[10px] bg-gradient-to-br from-deep to-deep3 grid place-items-center text-white ring-1 ring-white/20">
-              <Icon name="logo" className="w-[17px] h-[17px]" />
-            </span>
-            مِحوَر
-          </Link>
-          <nav className="hidden sm:flex items-center gap-1 mx-auto">
-            {NAV.map(([t, i]) => (
-              <button key={t} type="button" onClick={() => go(i)} className={`px-3.5 py-2 rounded-full text-[13px] transition-colors ${dark ? "hover:bg-white/15" : "hover:bg-deep/[.07]"}`}>
-                {t}
-              </button>
-            ))}
-          </nav>
-          <span className="flex-1 sm:hidden" />
-          <Link to="/login" className={`px-3 py-2 rounded-full text-[13px] font-semibold ${dark ? "hover:bg-white/15" : "hover:bg-deep/[.07] text-deep"}`}>
-            دخول
-          </Link>
-          <Button variant="gold" size="sm" className="!rounded-full !px-4 !py-2.5" onClick={() => navigate("/signup")}>
-            ابدأ مجانًا
-          </Button>
-        </div>
-      </header>
+      <SiteHeader dark={dark} onLogo={() => go(0)} />
 
       <Reel tones={TONES} labels={LABELS} onChange={onChange}>
         {/* ١ — الفكرة: ملف يكتمل */}
@@ -111,11 +87,11 @@ export function LandingPage() {
           <div className="text-center lg:text-start">
             <Rise>
               <Pill icon="cap" dark>
-                لعضو هيئة التدريس
+                لعضو هيئة التدريس، صانع الأجيال
               </Pill>
             </Rise>
             <Rise d={0.1}>
-              <h1 className="font-amiri font-bold leading-[1.25] text-[clamp(36px,8vw,72px)] mt-4 sm:mt-5">
+              <h1 className="font-amiri font-bold leading-[1.5] text-[clamp(36px,8vw,72px)] mt-4 sm:mt-5">
                 ملف مقررك يكتمل
                 <br />
                 وأنت <Accent dark>تُدرّس.</Accent>
@@ -257,7 +233,7 @@ export function LandingPage() {
           </Rise>
           <Rise d={0.1}>
             <h2 className={`${H2} mt-3 mb-5 sm:mb-7`}>
-              استثمار صغير. <Accent dark={false}>وقت كبير.</Accent>
+              استثمار صغير <Accent dark={false}>وقت كبير</Accent>
             </h2>
           </Rise>
           <Rise d={0.2}>
@@ -298,20 +274,17 @@ export function LandingPage() {
             </ul>
           </Rise>
           <Rise d={0.5}>
-            <nav className="flex justify-center gap-5 mt-9 text-[12.5px] text-white/65">
-              <Link to="/legal/about" className="hover:text-white">
-                عن المنصة
-              </Link>
-              <Link to="/legal/terms" className="hover:text-white">
-                الشروط
-              </Link>
-              <Link to="/legal/privacy" className="hover:text-white">
-                الخصوصية
-              </Link>
+            <nav className="flex flex-wrap justify-center gap-x-5 gap-y-1 mt-8 text-[12.5px] text-white/70">
+              {[...SITE_LINKS, ["الشروط", "/legal/terms"], ["الخصوصية", "/legal/privacy"]].map(([t, to]) => (
+                <Link key={to} to={to as string} className="hover:text-white">
+                  {t}
+                </Link>
+              ))}
             </nav>
           </Rise>
         </Frame>
       </Reel>
+      {state.active === TONES.length - 1 && <Copyright className="fixed bottom-5 inset-x-0 text-center z-[56] text-white/60 animate-[fadeIn_.6s_.3s_both]" />}
     </div>
   );
 }
