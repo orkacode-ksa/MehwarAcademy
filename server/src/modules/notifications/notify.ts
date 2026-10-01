@@ -46,7 +46,18 @@ export async function notifyOnce(tenantId: string, userId: string, n: NoticeInpu
   if (!exists) await notify(tenantId, [userId], n);
 }
 
+/** لكل المالكين مرة واحدة في النافذة — استعلام واحد لكل جامعة إدارية لا لكل مالك. */
 export async function notifyOwnersOnce(n: NoticeInput, windowDays: number): Promise<void> {
   const owners = await prismaBase.user.findMany({ where: { role: "OWNER", deletedAt: null }, select: { id: true, tenantId: true } });
-  for (const o of owners) await notifyOnce(o.tenantId, o.id, n, windowDays);
+  const byTenant = new Map<string, string[]>();
+  for (const o of owners) byTenant.set(o.tenantId, [...(byTenant.get(o.tenantId) ?? []), o.id]);
+  const since = new Date(Date.now() - windowDays * 864e5);
+  for (const [tenantId, ids] of byTenant) {
+    const got = await withExplicitTenantTx(tenantId, (tx) =>
+      tx.notification.findMany({ where: { userId: { in: ids }, kind: n.kind, link: n.link ?? null, createdAt: { gte: since } }, select: { userId: true } }),
+    );
+    const have = new Set(got.map((g) => g.userId));
+    const missing = ids.filter((id) => !have.has(id));
+    if (missing.length) await notify(tenantId, missing, n);
+  }
 }
