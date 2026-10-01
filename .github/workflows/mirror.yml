@@ -1,0 +1,31 @@
+# Mirror: every push to the working branch is copied to orkacode-ksa/MehwarAcademy (main).
+# Needs the repository secret MIRROR_TOKEN (fine-grained token, Contents: write on that repo).
+# Runs only in the source repository, so the mirror never pushes back.
+name: Mirror
+
+on:
+  push:
+    branches: [claude/adoring-brown-t9lmvb]
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Mirror to MehwarAcademy
+    if: github.repository == 'EngHasanQ/mihwar-academic-system'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push to mirror
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          if [ -z "$MIRROR_TOKEN" ]; then
+            echo "::warning::MIRROR_TOKEN is not set; skipping mirror"
+            exit 0
+          fi
+          git push --force "https://x-access-token:${MIRROR_TOKEN}@github.com/orkacode-ksa/MehwarAcademy.git" "HEAD:refs/heads/main"
