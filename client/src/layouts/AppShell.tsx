@@ -10,6 +10,7 @@ import { OwnerMfaBanner } from "../components/shell/OwnerMfaBanner.js";
 import { ROLE_HOME, roleOf, roleOfUser, SHARED_SCREENS } from "../nav/nav.js";
 import { PageTitleProvider } from "../state/PageTitle.js";
 import { useSession } from "../hooks/useSession.js";
+import { Tour } from "../components/tour/Tour.js";
 import { confirmLogout } from "../lib/logoutFlow.js";
 const AssistantPanel = lazy(() => import("../components/assistant/AssistantPanel.js").then((m) => ({ default: m.AssistantPanel })));
 import { Icon } from "../icons/Icon.js";
@@ -56,13 +57,15 @@ export function AppShell() {
       <a href="#main" className="skip">
         تخطَّ إلى المحتوى
       </a>
-      <Rail role={role} />
+      {user && <Tour user={user} />}
+      <Rail role={role} onOpenMore={() => setMoreOpen(true)} />
       <BottomNav role={role} onOpenMore={() => setMoreOpen(true)} moreActive={moreOpen} {...(teacher ? { onOpenAssistant: () => setAssistantOpen(true) } : {})} />
       {teacher && (
         <button
           type="button"
           onClick={() => setAssistantOpen(true)}
           aria-label="المساعد"
+          data-tour="assistant"
           className="hidden sm:flex fixed bottom-6 left-6 z-50 items-center gap-2 h-14 ps-4 pe-5 rounded-full bg-deep text-white shadow-lg hover:shadow-xl transition-shadow"
         >
           <Icon name="sparks" className="w-5 h-5" />

@@ -10,6 +10,8 @@ export const userPrefsSchema = z
     /** خط العناوين المميّز — إطفاؤه يجعل العناوين بخط النص نفسه */
     headingFont: z.boolean().default(true),
     lang: z.enum(["ar", "en"]).default("ar"),
+    /** الجولة التعريفية: «pending» للحساب الجديد حتى يُنهيها أو يتخطاها. الغائب = لا جولة (الحسابات القديمة). */
+    tour: z.enum(["pending", "done"]).optional(),
   })
   .strict();
 export type UserPrefs = z.infer<typeof userPrefsSchema>;

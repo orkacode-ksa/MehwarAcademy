@@ -52,6 +52,15 @@ export function AccountPage() {
     <>
       <PageHeader title="حسابي" description="بياناتك وتفضيلاتك — افتح ما تريد تعديله." />
       <div className="grid gap-2.5 max-w-[760px] [&>*]:min-w-0">
+        <Link to="/help" className="flex items-center gap-3 bg-deep/[.05] border border-deep/20 rounded-[16px] px-4 py-3.5 min-h-[60px] hover:border-deep/40">
+          <span className="w-9 h-9 flex-none rounded-[11px] grid place-items-center bg-deep text-white">
+            <Icon name="help" className="w-[17px] h-[17px]" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-semibold text-[14.5px]">المساعدة</span>
+            <span className="block text-[12px] text-ink-3 truncate">دليل بخطوات لكل شيء · إعادة الجولة التعريفية</span>
+          </span>
+        </Link>
         {card("profile", "user", "البيانات الشخصية والصورة", `${user.fullName} · ${user.email}`, <ProfileCard key={user.id} user={user} />)}
         {card("security", "lock", "الأمان وكلمة المرور", "تغيير كلمة المرور · الخروج من كل الأجهزة", <SecurityCard />)}
         {teacher &&

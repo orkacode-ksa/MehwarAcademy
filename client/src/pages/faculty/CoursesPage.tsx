@@ -41,7 +41,7 @@ export function CoursesPage() {
         description="كل مقرر يعرض موضعه في التجهيز وما ينقصه."
         actions={
           open ? undefined : (
-            <Button variant="primary" onClick={() => setOpen(true)}>
+            <Button variant="primary" data-tour="add-course" onClick={() => setOpen(true)}>
               <Icon name="plus" /> مقرر جديد
             </Button>
           )

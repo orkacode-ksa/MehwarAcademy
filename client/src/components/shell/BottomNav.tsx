@@ -50,7 +50,7 @@ export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: Bot
         )}
         {primary.map((item, i) => [
           i === center && onOpenAssistant ? (
-            <button key="assistant" type="button" onClick={onOpenAssistant} aria-label="المساعد" className={itemCls}>
+            <button key="assistant" type="button" onClick={onOpenAssistant} aria-label="المساعد" data-tour="assistant" className={itemCls}>
               <span className="grid place-items-center w-[54px] h-[54px] -mt-5 rounded-full bg-deep text-white shadow-[0_8px_20px_-6px_rgba(15,70,60,.6)] ring-[5px] ring-canvas">
                 <Icon name="sparks" active className="w-[24px] h-[24px]" />
               </span>
@@ -59,6 +59,7 @@ export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: Bot
           <NavLink
             key={item.key}
             to={`/${item.key}`}
+            data-tour={`nav-${item.key}`}
             className={itemCls}
             // الرابط إلى الشاشة التي أنت فيها لا يُنقّلك، فليُعدك إلى أعلاها
             onClick={() => {
@@ -74,7 +75,7 @@ export function BottomNav({ role, onOpenMore, moreActive, onOpenAssistant }: Bot
           </NavLink>,
         ])}
 
-        <button type="button" onClick={onOpenMore} aria-label="المزيد" aria-expanded={moreActive} className={itemCls}>
+        <button type="button" onClick={onOpenMore} aria-label="المزيد" aria-expanded={moreActive} data-tour="nav-more" className={itemCls}>
           <Icon name="more" active={moreActive} className={`w-[22px] h-[22px] ${moreActive ? "text-deep" : "text-ink-2"}`} />
           <span className={label(moreActive)}>المزيد</span>
         </button>

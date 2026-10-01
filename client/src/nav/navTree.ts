@@ -13,7 +13,7 @@ const RULES: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^\/scourse\/[^/]+$/, () => "/scourses"],
   [/^\/sexam\/[^/]+$/, () => "/scourses"],
   [/^\/orders\/[^/]+$/, () => "/account"],
-  [/^\/(plans|cv|university)$/, () => "/account"],
+  [/^\/(plans|cv|university|help)$/, () => "/account"],
   [/^\/institutions\/([^/]+)\/[^/]+$/, (m) => `/institutions/${m[1]}`],
   [/^\/institutions\/[^/]+$/, () => "/institutions"],
   [/^\/osubmissions$/, () => "/institutions"],
@@ -33,6 +33,7 @@ export function parentOf(pathname: string, home: string): string {
 export const FALLBACK_TITLE: Record<string, string> = {
   tasks: "مهام اليوم",
   violations: "المخالفات",
+  help: "المساعدة",
   officehours: "الساعات المكتبية",
   soffice: "الساعات المكتبية",
   today: "محاضرة اليوم",

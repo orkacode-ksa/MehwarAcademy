@@ -193,6 +193,8 @@ async function registerOnce(
         passwordHash,
         role: input.role,
         emailVerifiedAt: input.emailVerifiedAt ?? null,
+        // حساب جديد: تبدأ الجولة التعريفية عند أول دخول
+        prefs: { tour: "pending" },
       },
     });
 

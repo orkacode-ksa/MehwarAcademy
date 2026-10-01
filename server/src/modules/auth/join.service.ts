@@ -57,7 +57,7 @@ export async function joinSection(input: JoinData, ctx: { ip?: string; userAgent
     const studentId = await findClaimable(tx, hit, input);
     await tx.user.update({
       where: { id: studentId },
-      data: { email: input.email, fullName: input.fullName, passwordHash: input.passwordHash, emailVerifiedAt: input.emailVerifiedAt ?? null },
+      data: { email: input.email, fullName: input.fullName, passwordHash: input.passwordHash, emailVerifiedAt: input.emailVerifiedAt ?? null, prefs: { tour: "pending" } },
     });
     return studentId;
   });

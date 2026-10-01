@@ -54,7 +54,7 @@ describe("حسابي", () => {
   });
 
   it("التفضيلات تُحفظ وتعود مع /auth/me، والقيم الغريبة تُرفض", async () => {
-    expect((await a.get("/api/auth/me")).body.data.prefs).toEqual({ theme: "light", fontScale: 0, headingFont: true, lang: "ar" });
+    expect((await a.get("/api/auth/me")).body.data.prefs).toEqual({ theme: "light", fontScale: 0, headingFont: true, lang: "ar", tour: "pending" }); // حساب جديد: الجولة التعريفية تنتظره
     await a.put("/api/me/prefs").send({ theme: "dark", fontScale: 3, headingFont: false, lang: "ar" });
     expect((await a.get("/api/auth/me")).body.data.prefs).toMatchObject({ theme: "dark", fontScale: 3, headingFont: false });
     expect((await a.put("/api/me/prefs").send({ theme: "neon", fontScale: 9 })).status).toBe(400);
