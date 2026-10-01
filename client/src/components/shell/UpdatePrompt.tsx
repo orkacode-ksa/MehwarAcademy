@@ -2,27 +2,49 @@ import { useEffect, useRef, useState } from "react";
 import { registerSW } from "virtual:pwa-register";
 
 /**
- * إشعار "نسخة جديدة متاحة" — لازم لأن `registerType:"prompt"` (اختيار متعمَّد كي لا
- * يُنعش التحديث التطبيق قسرًا أثناء اختبار الطالب أو جلسة حضور دون اتصال) لا يُفعِّل
- * نفسه: عامل الخدمة الجديد يبقى منتظرًا صامتًا إلى أن يُستدعى `updateSW(true)` صراحة.
- * غيابه سبب اختبارًا حقيقيًا: نسخة قديمة ظلت تُعرض بعد نشر ناجح فعليًا على الخادم.
+ * تحديث الواجهة — النسخة الجديدة تُطبَّق وحدها (إصلاحات الأمان لا تنتظر ضغطة من المستخدم):
+ * - عند فتح التطبيق: فورًا (لم يبدأ عملًا بعد).
+ * - أثناء الاستخدام: عند الانتقال لشاشة أخرى أو حين يغادر التبويب — لا في منتصف اختبار
+ *   أو جلسة حضور. والإشعار يبقى لمن يريد التحديث الآن.
+ * والفحص عند كل عودة للتبويب وكل ربع ساعة، لا كل ساعة.
  */
+const BOOT_WINDOW_MS = 15_000;
+
 export function UpdatePrompt() {
   const [needRefresh, setNeedRefresh] = useState(false);
   const updateRef = useRef<(reload?: boolean) => Promise<void>>();
 
   useEffect(() => {
+    const bootAt = Date.now();
+    let applied = false;
+    const apply = () => {
+      if (applied) return;
+      applied = true;
+      void updateRef.current?.(true);
+    };
+    let watch: ReturnType<typeof setInterval> | undefined;
+    const onHidden = () => document.visibilityState === "hidden" && apply();
+
     updateRef.current = registerSW({
       immediate: true,
       onNeedRefresh() {
+        if (Date.now() - bootAt < BOOT_WINDOW_MS) return apply();
         setNeedRefresh(true);
+        // عند أول انتقال لشاشة أخرى، أو حين يُترك التبويب
+        const from = window.location.pathname;
+        watch = setInterval(() => window.location.pathname !== from && apply(), 500);
+        document.addEventListener("visibilitychange", onHidden);
       },
       onRegisteredSW(_url, registration) {
         if (!registration) return;
-        // فحص دوري للتحديث كل ساعة — لا يعتمد فقط على فتح تبويب جديد
-        setInterval(() => registration.update(), 60 * 60 * 1000);
+        setInterval(() => void registration.update(), 15 * 60 * 1000);
+        document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && void registration.update());
       },
     });
+    return () => {
+      if (watch) clearInterval(watch);
+      document.removeEventListener("visibilitychange", onHidden);
+    };
   }, []);
 
   if (!needRefresh) return null;
