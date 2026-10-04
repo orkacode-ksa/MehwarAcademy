@@ -23,7 +23,7 @@ export async function listUsers(q: string, page: number) {
       orderBy: { createdAt: "desc" },
       skip: Math.max(0, page - 1) * take,
       take,
-      select: { id: true, fullName: true, email: true, createdAt: true, suspendedAt: true, isDeptHead: true, tenantId: true, tenant: { select: { name: true, status: true } } },
+      select: { id: true, fullName: true, email: true, createdAt: true, suspendedAt: true, isDeptHead: true, tenantId: true, tenant: { select: { name: true, status: true } }, _count: { select: { refreshTokens: true } } },
     }),
   ]);
   const rows = [];
@@ -41,6 +41,8 @@ export async function listUsers(q: string, page: number) {
       email: u.email,
       createdAt: u.createdAt,
       suspended: !!u.suspendedAt,
+      // لم يدخل قط (حساب بدعوة لم تُفتح بعد) — يظهر زر إعادة إرسال الدعوة
+      neverSignedIn: u._count.refreshTokens === 0,
       isDeptHead: u.isDeptHead,
       university: u.tenant.name,
       universityListed: u.tenant.status === "ACTIVE",

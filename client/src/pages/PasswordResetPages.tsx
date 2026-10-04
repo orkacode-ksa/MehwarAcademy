@@ -121,7 +121,10 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <Shell title="كلمة مرور جديدة" hint="١٠ أحرف على الأقل. بعد الحفظ تدخل بها من جديد.">
+    <Shell
+      title={params.get("invite") === "1" ? "اختر كلمة مرورك" : "كلمة مرور جديدة"}
+      hint={params.get("invite") === "1" ? "مرحبًا بك في مِحوَر — ١٠ أحرف على الأقل، ثم تدخل بها." : "١٠ أحرف على الأقل. بعد الحفظ تدخل بها من جديد."}
+    >
       <form onSubmit={(e) => void submit(e)} noValidate>
         <PasswordField label="كلمة المرور الجديدة" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
         <PasswordField label="أعد كتابتها" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} error={err ?? undefined} />

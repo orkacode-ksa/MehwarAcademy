@@ -44,7 +44,8 @@ export async function completePasswordReset(token: string, password: string): Pr
   const accounts = await prismaBase.user.findMany({ where: { email: row.user.email, deletedAt: null }, select: { id: true } });
   const passwordHash = await hashPassword(password);
   for (const a of accounts) {
-    await prismaBase.user.update({ where: { id: a.id }, data: { passwordHash, failedLoginCount: 0, lockedUntil: null } });
+    // فتح الرابط يثبت ملكية البريد (ويُفعِّل حساب الدعوة)
+    await prismaBase.user.update({ where: { id: a.id }, data: { passwordHash, failedLoginCount: 0, lockedUntil: null, emailVerifiedAt: new Date() } });
     await logoutAllDevices(a.id);
   }
   await recordAudit({ userId: row.userId, tenantId: row.user.tenantId, action: "PASSWORD_RESET_COMPLETED", entityType: "User", entityId: row.userId });

@@ -56,7 +56,12 @@ export async function issueTokenPair(userId: string, role: RegisterInput["role"]
 }
 
 /** بيانات التسجيل بعد التحقق — كلمة المرور مُجزّأة (تُحفظ هكذا في طلب التسجيل المعلّق). */
-export type RegisterData = Omit<RegisterInput, "password"> & { passwordHash: string; emailVerifiedAt?: Date };
+export type RegisterData = Omit<RegisterInput, "password"> & {
+  passwordHash: string;
+  emailVerifiedAt?: Date;
+  /** حساب ينشئه المالك: لا شرط نطاق بريد (قراره)، ولا جلسة تُفتح — صاحبه يضبط كلمة مروره بالدعوة */
+  byOwner?: boolean;
+};
 
 /** فحوص ما قبل الإنشاء (تُعاد عند الإنشاء): البريد غير مستخدم، وجامعي بنطاق جامعته. */
 export async function precheckRegistration(input: Omit<RegisterInput, "password">): Promise<void> {
@@ -115,7 +120,7 @@ async function registerOnce(
     throw AppError.conflict("تعذّر إتمام التسجيل بهذه البيانات");
   }
 
-  assertTeacherEmail(input.email, await universityDomainsFor(input));
+  if (!input.byOwner) assertTeacherEmail(input.email, await universityDomainsFor(input));
   const passwordHash = input.passwordHash;
 
   // الانضمام لجامعة قائمة برمزها — `tenants` خارج RLS فالبحث بلا سياق مشروع.
@@ -228,6 +233,7 @@ async function registerOnce(
     userAgent: ctx.userAgent,
   });
 
+  if (input.byOwner) return { accessToken: "", refreshToken: "", userId: user.id };
   const tokens = await issueTokenPair(user.id, user.role, ctx.userAgent, ctx.ip);
   return { ...tokens, userId: user.id };
 }

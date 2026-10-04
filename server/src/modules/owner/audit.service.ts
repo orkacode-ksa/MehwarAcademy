@@ -18,6 +18,8 @@ const ACTION_AR: Record<string, string> = {
   TOTP_ENABLED: "تفعيل التحقق بخطوتين",
   TOTP_DISABLED: "إلغاء التحقق بخطوتين",
   STAFF_CREATED: "إضافة موظف",
+  OWNER_USER_CREATED: "إنشاء حساب أستاذ",
+  OWNER_INVITE_SENT: "إرسال دعوة حساب",
   STAFF_SCREENS_CHANGED: "تغيير صلاحيات موظف",
   STAFF_ACCESS_RESET: "إعادة تعيين دخول موظف",
   STAFF_ENABLED: "تفعيل موظف",

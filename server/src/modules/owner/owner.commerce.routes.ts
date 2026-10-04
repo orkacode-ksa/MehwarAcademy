@@ -1,4 +1,5 @@
 import { Router } from "express";
+import * as invite from "./invite.service.js";
 import { pageOf } from "../../lib/paging.js";
 import { planSchema, bankAccountSchema, reviewOrderSchema, bankReviewSchema } from "@mihwar/shared";
 import { z } from "zod";
@@ -227,6 +228,30 @@ ownerCommerceRouter.get(
     const q = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 80) : "";
     const page = Math.min(1000, Math.max(1, Number(req.query.page) || 1));
     res.json({ success: true, data: await users.listUsers(q, page) });
+  }),
+);
+/** حساب أستاذ جديد بدعوة إلى بريده — يضبط كلمة مروره بنفسه. */
+ownerCommerceRouter.post(
+  "/users",
+  validate({
+    body: z
+      .object({
+        fullName: z.string().trim().min(3, "الاسم ثلاثة أحرف على الأقل").max(120),
+        email: z.string().trim().toLowerCase().email("بريد غير صالح").max(255),
+        universityKey: z.string().regex(/^[a-z0-9-]{2,40}$/).optional(),
+        universityName: z.string().trim().min(3).max(120).optional(),
+      })
+      .strict(),
+  }),
+  asyncHandler(async (req, res) => {
+    res.status(201).json({ success: true, data: await invite.inviteTeacher(actor(req), req.body) });
+  }),
+);
+ownerCommerceRouter.post(
+  "/users/:id/invite",
+  asyncHandler(async (req, res) => {
+    await invite.sendInvite(req.params.id as string, actor(req));
+    res.json({ success: true, data: null });
   }),
 );
 ownerCommerceRouter.post(

@@ -9,6 +9,8 @@ import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import type { Plan } from "../account/types.js";
 import { confirmDialog } from "../../components/ui/ConfirmDialog.js";
+import { Icon } from "../../icons/Icon.js";
+import { NewTeacher } from "./NewTeacher.js";
 
 interface Row {
   id: string;
@@ -16,6 +18,7 @@ interface Row {
   email: string;
   createdAt: string;
   suspended: boolean;
+  neverSignedIn: boolean;
   isDeptHead: boolean;
   university: string;
   universityListed: boolean;
@@ -32,9 +35,32 @@ export function OwnerUsersPage() {
   const [page, setPage] = useState(1);
   const { data, loading, error, reload } = useApi<{ total: number; page: number; pages: number; rows: Row[] }>(`/owner/users?q=${encodeURIComponent(query)}&page=${page}`);
   const { data: plans } = useApi<Plan[]>("/owner/store/plans");
+  const [creating, setCreating] = useState(false);
   return (
     <>
-      <PageHeader kicker="المالك" title="المستخدمون" description={data ? `${formatNum(data.total)} عضو هيئة تدريس` : undefined} />
+      <PageHeader
+        kicker="المالك"
+        title="المستخدمون"
+        description={data ? `${formatNum(data.total)} عضو هيئة تدريس` : undefined}
+        actions={
+          !creating && (
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Icon name="plus" /> حساب جديد
+            </Button>
+          )
+        }
+      />
+      {creating && (
+        <NewTeacher
+          onClose={() => setCreating(false)}
+          onCreated={(email) => {
+            setCreating(false);
+            setQ(email);
+            setPage(1);
+            setQuery(email);
+          }}
+        />
+      )}
       <form
         className="flex gap-2 mb-3"
         onSubmit={(e) => {
@@ -105,6 +131,7 @@ function UserRow({ r, plans, onDone }: { r: Row; plans: Plan[]; onDone: () => vo
         </div>
         <div className="flex flex-col items-end gap-1">
           {r.suspended ? <Chip tone="crimson">موقوف</Chip> : st && <Chip tone={st[1]}>{`${r.plan?.name} · ${st[0]}`}</Chip>}
+          {r.neverSignedIn && <Chip tone="amber">لم يُفعّل حسابه بعد</Chip>}
           <span className="text-[11.5px] text-ink-3">حتى {d(r.plan?.periodEnd ?? null)}</span>
           {r.usage && (
             <span className="text-[11.5px] text-ink-3">
@@ -134,6 +161,14 @@ function UserRow({ r, plans, onDone }: { r: Row; plans: Plan[]; onDone: () => vo
               فعّل الباقة
             </Button>
           </div>
+          {r.neverSignedIn && (
+            <div className="flex gap-2 flex-wrap items-center">
+              <Button size="sm" variant="secondary" onClick={() => void act({}, "أُرسلت الدعوة من جديد — الرابط السابق لم يعد صالحًا", "invite")}>
+                أعد إرسال الدعوة
+              </Button>
+              <span className="text-[11.5px] text-ink-3">رابط ضبط كلمة المرور صالح ٣ أيام.</span>
+            </div>
+          )}
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" variant="secondary" onClick={async () => (await confirmDialog({ title: "إنهاء اشتراكه الآن؟", body: "بياناته تبقى للعرض.", confirmLabel: "أنهِ الاشتراك", danger: true })) && void act({ action: "EXPIRE" }, "أُنهي الاشتراك")}>
               أنهِ الاشتراك
