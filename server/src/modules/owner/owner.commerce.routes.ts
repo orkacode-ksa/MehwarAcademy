@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as invite from "./invite.service.js";
 import { pageOf } from "../../lib/paging.js";
-import { planSchema, bankAccountSchema, reviewOrderSchema, bankReviewSchema } from "@mihwar/shared";
+import { planSchema, bankAccountSchema, reviewOrderSchema, bankReviewSchema, passwordSchema } from "@mihwar/shared";
 import { z } from "zod";
 import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -240,6 +240,8 @@ ownerCommerceRouter.post(
         email: z.string().trim().toLowerCase().email("بريد غير صالح").max(255),
         universityKey: z.string().regex(/^[a-z0-9-]{2,40}$/).optional(),
         universityName: z.string().trim().min(3).max(120).optional(),
+        /** تفعيل مباشر بلا دعوة ولا تحقق من البريد (حسابات تجريبية) */
+        password: passwordSchema.optional(),
       })
       .strict(),
   }),

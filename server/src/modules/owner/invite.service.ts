@@ -16,7 +16,11 @@ import { registerUser } from "../auth/auth.service.js";
  */
 const INVITE_HOURS = 72;
 
-export async function inviteTeacher(actorId: string, input: { fullName: string; email: string; universityKey?: string | undefined; universityName?: string | undefined }) {
+/**
+ * `password` (تفعيل مباشر — للحسابات التجريبية): كلمة المرور يضعها المالك، والحساب يعمل فورًا
+ * بلا رسالة ولا تحقق من البريد. بدونها: دعوة إلى البريد يضبط بها صاحبه كلمة مروره.
+ */
+export async function inviteTeacher(actorId: string, input: { fullName: string; email: string; universityKey?: string | undefined; universityName?: string | undefined; password?: string | undefined }) {
   const exists = await prismaBase.user.findFirst({ where: { email: input.email, deletedAt: null }, select: { id: true } });
   if (exists) throw AppError.conflict("هذا البريد مسجّل لحساب قائم — ابحث عنه في القائمة");
   const { userId } = await registerUser(
@@ -25,13 +29,14 @@ export async function inviteTeacher(actorId: string, input: { fullName: string; 
       email: input.email,
       role: "TEACHER",
       ...(input.universityKey ? { universityKey: input.universityKey } : input.universityName ? { universityName: input.universityName } : {}),
-      passwordHash: await hashPassword(crypto.randomBytes(32).toString("base64url")),
+      passwordHash: await hashPassword(input.password ?? crypto.randomBytes(32).toString("base64url")),
       byOwner: true,
+      ...(input.password ? { emailVerifiedAt: new Date() } : {}),
     },
     {},
   );
-  await recordAudit({ userId: actorId, action: "OWNER_USER_CREATED", entityType: "User", entityId: userId });
-  await sendInvite(userId);
+  await recordAudit({ userId: actorId, action: input.password ? "OWNER_USER_CREATED_DIRECT" : "OWNER_USER_CREATED", entityType: "User", entityId: userId });
+  if (!input.password) await sendInvite(userId);
   return { id: userId };
 }
 

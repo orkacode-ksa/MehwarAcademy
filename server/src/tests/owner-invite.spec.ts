@@ -54,4 +54,16 @@ describe("إنشاء حساب أستاذ من المالك", () => {
     expect(me.prefs.tour).toBe("pending");
     expect((await owner.get(`/api/owner/users?q=${encodeURIComponent(email)}`)).body.data.rows[0].neverSignedIn).toBe(false);
   });
+
+  it("تفعيل مباشر: كلمة مرور يضعها المالك، والحساب يعمل فورًا ببريد تجريبي بلا رسالة", async () => {
+    const demo = `demo-${crypto.randomUUID().slice(0, 6)}@mihwar.test`;
+    const before = lastMockEmail();
+    expect((await owner.post("/api/owner/users").send({ fullName: "د. تجريبي", email: demo, universityKey: "uqu", password: "short" })).status).toBe(400);
+    const r = await owner.post("/api/owner/users").send({ fullName: "د. تجريبي", email: demo, universityKey: "uqu", password: PW });
+    expect(r.status).toBe(201);
+    expect(lastMockEmail()).toBe(before); // لا رسالة
+    const d = request.agent(app);
+    expect((await d.post("/api/auth/login").send({ email: demo, password: PW })).status).toBe(200);
+    expect((await d.get("/api/auth/me")).body.data).toMatchObject({ role: "TEACHER", fullName: "د. تجريبي" });
+  });
 });
