@@ -42,7 +42,7 @@ async function send(title: string, frame: string, ctx: { requestId?: string; met
   await notifyOwners({ kind: "SERVER_ERROR", title: "خطأ في الخادم", body: `${title} — ${where}`.slice(0, 480) });
   const owners = await prismaBase.user.findMany({ where: { role: "OWNER", deletedAt: null, suspendedAt: null }, select: { email: true } });
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string);
-  const html = `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.8">
+  const html = `<div dir="rtl" align="right" style="direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif;font-size:14px;line-height:1.8">
 <p><b>خطأ غير متوقع في خادم مِحوَر</b></p>
 <p>${esc(title)}</p>
 <p>المكان: <code dir="ltr">${esc(where)}</code><br>رقم الطلب: <code dir="ltr">${esc(ctx.requestId ?? "—")}</code><br>الموضع: <code dir="ltr">${esc(frame || "—")}</code></p>

@@ -66,7 +66,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 
 function inviteHtml(name: string, link: string): string {
   return `<!doctype html><html lang="ar" dir="rtl"><body style="margin:0;background:#f3f5f3;font-family:Tahoma,Arial,sans-serif;color:#12241e">
-<div style="max-width:520px;margin:24px auto;background:#fff;border:1px solid #dfe4df;border-radius:16px;padding:28px">
+<div dir="rtl" align="right" style="direction:rtl;text-align:right;max-width:520px;margin:24px auto;background:#fff;border:1px solid #dfe4df;border-radius:16px;padding:28px">
 <div style="font-size:20px;font-weight:bold;color:#0f4739;margin-bottom:16px">مِحوَر</div>
 <p style="font-size:15px;line-height:1.9">مرحبًا ${esc(name)}،</p>
 <p style="font-size:15px;line-height:1.9">أُنشئ لك حساب في منصة مِحوَر لإدارة مقرراتك. اضغط الزر لاختيار كلمة مرورك والدخول — الرابط صالح ${INVITE_HOURS / 24} أيام ولمرة واحدة.</p>
