@@ -9,6 +9,7 @@ import { editBlockReason } from "../rules/rules.js";
 import { newJoinCode } from "../../lib/joinCode.js";
 import { assertCanAddCourse } from "./limits.js";
 export { listSectionRoster, enrollStudent, importRoster } from "./roster.service.js";
+export { listPublishedCourseTemplates, createCourseFromTemplate } from "./courseTemplates.service.js";
 
 type CreateCourseInput = z.infer<typeof createCourseSchema>;
 type CreateSectionInput = z.infer<typeof createSectionSchema>;

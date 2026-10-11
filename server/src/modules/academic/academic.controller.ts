@@ -33,6 +33,14 @@ export async function createCourse(req: Request, res: Response): Promise<void> {
   res.status(201).json({ success: true, data: await service.createCourse(ws(req), req.body) });
 }
 
+export async function listPublishedCourseTemplates(_req: Request, res: Response): Promise<void> {
+  res.json({ success: true, data: await service.listPublishedCourseTemplates() });
+}
+
+export async function createCourseFromTemplate(req: Request, res: Response): Promise<void> {
+  res.status(201).json({ success: true, data: await service.createCourseFromTemplate(ws(req), req.body) });
+}
+
 export async function createSection(req: Request, res: Response): Promise<void> {
   res.status(201).json({ success: true, data: await service.createSection(ws(req), req.body) });
 }

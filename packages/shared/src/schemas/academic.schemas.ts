@@ -53,6 +53,15 @@ export const createCourseSchema = z
   })
   .strict();
 
+export const createCourseFromTemplateSchema = z
+  .object({
+    templateId: cuidSchema,
+    semesterId: createCourseSchema.shape.semesterId,
+  })
+  .strict();
+
+export type CreateCourseFromTemplateInput = z.infer<typeof createCourseFromTemplateSchema>;
+
 export const createSectionSchema = z
   .object({
     courseId: cuidSchema,
