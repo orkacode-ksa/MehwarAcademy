@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/Button.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
+import { NewCourseFromTemplateForm } from "./NewCourseFromTemplateForm.js";
 
 interface SetupStep { key: string; label: string; done: boolean }
 interface Course {
@@ -30,7 +31,6 @@ interface Term { id: string; label: string }
  */
 export function CoursesPage() {
   const { data: courses, loading, error, reload } = useApi<Course[]>("/workspaces/me/academic/courses");
-  const { data: terms } = useApi<Term[]>("/workspaces/me/academic/terms");
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
 
@@ -49,12 +49,11 @@ export function CoursesPage() {
       />
 
       {open && (
-        <NewCourseForm
-          terms={terms ?? []}
+        <NewCourseFromTemplateForm
           onCancel={() => setOpen(false)}
           onCreated={() => {
             setOpen(false);
-            showToast("أُنشئ المقرر — التالي: الفهرس");
+            showToast("أُنشئ المقرر من القالب الأكاديمي");
             reload();
           }}
         />
@@ -118,7 +117,7 @@ const field = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface t
  * يُقترحان مما سبق في جامعته ومن البنك — نقرة تملأ الأربعة. ما يُكتب يدويًا يُوحَّد رمزه
  * (bio101 ← BIO 101) قبل الحفظ.
  */
-function NewCourseForm({
+export function LegacyNewCourseForm({
   terms,
   onCancel,
   onCreated,

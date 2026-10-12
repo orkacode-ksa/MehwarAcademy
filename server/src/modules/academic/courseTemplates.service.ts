@@ -19,6 +19,7 @@ export async function listPublishedCourseTemplates() {
       orderBy: [{ code: "asc" }, { publishedAt: "desc" }, { id: "asc" }],
       select: {
         id: true, code: true, nameAr: true, creditHours: true, hasLab: true, publishedAt: true,
+        _count: { select: { topics: true } },
         specification: {
           select: {
             id: true, title: true, version: true, issuedAt: true,

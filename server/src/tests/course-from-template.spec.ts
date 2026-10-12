@@ -161,6 +161,7 @@ describe("published course templates API", () => {
     expect(response.body.data.map((row: { id: string }) => row.id)).toEqual(a.published.templates.map((template) => template.id));
     expect(response.body.data[0]).toMatchObject({
       id: firstTemplate(a).id, code: "CS 101", nameAr: "Introduction 1", creditHours: 4, hasLab: true,
+      _count: { topics: 2 },
       tenant: { id: a.tenantId }, college: { id: a.college.id, code: "SCI", nameAr: "Science" },
       department: { id: a.department.id, code: "CS", nameAr: "Computing" },
       program: { id: a.program.id, code: "BSC", nameAr: "Computer Science" },
