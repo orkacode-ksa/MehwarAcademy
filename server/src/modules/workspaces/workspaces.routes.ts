@@ -5,6 +5,7 @@ import { requireActiveAccess } from "../../middleware/subscription.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../lib/AppError.js";
 import { academicRouter } from "../academic/academic.routes.js";
+import { specificationSourcesRouter } from "../academic/specificationSources.routes.js";
 import { teachingRouter } from "../teaching/teaching.routes.js";
 import { qualityRouter } from "../quality/quality.routes.js";
 import * as service from "./workspaces.service.js";
@@ -12,6 +13,8 @@ import * as service from "./workspaces.service.js";
 export const workspacesRouter = Router();
 
 workspacesRouter.use(requireAuth);
+
+workspacesRouter.use("/:workspaceId/academic/specification-sources", requireWorkspaceMembership, specificationSourcesRouter);
 
 workspacesRouter.use("/:workspaceId/academic", requireWorkspaceMembership, requireActiveAccess, academicRouter);
 workspacesRouter.use("/:workspaceId/teaching", requireWorkspaceMembership, requireActiveAccess, teachingRouter);

@@ -59,6 +59,7 @@ model Tenant {
   deletedAt DateTime?
 
   colleges      College[]
+  specificationSources SpecificationSource[]
   departments   Department[]
   users         User[]
   workspaces    Workspace[]
@@ -200,7 +201,9 @@ model User {
   passwordResetTokens  PasswordResetToken[]
   avatar               UserAvatar?
   officeBookings       OfficeBooking[]
+  specificationUploads SpecificationSource[]
 
+  @@unique([tenantId, id])
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
   @@index([tenantId, role])
@@ -966,6 +969,7 @@ model FileAsset {
 
   blob FileBlob?
   programSpecifications ProgramSpecification[]
+  specificationSources SpecificationSource[]
 
   @@unique([tenantId, id])
   @@index([workspaceId])
@@ -1473,11 +1477,13 @@ model Program {
 }
 
 /// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
-/// يُنشأ بعد حفظ الملف وقبل الاستخراج. بعد APPROVED يصبح السجل ثابتًا، والنشر مستقل.
+/// يرتبط بمصدر الجامعة وقرار اعتماده؛ يدعم المسار القديم قبل الاستخراج. بعد APPROVED يصبح السجل ثابتًا.
 model ProgramSpecification {
   id                  String                        @id @default(cuid())
   tenantId            String
   programId           String
+  sourceId            String?
+  sourceProgramKey    String?
   title               String
   version             String
   issuedAt            DateTime?
@@ -1492,6 +1498,7 @@ model ProgramSpecification {
   currentApprovalId   String?
   createdAt           DateTime                      @default(now())
 
+  source SpecificationSource? @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   program    Program   @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   sourceFile FileAsset @relation(fields: [tenantId, sourceFileId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
 
@@ -1499,15 +1506,17 @@ model ProgramSpecification {
   reviews     ProgramSpecificationReview[]     @relation("SpecificationReviews")
   approvals   ProgramSpecificationApproval[]   @relation("SpecificationApprovals")
 
-  currentExtraction ProgramSpecificationExtraction? @relation("CurrentSpecificationExtraction", fields: [tenantId, id, currentExtractionId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
-  currentReview     ProgramSpecificationReview?     @relation("CurrentSpecificationReview", fields: [tenantId, id, currentReviewId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
-  currentApproval   ProgramSpecificationApproval?   @relation("CurrentSpecificationApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentExtraction ProgramSpecificationExtraction? @relation("CurrentSpecificationExtraction", fields: [tenantId, sourceId, currentExtractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentReview     ProgramSpecificationReview?     @relation("CurrentSpecificationReview", fields: [tenantId, sourceId, currentReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentApproval   ProgramSpecificationApproval?   @relation("CurrentSpecificationApproval", fields: [tenantId, sourceId, currentApprovalId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
 
   publication     ProgramSpecificationPublication?
   courseTemplates CourseTemplate[]
 
   @@unique([tenantId, id])
-  @@unique([tenantId, programId, version])
+  @@unique([tenantId, programId, sourceProgramKey, version])
+  @@unique([tenantId, sourceId, sourceProgramKey, version])
+  @@index([tenantId, sourceId])
   @@unique([tenantId, id, currentExtractionId])
   @@unique([tenantId, id, currentReviewId])
   @@unique([tenantId, id, currentApprovalId])
@@ -1519,7 +1528,8 @@ model ProgramSpecification {
 model ProgramSpecificationExtraction {
   id                     String                        @id @default(cuid())
   tenantId               String
-  programSpecificationId String
+  sourceId               String?
+  programSpecificationId String?
   attempt                Int
   status                 SpecificationExtractionStatus @default(PENDING)
   requestedById          String
@@ -1533,12 +1543,17 @@ model ProgramSpecificationExtraction {
   startedAt              DateTime?
   finishedAt             DateTime?
 
-  specification ProgramSpecification         @relation("SpecificationExtractions", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  currentFor    ProgramSpecification?        @relation("CurrentSpecificationExtraction")
+  specification ProgramSpecification?         @relation("SpecificationExtractions", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentFor    ProgramSpecification[]        @relation("CurrentSpecificationExtraction")
   reviews       ProgramSpecificationReview[]
 
+  source SpecificationSource? @relation("SourceExtractions", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentSource SpecificationSource? @relation("CurrentSourceExtraction")
+
+  @@unique([tenantId, sourceId, id])
   @@unique([tenantId, programSpecificationId, id])
   @@unique([tenantId, programSpecificationId, attempt])
+  @@unique([tenantId, sourceId, attempt])
   @@index([tenantId, status])
   @@map("program_spec_extractions")
 }
@@ -1548,7 +1563,8 @@ model ProgramSpecificationExtraction {
 model ProgramSpecificationReview {
   id                     String                    @id @default(cuid())
   tenantId               String
-  programSpecificationId String
+  sourceId               String?
+  programSpecificationId String?
   extractionId           String
   revision               Int
   status                 SpecificationReviewStatus @default(IN_REVIEW)
@@ -1560,13 +1576,18 @@ model ProgramSpecificationReview {
   notes                  String?
   createdAt              DateTime                  @default(now())
 
-  specification ProgramSpecification           @relation("SpecificationReviews", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  extraction    ProgramSpecificationExtraction @relation(fields: [tenantId, programSpecificationId, extractionId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
-  currentFor    ProgramSpecification?          @relation("CurrentSpecificationReview")
+  specification ProgramSpecification?           @relation("SpecificationReviews", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  extraction    ProgramSpecificationExtraction? @relation(fields: [tenantId, sourceId, extractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentFor    ProgramSpecification[]          @relation("CurrentSpecificationReview")
   approval      ProgramSpecificationApproval?
 
+  source SpecificationSource? @relation("SourceReviews", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentSource SpecificationSource? @relation("CurrentSourceReview")
+
+  @@unique([tenantId, sourceId, id])
   @@unique([tenantId, programSpecificationId, id])
   @@unique([tenantId, programSpecificationId, revision])
+  @@unique([tenantId, sourceId, revision])
   @@index([tenantId, status])
   @@map("program_spec_reviews")
 }
@@ -1574,7 +1595,8 @@ model ProgramSpecificationReview {
 model ProgramSpecificationApproval {
   id                     String                      @id @default(cuid())
   tenantId               String
-  programSpecificationId String
+  sourceId               String?
+  programSpecificationId String?
   reviewId               String
   contentHash            String
   status                 SpecificationApprovalStatus @default(PENDING)
@@ -1584,13 +1606,19 @@ model ProgramSpecificationApproval {
   decidedAt              DateTime?
   notes                  String?
 
-  specification ProgramSpecification              @relation("SpecificationApprovals", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  review        ProgramSpecificationReview        @relation(fields: [tenantId, programSpecificationId, reviewId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
-  currentFor    ProgramSpecification?             @relation("CurrentSpecificationApproval")
+  specification ProgramSpecification?              @relation("SpecificationApprovals", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  review        ProgramSpecificationReview?       @relation(fields: [tenantId, sourceId, reviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentFor    ProgramSpecification[]             @relation("CurrentSpecificationApproval")
   publications  ProgramSpecificationPublication[]
 
+  source SpecificationSource? @relation("SourceApprovals", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentSource SpecificationSource? @relation("CurrentSourceApproval")
+
+  @@unique([tenantId, sourceId, id])
   @@unique([tenantId, programSpecificationId, id])
   @@unique([tenantId, programSpecificationId, reviewId])
+  @@unique([tenantId, sourceId, reviewId])
+  @@unique([tenantId, id])
   @@index([tenantId, status])
   @@map("program_spec_approvals")
 }
@@ -1609,7 +1637,7 @@ model ProgramSpecificationPublication {
   errorMessage           String?
 
   specification ProgramSpecification         @relation(fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  approval      ProgramSpecificationApproval @relation(fields: [tenantId, programSpecificationId, approvalId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
+  approval      ProgramSpecificationApproval @relation(fields: [tenantId, approvalId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   templates     CourseTemplate[]
 
   @@unique([tenantId, programSpecificationId])
@@ -1663,4 +1691,47 @@ model CourseTemplateTopic {
   @@unique([tenantId, courseTemplateId, orderIndex])
   @@index([tenantId])
   @@map("course_template_topics")
+}
+
+model SpecificationSource {
+  id                   String                        @id @default(cuid())
+  tenantId             String
+  fileId               String
+  /// Nullable only for imported records whose original uploader is absent from this tenant.
+  uploadedById         String?
+  legacyImported       Boolean                       @default(false)
+  legacyUploadedById   String?
+  fileSha256           String
+  title                String?
+  sourceUrl            String?
+  extractionStatus     SpecificationExtractionStatus @default(PENDING)
+  reviewStatus         SpecificationReviewStatus     @default(NOT_STARTED)
+  approvalStatus       SpecificationApprovalStatus   @default(NOT_REQUESTED)
+  currentExtractionId  String?
+  currentReviewId      String?
+  currentApprovalId    String?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  file       FileAsset @relation(fields: [tenantId, fileId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  uploadedBy User?     @relation(fields: [tenantId, uploadedById], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  extractions ProgramSpecificationExtraction[] @relation("SourceExtractions")
+  reviews     ProgramSpecificationReview[]     @relation("SourceReviews")
+  approvals   ProgramSpecificationApproval[]   @relation("SourceApprovals")
+
+  currentExtraction ProgramSpecificationExtraction? @relation("CurrentSourceExtraction", fields: [tenantId, id, currentExtractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentReview     ProgramSpecificationReview?     @relation("CurrentSourceReview", fields: [tenantId, id, currentReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentApproval   ProgramSpecificationApproval?   @relation("CurrentSourceApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  programSpecifications ProgramSpecification[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, id, currentExtractionId])
+  @@unique([tenantId, id, currentReviewId])
+  @@unique([tenantId, id, currentApprovalId])
+  @@index([tenantId, fileSha256])
+  @@index([tenantId, uploadedById, createdAt])
+  @@map("specification_sources")
 }
