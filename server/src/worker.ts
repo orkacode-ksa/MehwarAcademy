@@ -6,6 +6,7 @@ import { assertRlsEffective } from "./lib/rlsGuard.js";
 import { runWithTenant } from "./lib/tenantContext.js";
 import { runGenerationJob } from "./modules/generation/generation.service.js";
 import { closePdfEngine } from "./lib/pdf.js";
+import { claimSpecificationExtraction, runClaimedSpecificationExtraction } from "./modules/academic/specificationExtraction.service.js";
 
 /**
  * عامل التوليد — خدمة مستقلة عن خادم الويب (Railway: mihwar-worker).
@@ -28,7 +29,23 @@ async function claim(): Promise<{ id: string; tenantId: string; createdById: str
 }
 
 async function loop(slot: number) {
+  let preferExtraction = slot % 2 === 0;
   while (!stopping) {
+    // Share the existing worker slots with the durable specification extraction queue.
+    try {
+      if (preferExtraction) {
+        preferExtraction = false;
+        const extraction = await claimSpecificationExtraction();
+        if (extraction) {
+          active++;
+          try {
+            await runWithTenant({ tenantId: extraction.tenantId, userId: extraction.requestedById },
+              () => runClaimedSpecificationExtraction(extraction.id));
+          } finally { active--; }
+          continue;
+        }
+      }
+    } catch (err) { logger.error({ err, slot }, "Specification extraction worker failed"); }
     let job: Awaited<ReturnType<typeof claim>> = null;
     try {
       job = await claim();
@@ -36,6 +53,7 @@ async function loop(slot: number) {
       logger.error({ err, slot }, "تعذّر سحب مهمة من الطابور");
     }
     if (!job) {
+      preferExtraction = true;
       await new Promise((r) => setTimeout(r, IDLE_MS));
       continue;
     }
@@ -48,6 +66,7 @@ async function loop(slot: number) {
       logger.error({ err, jobId: job.id }, "فشلت مهمة توليد خارج معالجتها");
     } finally {
       active--;
+      preferExtraction = true;
     }
   }
 }

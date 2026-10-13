@@ -1,6 +1,6 @@
 import { Router, raw } from "express";
 import { z } from "zod";
-import { cuidSchema } from "@mihwar/shared";
+import { cuidSchema, startSpecificationReviewSchema, patchSpecificationReviewSchema, completeSpecificationReviewSchema } from "@mihwar/shared";
 import { AppError } from "../../lib/AppError.js";
 import { runWithTenant } from "../../lib/tenantContext.js";
 import { requireRole } from "../../middleware/rbac.js";
@@ -12,6 +12,9 @@ import { assertInstitution, actor } from "../owner/owner.shared.js";
 import { sourceIdParamsSchema, sourceListQuerySchema } from "./specificationSources.schemas.js";
 import { specificationCapabilities } from "./specificationSources.policy.js";
 import * as service from "./specificationSources.service.js";
+import * as extraction from "./specificationExtraction.service.js";
+import * as reviews from "./specificationReview.service.js";
+import { getDevelopmentSpecificationReview } from "./specificationReview.preview.js";
 
 function decodedHeader(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
@@ -59,6 +62,53 @@ specificationSourcesRouter.post("/", requireRole("TEACHER"), expensiveRateLimit,
     res.status(201).json({ success: true, data: source });
   }));
 readRoutes(specificationSourcesRouter);
+
+specificationSourcesRouter.post("/:sourceId/extractions", expensiveRateLimit,
+  validate({ params: sourceIdParamsSchema, body: z.object({}).strict(), query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.status(202).json({ success: true, data: await extraction.requestSpecificationExtraction(actor(req), req.params.sourceId as string) });
+  }));
+specificationSourcesRouter.post("/:sourceId/extractions/:extractionId/resume", expensiveRateLimit,
+  validate({ params: z.object({ sourceId: cuidSchema, extractionId: cuidSchema }).passthrough(),
+    body: z.object({}).strict(), query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.status(202).json({ success: true, data: await extraction.requestSpecificationExtraction(actor(req), req.params.sourceId as string,
+      req.params.extractionId as string) });
+  }));
+specificationSourcesRouter.get("/:sourceId/extractions", validate({ params: sourceIdParamsSchema }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await extraction.listSpecificationExtractions(actor(req), req.params.sourceId as string) });
+  }));
+specificationSourcesRouter.get("/:sourceId/extractions/:extractionId",
+  validate({ params: z.object({ sourceId: cuidSchema, extractionId: cuidSchema }).passthrough(),
+    query: z.object({ view: z.enum(["summary", "full"]).default("summary") }).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await extraction.getSpecificationExtraction(actor(req), req.params.sourceId as string,
+      req.params.extractionId as string, req.query.view === "full") });
+  }));
+
+const reviewParams = z.object({ sourceId: cuidSchema, reviewId: cuidSchema }).passthrough();
+specificationSourcesRouter.post("/:sourceId/reviews",
+  validate({ params: sourceIdParamsSchema, body: startSpecificationReviewSchema, query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.status(201).json({ success: true, data: await reviews.startSpecificationReview(actor(req), req.params.sourceId as string, req.body.revisionOf) });
+  }));
+specificationSourcesRouter.get("/:sourceId/reviews/preview", validate({ params: sourceIdParamsSchema, query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await getDevelopmentSpecificationReview(actor(req), req.params.sourceId as string) });
+  }));
+specificationSourcesRouter.get("/:sourceId/reviews/:reviewId", validate({ params: reviewParams, query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await reviews.getSpecificationReview(actor(req), req.params.sourceId as string, req.params.reviewId as string) });
+  }));
+specificationSourcesRouter.patch("/:sourceId/reviews/:reviewId", validate({ params: reviewParams, body: patchSpecificationReviewSchema, query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await reviews.patchSpecificationReview(actor(req), req.params.sourceId as string, req.params.reviewId as string, req.body) });
+  }));
+specificationSourcesRouter.post("/:sourceId/reviews/:reviewId/complete", validate({ params: reviewParams, body: completeSpecificationReviewSchema, query: z.object({}).strict() }),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await reviews.completeSpecificationReview(actor(req), req.params.sourceId as string, req.params.reviewId as string, req.body.expectedVersion) });
+  }));
 
 /** Inherits the existing staff screen and MFA guards from ownerRouter. Read-only in phase four. */
 export const specificationSourceReviewRouter = Router({ mergeParams: true });

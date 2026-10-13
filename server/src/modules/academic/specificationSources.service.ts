@@ -6,17 +6,27 @@ import { AppError } from "../../lib/AppError.js";
 import { uploadFile, readFile } from "../files/files.service.js";
 import { mayReadSpecificationSource, specificationCapabilities } from "./specificationSources.policy.js";
 import { sourceUploadMetadataSchema } from "./specificationSources.schemas.js";
+import { extractionProgress } from "./specificationExtraction.progress.js";
+import { developmentReviewPreviewAvailable } from "./specificationReview.preview.js";
 
 const sourceSelect = {
   id: true, tenantId: true, title: true, sourceUrl: true, fileSha256: true, uploadedById: true,
   extractionStatus: true, reviewStatus: true, approvalStatus: true,
   currentExtractionId: true, currentReviewId: true, currentApprovalId: true, createdAt: true, updatedAt: true,
+  currentExtraction: { select: { id: true, attempt: true, status: true, promptVersion: true, schemaVersion: true, errorMessage: true, rawOutput: true } },
+  currentReview: { select: { id: true, revision: true, status: true } },
   file: { select: { id: true, originalName: true, mimeType: true, sizeBytes: true } },
   uploadedBy: { select: { id: true, fullName: true } },
   _count: { select: { programSpecifications: true } },
 } satisfies Prisma.SpecificationSourceSelect;
 
 type SourceSummary = Prisma.SpecificationSourceGetPayload<{ select: typeof sourceSelect }>;
+function sourceView(source: SourceSummary) {
+  const base = { ...source, developmentReviewPreviewAvailable: developmentReviewPreviewAvailable(source.fileSha256) };
+  if (!source.currentExtraction) return { ...base, currentExtraction: null };
+  const { rawOutput, ...attempt } = source.currentExtraction;
+  return { ...base, currentExtraction: { ...attempt, progress: extractionProgress(attempt.status, rawOutput) } };
+}
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export async function uploadSpecificationSource(input: {
@@ -55,7 +65,7 @@ export async function uploadSpecificationSource(input: {
     });
   });
   if (!source) throw new Error("Source upload transaction did not create a source");
-  return source;
+  return sourceView(source);
 }
 
 export async function listSpecificationSources(userId: string, query: { page: number; pageSize: number }) {
@@ -69,7 +79,7 @@ export async function listSpecificationSources(userId: string, query: { page: nu
         skip: (query.page - 1) * query.pageSize, take: query.pageSize }),
       tx.specificationSource.count({ where }),
     ]);
-    return { items, total, page: query.page, pageSize: query.pageSize };
+    return { items: items.map(sourceView), total, page: query.page, pageSize: query.pageSize };
   });
 }
 
@@ -77,7 +87,7 @@ export async function getSpecificationSource(userId: string, sourceId: string) {
   const capabilities = await specificationCapabilities(userId);
   const source = await prisma.specificationSource.findFirst({ where: { id: sourceId }, select: sourceSelect });
   if (!source || !mayReadSpecificationSource(capabilities, source)) throw AppError.notFound();
-  return source;
+  return sourceView(source);
 }
 
 export async function readSpecificationSource(userId: string, sourceId: string) {

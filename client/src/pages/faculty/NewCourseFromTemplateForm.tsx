@@ -3,6 +3,7 @@ import { createCourseFromTemplateSchema } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { Button } from "../../components/ui/Button.js";
+import { Icon } from "../../icons/Icon.js";
 import { formatNum } from "../../lib/numerals.js";
 
 interface AcademicContext { id: string; code: string; nameAr: string }
@@ -27,7 +28,9 @@ function academicPath(template: CourseTemplate) {
     `إصدار التوصيف ${template.programSpecification.version}`].join(" ← ");
 }
 
-export function NewCourseFromTemplateForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: () => void }) {
+export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecification }: {
+  onCancel: () => void; onCreated: () => void; onUploadSpecification: () => void;
+}) {
   const { data: templates, loading: templatesLoading, error: templatesError, reload: reloadTemplates } = useApi<CourseTemplate[]>("/workspaces/me/academic/course-templates");
   const { data: terms, loading: termsLoading, error: termsError, reload: reloadTerms } = useApi<Term[]>("/workspaces/me/academic/terms");
   const [templateId, setTemplateId] = useState("");
@@ -75,6 +78,13 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated }: { onCancel: (
       aria-busy={templatesLoading || termsLoading || busy} className="bg-surface border border-line rounded-[14px] p-4 mb-5">
       <h2 id="new-template-course-title" className="font-semibold text-[15px]">مقرر جديد</h2>
       <p className="text-[12.5px] text-ink-3 mt-1 mb-4">اختر مقررًا من القوالب الأكاديمية المنشورة في جامعتك، ثم اختر الفصل.</p>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-line rounded-[10px] bg-paper p-3 mb-4">
+        <p className="text-[12.5px] text-ink-2">لم تجد القالب المناسب؟ ارفع ملف التوصيف الرسمي لبرنامجك.</p>
+        <Button type="button" variant="secondary" onClick={onUploadSpecification} disabled={busy}>
+          <Icon name="up" /> رفع توصيف أكاديمي
+        </Button>
+      </div>
 
       {templatesLoading && <p role="status" className="text-sm text-ink-3">جارٍ تحميل القوالب المنشورة…</p>}
       {templatesError && (

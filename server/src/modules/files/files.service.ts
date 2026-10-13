@@ -94,7 +94,7 @@ export async function uploadFile(input: {
  * خُمّن معرّفه. داخل الجامعة، الملفات مواد مقررات يراها طلابها — والأسرار (نماذج الإجابة)
  * نصوص في قاعدة البيانات لا ملفات.
  */
-export async function readFile(fileId: string) {
+export async function readFile(fileId: string, options: { redirect?: boolean } = {}) {
   const file = await prisma.fileAsset.findFirst({ where: { id: fileId, deletedAt: null } });
   if (!file) throw AppError.notFound("الملف غير موجود");
   const sources = await prisma.specificationSource.findMany({
@@ -108,7 +108,7 @@ export async function readFile(fileId: string) {
   }
   if (file.storage === "R2") {
     const storage = getStorageProvider();
-    const url = await storage.presignGet(file.objectKey, file.originalName);
+    const url = options.redirect === false ? null : await storage.presignGet(file.objectKey, file.originalName);
     if (url) return { kind: "redirect" as const, url, file };
     return { kind: "bytes" as const, data: await storage.get(file.objectKey), file };
   }

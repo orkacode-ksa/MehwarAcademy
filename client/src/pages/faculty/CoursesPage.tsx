@@ -9,6 +9,7 @@ import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import { NewCourseFromTemplateForm } from "./NewCourseFromTemplateForm.js";
+import { AcademicSpecificationSources } from "./AcademicSpecificationSources.js";
 
 interface SetupStep { key: string; label: string; done: boolean }
 interface Course {
@@ -32,7 +33,7 @@ interface Term { id: string; label: string }
 export function CoursesPage() {
   const { data: courses, loading, error, reload } = useApi<Course[]>("/workspaces/me/academic/courses");
   const { showToast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<"templates" | "sources" | null>(null);
 
   return (
     <>
@@ -41,22 +42,32 @@ export function CoursesPage() {
         description="كل مقرر يعرض موضعه في التجهيز وما ينقصه."
         actions={
           open ? undefined : (
-            <Button variant="primary" data-tour="add-course" onClick={() => setOpen(true)}>
-              <Icon name="plus" /> مقرر جديد
-            </Button>
+            <>
+              <Button variant="primary" data-tour="add-course" onClick={() => setOpen("templates")}>
+                <Icon name="plus" /> مقرر جديد
+              </Button>
+              <Button variant="secondary" onClick={() => setOpen("sources")}>
+                <Icon name="file" /> التوصيفات المرفوعة
+              </Button>
+            </>
           )
         }
       />
 
-      {open && (
+      {open === "templates" && (
         <NewCourseFromTemplateForm
-          onCancel={() => setOpen(false)}
+          onCancel={() => setOpen(null)}
+          onUploadSpecification={() => setOpen("sources")}
           onCreated={() => {
-            setOpen(false);
+            setOpen(null);
             showToast("أُنشئ المقرر من القالب الأكاديمي");
             reload();
           }}
         />
+      )}
+
+      {open === "sources" && (
+        <AcademicSpecificationSources onClose={() => setOpen(null)} onBrowseTemplates={() => setOpen("templates")} />
       )}
 
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}
