@@ -38,11 +38,12 @@ export async function listPublishedCourseTemplates() {
         },
       },
     });
-    return templates.map(({ specification, ...template }) => {
+    return templates.flatMap(({ specification, ...template }) => {
+      if (!specification) return [];
       const { program, ...programSpecification } = specification;
       const { department, ...programContext } = program;
       const { college, ...departmentContext } = department;
-      return { ...template, tenant, college, department: departmentContext, program: programContext, programSpecification };
+      return [{ ...template, tenant, college, department: departmentContext, program: programContext, programSpecification }];
     });
   });
 }
@@ -67,7 +68,8 @@ export async function createCourseFromTemplate(workspaceId: string, input: Creat
         },
       });
       if (!template) throw AppError.notFound("قالب المقرر غير موجود");
-      if (template.publication.status !== "PUBLISHED" ||
+      if (!template.publication || !template.specification ||
+          template.publication.status !== "PUBLISHED" ||
           template.publication.approval.status !== "APPROVED" ||
           template.specification.approvalStatus !== "APPROVED") {
         throw AppError.badRequest("اختر قالبًا منشورًا من إصدار توصيف معتمد");

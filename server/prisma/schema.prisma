@@ -65,6 +65,7 @@ model Tenant {
   courseSpecificationReviews CourseSpecificationReview[]
   courseSpecificationApprovalBatches CourseSpecificationApprovalBatch[]
   courseSpecificationApprovals CourseSpecificationApproval[]
+  courseSpecificationPublications CourseSpecificationPublication[]
   programTracks ProgramTrack[]
   curriculumCourses CurriculumCourse[]
   departments   Department[]
@@ -213,6 +214,8 @@ model User {
   courseSpecificationReviewsReviewed CourseSpecificationReview[] @relation("CourseReviewActor")
   courseSpecificationApprovalBatchesRequested CourseSpecificationApprovalBatch[] @relation("CourseApprovalRequester")
   courseSpecificationApprovalsDecided CourseSpecificationApproval[] @relation("CourseApprovalActor")
+  courseSpecificationPublicationsRequested CourseSpecificationPublication[] @relation("CoursePublicationRequester")
+  courseSpecificationPublicationsPublished CourseSpecificationPublication[] @relation("CoursePublicationActor")
 
   @@unique([tenantId, id])
   @@unique([tenantId, email])
@@ -1630,6 +1633,8 @@ model CourseSpecificationVersion {
   currentReview CourseSpecificationReview? @relation("CurrentCourseVersionReview", fields: [tenantId, id, currentReviewId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_review_fk")
   approvals CourseSpecificationApproval[] @relation("CourseVersionApprovals")
   currentApproval CourseSpecificationApproval? @relation("CurrentCourseVersionApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_approval_fk")
+  publication CourseSpecificationPublication? @relation("CourseVersionPublication")
+  courseTemplate CourseTemplate? @relation("CourseVersionTemplate")
   curriculumCourses CurriculumCourse[]
 
   @@unique([tenantId, id])
@@ -1735,6 +1740,7 @@ model CourseSpecificationApproval {
   review            CourseSpecificationReview        @relation(fields: [tenantId, versionId, reviewId, contentHash], references: [tenantId, versionId, id, contentHash], onDelete: Restrict, onUpdate: Restrict, map: "course_approval_review_snapshot_fk")
   decidedBy         User?                            @relation("CourseApprovalActor", fields: [decidedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
   currentForVersion CourseSpecificationVersion?      @relation("CurrentCourseVersionApproval")
+  publications CourseSpecificationPublication[] @relation("CourseApprovalPublications")
 
   @@unique([tenantId, id])
   @@unique([tenantId, versionId, id])
@@ -1742,6 +1748,34 @@ model CourseSpecificationApproval {
   @@index([tenantId, versionId, createdAt])
   @@index([tenantId, status])
   @@map("course_spec_approvals")
+}
+
+model CourseSpecificationPublication {
+  id                String                         @id @default(cuid())
+  tenantId          String
+  versionId         String
+  approvalId        String
+  projectionVersion String
+  projectionHash    String?
+  status            SpecificationPublicationStatus @default(PENDING)
+  requestedById     String
+  requestedAt       DateTime                       @default(now())
+  publishedById     String?
+  publishedAt       DateTime?
+  errorMessage      String?
+
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  version     CourseSpecificationVersion  @relation("CourseVersionPublication", fields: [tenantId, versionId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  approval    CourseSpecificationApproval @relation("CourseApprovalPublications", fields: [tenantId, versionId, approvalId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_publication_approval_fk")
+  requestedBy User                        @relation("CoursePublicationRequester", fields: [requestedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  publishedBy User?                       @relation("CoursePublicationActor", fields: [publishedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  template    CourseTemplate?             @relation("CoursePublicationTemplate")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, versionId])
+  @@unique([tenantId, versionId, id])
+  @@index([tenantId, status])
+  @@map("course_spec_publications")
 }
 
 /// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
@@ -1922,8 +1956,10 @@ model ProgramSpecificationPublication {
 model CourseTemplate {
   id                     String   @id @default(cuid())
   tenantId               String
-  programSpecificationId String
-  publicationId          String
+  programSpecificationId String?
+  publicationId          String?
+  courseSpecificationVersionId String?
+  coursePublicationId String?
   code                   String
   nameAr                 String
   creditHours            Int
@@ -1935,13 +1971,17 @@ model CourseTemplate {
   sourcePages            Int[]    @default([])
   publishedAt            DateTime @default(now())
 
-  specification ProgramSpecification            @relation(fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
-  publication   ProgramSpecificationPublication @relation(fields: [tenantId, programSpecificationId, publicationId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
+  specification ProgramSpecification?            @relation(fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  publication   ProgramSpecificationPublication? @relation(fields: [tenantId, programSpecificationId, publicationId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
+  courseSpecificationVersion CourseSpecificationVersion? @relation("CourseVersionTemplate", fields: [tenantId, courseSpecificationVersionId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  coursePublication CourseSpecificationPublication? @relation("CoursePublicationTemplate", fields: [tenantId, courseSpecificationVersionId, coursePublicationId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_template_course_publication_fk")
   topics        CourseTemplateTopic[]
   courses       Course[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, programSpecificationId, code])
+  @@unique([tenantId, courseSpecificationVersionId])
+  @@unique([tenantId, courseSpecificationVersionId, coursePublicationId], map: "course_template_course_publication_key")
   @@index([tenantId])
   @@map("course_templates")
 }
