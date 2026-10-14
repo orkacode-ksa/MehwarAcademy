@@ -61,6 +61,7 @@ model Tenant {
   colleges      College[]
   specificationSources SpecificationSource[]
   academicCourses AcademicCourse[]
+  courseSpecificationVersions CourseSpecificationVersion[]
   programTracks ProgramTrack[]
   departments   Department[]
   users         User[]
@@ -1474,6 +1475,7 @@ model AcademicCourse {
 
   tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   ownerDepartment Department? @relation("AcademicCourseOwner", fields: [tenantId, ownerDepartmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  specificationVersions CourseSpecificationVersion[]
 
   @@unique([tenantId, id])
   @@index([tenantId, codeKey])
@@ -1519,6 +1521,70 @@ model ProgramTrack {
 
   @@index([tenantId, programId])
   @@map("program_tracks")
+}
+
+enum CourseSpecificationType {
+  STANDARD_COURSE
+  FIELD_TRAINING
+  COOPERATIVE_TRAINING
+  GRADUATION_PROJECT
+  OTHER
+}
+
+enum CourseSpecificationVersionStatus {
+  DRAFT
+  IN_REVIEW
+  READY_FOR_APPROVAL
+  APPROVAL_PENDING
+  APPROVED
+}
+
+model CourseSpecificationVersion {
+  id               String @id @default(cuid())
+  tenantId         String
+  academicCourseId String
+  sourceId         String
+  extractionId     String
+  sourceCourseKey  String
+
+  revisionNumber    Int
+  officialVersion   String?
+  issuedAt          DateTime?
+  lastRevisionAt    DateTime?
+  specificationType CourseSpecificationType?
+  status            CourseSpecificationVersionStatus @default(DRAFT)
+
+  schemaVersion String  @default("course-specification-1")
+  extractedData Json
+  reviewedData  Json?
+  provenance    Json    @default("{}")
+  sourcePages   Int[]   @default([])
+  warnings      Json    @default("[]")
+  issues        Json    @default("[]")
+  contentHash   String?
+
+  creationKey  String?
+  supersedesId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant         Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  academicCourse AcademicCourse                 @relation(fields: [tenantId, academicCourseId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  source         SpecificationSource            @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  extraction     ProgramSpecificationExtraction @relation("CourseVersionExtraction", fields: [tenantId, sourceId, extractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_extraction_fk")
+
+  supersedes CourseSpecificationVersion?  @relation("CourseVersionLineage", fields: [tenantId, academicCourseId, supersedesId], references: [tenantId, academicCourseId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_supersedes_fk")
+  successors CourseSpecificationVersion[] @relation("CourseVersionLineage")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, sourceId, id])
+  @@unique([tenantId, academicCourseId, id])
+  @@unique([tenantId, academicCourseId, revisionNumber], map: "course_version_revision_key")
+  @@unique([tenantId, creationKey])
+  @@index([tenantId, sourceId, extractionId, sourceCourseKey], map: "course_version_origin_idx")
+  @@index([tenantId, academicCourseId])
+  @@index([tenantId, status])
+  @@map("course_spec_versions")
 }
 
 /// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
@@ -1591,6 +1657,7 @@ model ProgramSpecificationExtraction {
   specification ProgramSpecification?         @relation("SpecificationExtractions", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   currentFor    ProgramSpecification[]        @relation("CurrentSpecificationExtraction")
   reviews       ProgramSpecificationReview[]
+  courseSpecificationVersions CourseSpecificationVersion[] @relation("CourseVersionExtraction")
 
   source SpecificationSource? @relation("SourceExtractions", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   currentSource SpecificationSource? @relation("CurrentSourceExtraction")
@@ -1771,6 +1838,7 @@ model SpecificationSource {
   currentApproval   ProgramSpecificationApproval?   @relation("CurrentSourceApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
 
   programSpecifications ProgramSpecification[]
+  courseSpecificationVersions CourseSpecificationVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, currentExtractionId])

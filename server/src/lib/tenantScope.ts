@@ -12,6 +12,7 @@ export const TENANT_SCOPED_MODELS = [
   "College",
   "Department",
   "AcademicCourse",
+  "CourseSpecificationVersion",
   "Program",
   "ProgramTrack",
   "SpecificationSource",
