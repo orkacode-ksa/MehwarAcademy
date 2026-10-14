@@ -61,6 +61,7 @@ model Tenant {
   colleges      College[]
   specificationSources SpecificationSource[]
   academicCourses AcademicCourse[]
+  programTracks ProgramTrack[]
   departments   Department[]
   users         User[]
   workspaces    Workspace[]
@@ -1492,11 +1493,32 @@ model Program {
 
   department     Department             @relation(fields: [tenantId, departmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   specifications ProgramSpecification[]
+  tracks ProgramTrack[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, departmentId, code])
   @@index([tenantId])
   @@map("programs")
+}
+
+model ProgramTrack {
+  id        String    @id @default(cuid())
+  tenantId  String
+  programId String
+  code      String?
+  name      String
+  nameKey   String
+  nameAr    String?
+  nameEn    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  program Program @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([tenantId, programId])
+  @@map("program_tracks")
 }
 
 /// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
