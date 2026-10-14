@@ -62,6 +62,7 @@ model Tenant {
   specificationSources SpecificationSource[]
   academicCourses AcademicCourse[]
   courseSpecificationVersions CourseSpecificationVersion[]
+  courseSpecificationReviews CourseSpecificationReview[]
   programTracks ProgramTrack[]
   departments   Department[]
   users         User[]
@@ -206,6 +207,7 @@ model User {
   avatar               UserAvatar?
   officeBookings       OfficeBooking[]
   specificationUploads SpecificationSource[]
+  courseSpecificationReviewsReviewed CourseSpecificationReview[] @relation("CourseReviewActor")
 
   @@unique([tenantId, id])
   @@unique([tenantId, email])
@@ -1565,6 +1567,7 @@ model CourseSpecificationVersion {
 
   creationKey  String?
   supersedesId String?
+  currentReviewId String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1575,16 +1578,60 @@ model CourseSpecificationVersion {
 
   supersedes CourseSpecificationVersion?  @relation("CourseVersionLineage", fields: [tenantId, academicCourseId, supersedesId], references: [tenantId, academicCourseId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_supersedes_fk")
   successors CourseSpecificationVersion[] @relation("CourseVersionLineage")
+  reviews CourseSpecificationReview[] @relation("CourseVersionReviews")
+  currentReview CourseSpecificationReview? @relation("CurrentCourseVersionReview", fields: [tenantId, id, currentReviewId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_review_fk")
 
   @@unique([tenantId, id])
   @@unique([tenantId, sourceId, id])
   @@unique([tenantId, academicCourseId, id])
   @@unique([tenantId, academicCourseId, revisionNumber], map: "course_version_revision_key")
   @@unique([tenantId, creationKey])
+  @@unique([tenantId, id, currentReviewId], map: "course_version_current_review_key")
   @@index([tenantId, sourceId, extractionId, sourceCourseKey], map: "course_version_origin_idx")
   @@index([tenantId, academicCourseId])
   @@index([tenantId, status])
   @@map("course_spec_versions")
+}
+
+model CourseSpecificationReview {
+  id        String                    @id @default(cuid())
+  tenantId  String
+  sourceId  String
+  versionId String
+  revision  Int
+  status    SpecificationReviewStatus @default(IN_REVIEW)
+
+  schemaVersion          String @default("course-specification-1")
+  readinessPolicyVersion String @default("course-readiness-1")
+  readinessReport        Json   @default("{}")
+
+  draftData    Json
+  reviewedData Json?
+  contentHash  String?
+  sourcePages  Int[]   @default([])
+
+  originSourceReviewId String?
+  originData           Json?
+  originSnapshotHash   String?
+
+  reviewedById String?
+  reviewedAt   DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant             Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  source             SpecificationSource         @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  version            CourseSpecificationVersion  @relation("CourseVersionReviews", fields: [tenantId, sourceId, versionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_review_version_fk")
+  originSourceReview ProgramSpecificationReview? @relation("CourseReviewOrigin", fields: [tenantId, sourceId, originSourceReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_review_origin_fk")
+  reviewedBy         User?                       @relation("CourseReviewActor", fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  currentForVersion  CourseSpecificationVersion? @relation("CurrentCourseVersionReview")
+
+  @@unique([tenantId, versionId, id])
+  @@unique([tenantId, versionId, revision])
+  @@index([tenantId, sourceId])
+  @@index([tenantId, status])
+  @@map("course_spec_reviews")
 }
 
 /// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
@@ -1695,6 +1742,7 @@ model ProgramSpecificationReview {
 
   source SpecificationSource? @relation("SourceReviews", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   currentSource SpecificationSource? @relation("CurrentSourceReview")
+  derivedCourseReviews CourseSpecificationReview[] @relation("CourseReviewOrigin")
 
   @@unique([tenantId, sourceId, id])
   @@unique([tenantId, programSpecificationId, id])
@@ -1839,6 +1887,7 @@ model SpecificationSource {
 
   programSpecifications ProgramSpecification[]
   courseSpecificationVersions CourseSpecificationVersion[]
+  courseSpecificationReviews CourseSpecificationReview[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, currentExtractionId])
