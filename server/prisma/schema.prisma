@@ -66,6 +66,7 @@ model Tenant {
   courseSpecificationApprovalBatches CourseSpecificationApprovalBatch[]
   courseSpecificationApprovals CourseSpecificationApproval[]
   programTracks ProgramTrack[]
+  curriculumCourses CurriculumCourse[]
   departments   Department[]
   users         User[]
   workspaces    Workspace[]
@@ -1482,6 +1483,7 @@ model AcademicCourse {
   tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   ownerDepartment Department? @relation("AcademicCourseOwner", fields: [tenantId, ownerDepartmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   specificationVersions CourseSpecificationVersion[]
+  curriculumCourses CurriculumCourse[]
 
   @@unique([tenantId, id])
   @@index([tenantId, codeKey])
@@ -1502,6 +1504,7 @@ model Program {
   department     Department             @relation(fields: [tenantId, departmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   specifications ProgramSpecification[]
   tracks ProgramTrack[]
+  curriculumCourses CurriculumCourse[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, departmentId, code])
@@ -1524,9 +1527,49 @@ model ProgramTrack {
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   program Program @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  curriculumCourses CurriculumCourse[]
 
+  @@unique([tenantId, programId, id], map: "curriculum_track_parent_key")
   @@index([tenantId, programId])
   @@map("program_tracks")
+}
+
+enum CurriculumCourseRequirement {
+  REQUIRED
+  ELECTIVE
+}
+
+model CurriculumCourse {
+  id                           String                       @id @default(cuid())
+  tenantId                     String
+  programId                    String
+  programTrackId               String?
+  programSpecificationId       String?
+  academicCourseId             String
+  courseSpecificationVersionId String?
+  requirement                  CurriculumCourseRequirement?
+  level                        String?
+  year                         String?
+  orderIndex                   Int?
+  sourceId                     String?
+  sourcePages                  Int[]                        @default([])
+  metadata                     Json                         @default("{}")
+  createdAt                    DateTime                     @default(now())
+  updatedAt                    DateTime                     @updatedAt
+
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  program                    Program                     @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  programTrack               ProgramTrack?               @relation(fields: [tenantId, programId, programTrackId], references: [tenantId, programId, id], onDelete: Restrict, onUpdate: Restrict, map: "curriculum_track_fk")
+  programSpecification       ProgramSpecification?       @relation(fields: [tenantId, programId, programSpecificationId], references: [tenantId, programId, id], onDelete: Restrict, onUpdate: Restrict, map: "curriculum_program_spec_fk")
+  academicCourse             AcademicCourse              @relation(fields: [tenantId, academicCourseId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  courseSpecificationVersion CourseSpecificationVersion? @relation(fields: [tenantId, academicCourseId, courseSpecificationVersionId], references: [tenantId, academicCourseId, id], onDelete: Restrict, onUpdate: Restrict, map: "curriculum_course_version_fk")
+  source                     SpecificationSource?        @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, programId])
+  @@index([tenantId, academicCourseId])
+  @@index([tenantId, sourceId])
+  @@map("curriculum_courses")
 }
 
 enum CourseSpecificationType {
@@ -1587,6 +1630,7 @@ model CourseSpecificationVersion {
   currentReview CourseSpecificationReview? @relation("CurrentCourseVersionReview", fields: [tenantId, id, currentReviewId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_review_fk")
   approvals CourseSpecificationApproval[] @relation("CourseVersionApprovals")
   currentApproval CourseSpecificationApproval? @relation("CurrentCourseVersionApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_approval_fk")
+  curriculumCourses CurriculumCourse[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, sourceId, id])
@@ -1736,8 +1780,10 @@ model ProgramSpecification {
 
   publication     ProgramSpecificationPublication?
   courseTemplates CourseTemplate[]
+  curriculumCourses CurriculumCourse[]
 
   @@unique([tenantId, id])
+  @@unique([tenantId, programId, id], map: "curriculum_program_spec_parent_key")
   @@unique([tenantId, programId, sourceProgramKey, version])
   @@unique([tenantId, sourceId, sourceProgramKey, version])
   @@index([tenantId, sourceId])
@@ -1954,6 +2000,8 @@ model SpecificationSource {
   programSpecifications ProgramSpecification[]
   courseSpecificationVersions CourseSpecificationVersion[]
   courseSpecificationReviews CourseSpecificationReview[]
+
+  curriculumCourses CurriculumCourse[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, currentExtractionId])
