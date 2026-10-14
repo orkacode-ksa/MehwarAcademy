@@ -63,6 +63,8 @@ model Tenant {
   academicCourses AcademicCourse[]
   courseSpecificationVersions CourseSpecificationVersion[]
   courseSpecificationReviews CourseSpecificationReview[]
+  courseSpecificationApprovalBatches CourseSpecificationApprovalBatch[]
+  courseSpecificationApprovals CourseSpecificationApproval[]
   programTracks ProgramTrack[]
   departments   Department[]
   users         User[]
@@ -208,6 +210,8 @@ model User {
   officeBookings       OfficeBooking[]
   specificationUploads SpecificationSource[]
   courseSpecificationReviewsReviewed CourseSpecificationReview[] @relation("CourseReviewActor")
+  courseSpecificationApprovalBatchesRequested CourseSpecificationApprovalBatch[] @relation("CourseApprovalRequester")
+  courseSpecificationApprovalsDecided CourseSpecificationApproval[] @relation("CourseApprovalActor")
 
   @@unique([tenantId, id])
   @@unique([tenantId, email])
@@ -1568,6 +1572,7 @@ model CourseSpecificationVersion {
   creationKey  String?
   supersedesId String?
   currentReviewId String?
+  currentApprovalId String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1580,6 +1585,8 @@ model CourseSpecificationVersion {
   successors CourseSpecificationVersion[] @relation("CourseVersionLineage")
   reviews CourseSpecificationReview[] @relation("CourseVersionReviews")
   currentReview CourseSpecificationReview? @relation("CurrentCourseVersionReview", fields: [tenantId, id, currentReviewId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_review_fk")
+  approvals CourseSpecificationApproval[] @relation("CourseVersionApprovals")
+  currentApproval CourseSpecificationApproval? @relation("CurrentCourseVersionApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_approval_fk")
 
   @@unique([tenantId, id])
   @@unique([tenantId, sourceId, id])
@@ -1587,6 +1594,7 @@ model CourseSpecificationVersion {
   @@unique([tenantId, academicCourseId, revisionNumber], map: "course_version_revision_key")
   @@unique([tenantId, creationKey])
   @@unique([tenantId, id, currentReviewId], map: "course_version_current_review_key")
+  @@unique([tenantId, id, currentApprovalId], map: "course_version_current_approval_key")
   @@index([tenantId, sourceId, extractionId, sourceCourseKey], map: "course_version_origin_idx")
   @@index([tenantId, academicCourseId])
   @@index([tenantId, status])
@@ -1626,12 +1634,70 @@ model CourseSpecificationReview {
   originSourceReview ProgramSpecificationReview? @relation("CourseReviewOrigin", fields: [tenantId, sourceId, originSourceReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_review_origin_fk")
   reviewedBy         User?                       @relation("CourseReviewActor", fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
   currentForVersion  CourseSpecificationVersion? @relation("CurrentCourseVersionReview")
+  approvals CourseSpecificationApproval[]
 
   @@unique([tenantId, versionId, id])
   @@unique([tenantId, versionId, revision])
+  @@unique([tenantId, versionId, id, contentHash], map: "course_review_approval_snapshot_key")
   @@index([tenantId, sourceId])
   @@index([tenantId, status])
   @@map("course_spec_reviews")
+}
+
+enum CourseSpecificationApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+model CourseSpecificationApprovalBatch {
+  id            String    @id @default(cuid())
+  tenantId      String
+  requestKey    String
+  manifestHash  String
+  requestedById String
+  requestedAt   DateTime  @default(now())
+  submittedAt   DateTime?
+  notes         String?
+
+  tenant      Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy User                          @relation("CourseApprovalRequester", fields: [requestedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  items       CourseSpecificationApproval[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, requestKey])
+  @@index([tenantId, requestedAt])
+  @@map("course_spec_approval_batches")
+}
+
+model CourseSpecificationApproval {
+  id                  String                            @id @default(cuid())
+  tenantId            String
+  batchId             String
+  versionId           String
+  reviewId            String
+  contentHash         String
+  status              CourseSpecificationApprovalStatus @default(PENDING)
+  readinessExceptions Json                              @default("[]")
+  decidedById         String?
+  decidedAt           DateTime?
+  notes               String?
+  createdAt           DateTime                          @default(now())
+
+  tenant            Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  batch             CourseSpecificationApprovalBatch @relation(fields: [tenantId, batchId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  version           CourseSpecificationVersion       @relation("CourseVersionApprovals", fields: [tenantId, versionId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  review            CourseSpecificationReview        @relation(fields: [tenantId, versionId, reviewId, contentHash], references: [tenantId, versionId, id, contentHash], onDelete: Restrict, onUpdate: Restrict, map: "course_approval_review_snapshot_fk")
+  decidedBy         User?                            @relation("CourseApprovalActor", fields: [decidedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  currentForVersion CourseSpecificationVersion?      @relation("CurrentCourseVersionApproval")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, versionId, id])
+  @@unique([tenantId, batchId, versionId])
+  @@index([tenantId, versionId, createdAt])
+  @@index([tenantId, status])
+  @@map("course_spec_approvals")
 }
 
 /// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
