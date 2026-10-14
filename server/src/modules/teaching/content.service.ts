@@ -168,7 +168,7 @@ export async function removeAssessment(workspaceId: string, assessmentId: string
 export async function getGradeGrid(workspaceId: string, courseId: string, sectionId: string) {
   const course = await prisma.course.findFirst({
     where: { id: courseId, workspaceId, deletedAt: null },
-    select: { id: true, code: true, nameAr: true, semester: { select: { status: true, gradeLockAt: true } } },
+    select: { id: true, code: true, nameAr: true, nameEn: true, semester: { select: { status: true, gradeLockAt: true } } },
   });
   if (!course) throw AppError.notFound("المقرر غير موجود");
   const section = await prisma.section.findFirst({ where: { id: sectionId, courseId, workspaceId, deletedAt: null }, select: { id: true, label: true } });
@@ -214,7 +214,7 @@ export async function getGradeGrid(workspaceId: string, courseId: string, sectio
   });
 
   return {
-    course: { id: course.id, code: course.code, nameAr: course.nameAr },
+    course: { id: course.id, code: course.code, nameAr: course.nameAr, nameEn: course.nameEn },
     section,
     assessments: assessments.map((a) => ({ ...a, maxScore: Number(a.maxScore), weightPercent: Number(a.weightPercent) })),
     weightTotal,

@@ -65,13 +65,15 @@ export async function createCourseFromTemplate(workspaceId: string, input: Creat
           topics: { where: { tenantId }, orderBy: { orderIndex: "asc" } },
           specification: { select: { approvalStatus: true } },
           publication: { select: { status: true, approval: { select: { status: true } } } },
+          coursePublication: { select: { status: true, approval: { select: { status: true } } } },
         },
       });
       if (!template) throw AppError.notFound("قالب المقرر غير موجود");
-      if (!template.publication || !template.specification ||
-          template.publication.status !== "PUBLISHED" ||
-          template.publication.approval.status !== "APPROVED" ||
-          template.specification.approvalStatus !== "APPROVED") {
+      const legacyPublished = template.publication?.status === "PUBLISHED" &&
+        template.publication.approval.status === "APPROVED" && template.specification?.approvalStatus === "APPROVED";
+      const coursePublished = template.coursePublication?.status === "PUBLISHED" &&
+        template.coursePublication.approval.status === "APPROVED";
+      if (!legacyPublished && !coursePublished) {
         throw AppError.badRequest("اختر قالبًا منشورًا من إصدار توصيف معتمد");
       }
 
@@ -103,9 +105,12 @@ export async function createCourseFromTemplate(workspaceId: string, input: Creat
       return tx.course.create({
         data: {
           tenantId, workspaceId, semesterId: input.semesterId, courseTemplateId: template.id,
-          code: template.code, nameAr: template.nameAr, creditHours: template.creditHours, hasLab: template.hasLab,
+          code: template.code, nameAr: template.nameAr, nameEn: template.nameEn, creditHours: template.creditHours, hasLab: template.hasLab,
           spec: template.spec ?? Prisma.JsonNull,
           assessmentPlan: template.assessmentPlan ?? Prisma.JsonNull,
+          specificationType: template.specificationType,
+          projectionVersion: template.projectionVersion,
+          operationalPlan: template.operationalPlan ?? Prisma.JsonNull,
           gradeScheme: regulation?.gradeScheme ?? [],
           fileItems: regulation?.courseFileItems ?? [],
           absencePolicy: regulation?.absencePolicy ?? { warnPercent: 15, banPercent: 25 },
@@ -114,6 +119,7 @@ export async function createCourseFromTemplate(workspaceId: string, input: Creat
               data: template.topics.map((topic) => ({
                 tenantId, workspaceId, sourceTemplateTopicId: topic.id,
                 title: topic.title, orderIndex: topic.orderIndex, learningOutcomes: topic.learningOutcomes,
+                kind: topic.kind, details: topic.details, contactHours: topic.contactHours, sourcePages: topic.sourcePages,
               })),
             },
           },

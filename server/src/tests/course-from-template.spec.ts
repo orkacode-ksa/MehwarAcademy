@@ -212,6 +212,8 @@ describe("creating an operational course from a template", () => {
       where: { tenantId: a.tenantId, id: response.body.data.id }, include: { topics: { orderBy: { orderIndex: "asc" } } },
     }));
     expect(stored.spec).toEqual(template.spec);
+    expect(stored.nameAr).toBe(template.nameAr);
+    expect(stored.nameEn).toBeNull();
     expect(stored.assessmentPlan).toEqual(template.assessmentPlan);
     expect(stored.topics.map(({ title, orderIndex, learningOutcomes, sourceTemplateTopicId, tenantId, workspaceId, courseId }) =>
       ({ title, orderIndex, learningOutcomes, sourceTemplateTopicId, tenantId, workspaceId, courseId }))).toEqual(

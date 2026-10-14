@@ -550,8 +550,12 @@ model Course {
   semesterId             String
   /// اختياري للمقررات القديمة والبنك؛ التدفق الجديد ينشئ من قالب منشور.
   courseTemplateId       String?
+  specificationType CourseSpecificationType?
+  projectionVersion String?
+  operationalPlan Json @default("{}")
   code                   String
-  nameAr                 String
+  nameAr                 String?
+  nameEn                 String?
   creditHours            Int
   /// مقرر ذو معمل: يفتح خطوة المعمل (دليل · شرائح · تقرير · نشاط · اختبار عملي).
   hasLab                 Boolean   @default(false)
@@ -650,6 +654,12 @@ model Enrollment {
   @@map("enrollments")
 }
 
+enum OperationalTopicKind {
+  THEORETICAL
+  PRACTICAL
+  UNCLASSIFIED
+}
+
 model Topic {
   id               String    @id @default(cuid())
   tenantId         String
@@ -657,6 +667,10 @@ model Topic {
   courseId         String
   /// اختياري للمواضيع القديمة والمضافة يدويًا.
   sourceTemplateTopicId String?
+  kind OperationalTopicKind?
+  details String[] @default([])
+  contactHours Decimal? @db.Decimal(8, 2)
+  sourcePages Int[] @default([])
   title            String
   orderIndex       Int
   learningOutcomes String[]  @default([])
@@ -1960,8 +1974,12 @@ model CourseTemplate {
   publicationId          String?
   courseSpecificationVersionId String?
   coursePublicationId String?
+  specificationType CourseSpecificationType?
+  projectionVersion String?
+  operationalPlan Json @default("{}")
   code                   String
-  nameAr                 String
+  nameAr                 String?
+  nameEn                 String?
   creditHours            Int
   hasLab                 Boolean  @default(false)
   spec                   Json     @default("{}")
@@ -1995,6 +2013,9 @@ model CourseTemplateTopic {
   orderIndex       Int
   learningOutcomes String[] @default([])
   sourcePages      Int[]    @default([])
+  kind OperationalTopicKind?
+  details String[] @default([])
+  contactHours Decimal? @db.Decimal(8, 2)
 
   courseTemplate CourseTemplate @relation(fields: [tenantId, courseTemplateId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   copiedTopics   Topic[]

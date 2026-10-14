@@ -272,7 +272,7 @@ export async function courseCatalog(q: string) {
     }),
   ]);
   const seen = new Set<string>();
-  const out: { code: string; nameAr: string; creditHours: number | null; hasLab: boolean | null }[] = [];
+  const out: { code: string; nameAr: string | null; creditHours: number | null; hasLab: boolean | null }[] = [];
   for (const c of [...mine, ...bank.map((b) => ({ code: b.code, nameAr: b.title, creditHours: null, hasLab: null }))]) {
     const k = `${c.code}|${c.nameAr}`;
     if (seen.has(k)) continue;

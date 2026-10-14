@@ -115,7 +115,10 @@ export async function ask(
 function resolveCourse(courses: MyCourse[], q: unknown): MyCourse | Card {
   const query = String(q ?? "").trim();
   if (courses.length === 1 && !query) return courses[0] as MyCourse;
-  const r = pick(query, courses, (c) => [c.code, c.nameAr, `${c.code} ${c.nameAr}`]);
+  const r = pick(query, courses, (c) => {
+    const names = [c.nameAr, c.nameEn].filter((name): name is string => name !== null);
+    return [c.code, ...names, ...names.map((name) => `${c.code} ${name}`)];
+  });
   if (r.hit) return r.hit;
   if (r.options.length) return { type: "choices", title: "أيّ مقرر تقصد؟", options: r.options.map((c) => `${c.code} · ${c.nameAr}`) };
   return { type: "note", text: `لم أجد مقررًا باسم «${query}» في مقرراتك الحالية.` };

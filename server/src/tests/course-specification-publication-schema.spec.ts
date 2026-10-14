@@ -301,14 +301,14 @@ describe("independent course publication and dual template paths", () => {
     await expect(inA((tx) => tx.courseTemplateTopic.delete({ where: { id: legacy.topic.id } }))).rejects.toThrow(/immutable/);
   });
 
-  it("keeps the legacy catalogue response and safely rejects new-path operational creation until the next stage", async () => {
+  it("keeps the legacy catalogue response while new-path operational creation applies term validation", async () => {
     const template = await createTemplate();
     await publish(template.coursePublicationId ?? "missing");
     const rows = await runWithTenant({ tenantId: a.tenantId, userId: a.userId }, async () => await listPublishedCourseTemplates());
     expect(rows.map((r) => r.id)).toEqual([a.legacyPublished.template.id]);
     await expect(runWithTenant({ tenantId: a.tenantId, userId: a.userId }, async () =>
       await createCourseFromTemplate(a.workspace.id, { templateId: template.id, semesterId: crypto.randomUUID() }),
-    )).rejects.toMatchObject({ statusCode: 400, code: "BAD_REQUEST" });
+    )).rejects.toMatchObject({ statusCode: 404, code: "RESOURCE_NOT_FOUND" });
   });
 
   it("builds and validates template/topics while pending, publishes atomically, then freezes the snapshot", async () => {

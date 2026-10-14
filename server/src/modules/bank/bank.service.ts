@@ -1,6 +1,7 @@
 import type { CourseSpec } from "@mihwar/shared";
 import { prisma, prismaBase, withTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
+import { courseDisplayName } from "../../lib/courseName.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { getEntitlements } from "../store/entitlements.js";
 import { notify, notifyOwners } from "../notifications/notify.js";
@@ -132,7 +133,7 @@ export async function harvestSemester(tenantId: string, semesterId: string, acto
     if (!entry) {
       const bank = await prismaBase.bankCourse.create({
         data: {
-          title: snap.course.nameAr,
+          title: courseDisplayName(snap.course),
           code: snap.course.code,
           specialization: "",
           university: tenant.name,
