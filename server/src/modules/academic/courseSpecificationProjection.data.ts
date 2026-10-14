@@ -1,20 +1,11 @@
 import crypto from "node:crypto";
-import { z } from "zod";
 import { Prisma, type CourseSpecificationType, type OperationalTopicKind } from "@prisma/client";
-import { courseSpecSchema, isSpecificationPlaceholder, reviewedCourseSpecificationSchema } from "@mihwar/shared";
+import { courseSpecSchema, isSpecificationPlaceholder, courseWorkflowDataSchema } from "@mihwar/shared";
 import { AppError } from "../../lib/AppError.js";
 
 export const COURSE_TEMPLATE_PROJECTION_VERSION = "course-template-projection-1";
 
-// Extend the existing single-course review contract locally; extraction/legacy review stay unchanged.
-const reviewSchema = reviewedCourseSpecificationSchema.extend({
-  operationalPlan: z.record(z.unknown()).nullable().optional(),
-  activities: z.array(z.unknown()).nullable().optional(),
-  stages: z.array(z.unknown()).nullable().optional(),
-  deliverables: z.array(z.unknown()).nullable().optional(),
-  supervision: z.unknown().optional(),
-  duration: z.unknown().optional(),
-}).passthrough();
+const reviewSchema = courseWorkflowDataSchema;
 
 export interface ProjectedTopic {
   title: string;
@@ -133,7 +124,7 @@ export function buildCourseTemplateProjection(reviewedData: unknown, specificati
   const assessmentPlan = course.assessmentPlan.map((item) => ({ method: item.activity, timing: item.week, weight: item.percentage,
     outcomeCodes: item.outcomeCodes, sourcePages: item.sourcePages }));
   const data: Record<string, unknown> = { ...course.operationalPlan };
-  for (const key of ["activities", "stages", "deliverables", "supervision", "duration"] as const) {
+  for (const key of ["activities", "stages", "deliverables", "supervision", "duration", "scope", "trainingOutcomes"] as const) {
     if (course[key] !== undefined && course[key] !== null) {
       if (data[key] !== undefined && hashSpecificationContent(data[key]) !== hashSpecificationContent(course[key])) invalid(`بيانات خطة متعارضة: ${key}`);
       data[key] = course[key];

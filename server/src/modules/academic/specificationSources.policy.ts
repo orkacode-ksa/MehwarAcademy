@@ -8,6 +8,8 @@ export interface SpecificationCapabilities {
   uploadSources: boolean;
   reviewSources: boolean;
   approveSources: boolean;
+  publishSources: boolean;
+  resolveAcademicEntities: boolean;
 }
 
 /** MVP adapter for the existing institution review permission; replace this mapping later. */
@@ -24,6 +26,7 @@ export async function specificationCapabilities(userId: string): Promise<Specifi
   return {
     userId, tenantId: user.tenantId, uploadSources: user.role === "TEACHER",
     reviewSources: institutionReview, approveSources: institutionReview,
+    publishSources: institutionReview, resolveAcademicEntities: institutionReview,
   };
 }
 

@@ -13,7 +13,7 @@ export async function publishCourseSpecification(publicationId: string) {
   const actorId = currentContext()?.userId;
   if (!actorId) throw AppError.unauthorized();
   const capabilities = await specificationCapabilities(actorId);
-  if (!capabilities.approveSources) throw AppError.forbidden("لا تملك صلاحية نشر التوصيف المعتمد");
+  if (!capabilities.publishSources) throw AppError.forbidden("لا تملك صلاحية نشر التوصيف المعتمد");
 
   return withTenantTx(async (tx, tenantId) => {
     const initial = await tx.courseSpecificationPublication.findFirst({ where: { tenantId, id: publicationId }, select: { versionId: true } });

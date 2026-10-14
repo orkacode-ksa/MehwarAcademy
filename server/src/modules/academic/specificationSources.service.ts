@@ -8,6 +8,8 @@ import { mayReadSpecificationSource, specificationCapabilities } from "./specifi
 import { sourceUploadMetadataSchema } from "./specificationSources.schemas.js";
 import { extractionProgress } from "./specificationExtraction.progress.js";
 import { developmentReviewPreviewAvailable } from "./specificationReview.preview.js";
+import { courseSourceSummary, courseSummarySelect } from "./courseWorkflow.readModels.js";
+import { courseSourceNeedsReview } from "./courseWorkflow.sourceAdmission.js";
 
 const sourceSelect = {
   id: true, tenantId: true, title: true, sourceUrl: true, fileSha256: true, uploadedById: true,
@@ -18,11 +20,13 @@ const sourceSelect = {
   file: { select: { id: true, originalName: true, mimeType: true, sizeBytes: true } },
   uploadedBy: { select: { id: true, fullName: true } },
   _count: { select: { programSpecifications: true } },
+  courseSpecificationVersions: { select: courseSummarySelect },
 } satisfies Prisma.SpecificationSourceSelect;
 
 type SourceSummary = Prisma.SpecificationSourceGetPayload<{ select: typeof sourceSelect }>;
 function sourceView(source: SourceSummary) {
-  const base = { ...source, developmentReviewPreviewAvailable: developmentReviewPreviewAvailable(source.fileSha256) };
+  const { courseSpecificationVersions, ...legacySource } = source;
+  const base = { ...legacySource, courseWorkflowSummary: courseSourceSummary(courseSpecificationVersions), developmentReviewPreviewAvailable: developmentReviewPreviewAvailable(source.fileSha256) };
   if (!source.currentExtraction) return { ...base, currentExtraction: null };
   const { rawOutput, ...attempt } = source.currentExtraction;
   return { ...base, currentExtraction: { ...attempt, progress: extractionProgress(attempt.status, rawOutput) } };
@@ -47,9 +51,13 @@ export async function uploadSpecificationSource(input: {
   await uploadFile({ ...input, purpose: "UNIVERSITY", skipQuota: true }, async (tx, scopedTenantId, file) => {
     // Serialize admissions for this teacher, including simultaneous uploads in different workspaces.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${scopedTenantId}:${input.userId}:specification-sources`}, 0))`;
-    const pending = await tx.specificationSource.count({
+    const sources = await tx.specificationSource.findMany({
       where: { tenantId: scopedTenantId, uploadedById: input.userId, legacyImported: false, approvalStatus: { in: ["NOT_REQUESTED", "PENDING"] } },
+      select: { id: true, currentExtraction: { select: { id: true, status: true, extractedData: true } },
+        courseSpecificationVersions: { select: { extractionId: true, sourceCourseKey: true, revisionNumber: true, status: true,
+          currentApproval: { select: { status: true } } } } },
     });
+    const pending = sources.filter(courseSourceNeedsReview).length;
     if (pending >= 20) throw AppError.badRequest("لديك ٢٠ ملفًا بانتظار المراجعة، انتظر مراجعتها أولًا");
     source = await tx.specificationSource.create({
       data: {

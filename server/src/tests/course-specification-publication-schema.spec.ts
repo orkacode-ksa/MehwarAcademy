@@ -305,7 +305,8 @@ describe("independent course publication and dual template paths", () => {
     const template = await createTemplate();
     await publish(template.coursePublicationId ?? "missing");
     const rows = await runWithTenant({ tenantId: a.tenantId, userId: a.userId }, async () => await listPublishedCourseTemplates());
-    expect(rows.map((r) => r.id)).toEqual([a.legacyPublished.template.id]);
+    expect(rows.filter((r) => r.legacy).map((r) => r.id)).toEqual([a.legacyPublished.template.id]);
+    expect(rows.some((r) => r.id === template.id && !r.legacy)).toBe(true);
     await expect(runWithTenant({ tenantId: a.tenantId, userId: a.userId }, async () =>
       await createCourseFromTemplate(a.workspace.id, { templateId: template.id, semesterId: crypto.randomUUID() }),
     )).rejects.toMatchObject({ statusCode: 404, code: "RESOURCE_NOT_FOUND" });

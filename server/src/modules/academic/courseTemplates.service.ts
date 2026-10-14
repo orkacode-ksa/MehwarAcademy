@@ -13,12 +13,14 @@ export async function listPublishedCourseTemplates() {
     const templates = await tx.courseTemplate.findMany({
       where: {
         tenantId,
-        publication: { status: "PUBLISHED", approval: { status: "APPROVED" } },
-        specification: { approvalStatus: "APPROVED" },
+        OR: [
+          { publication: { status: "PUBLISHED", approval: { status: "APPROVED" } }, specification: { approvalStatus: "APPROVED" } },
+          { coursePublication: { status: "PUBLISHED", approval: { status: "APPROVED" } } },
+        ],
       },
       orderBy: [{ code: "asc" }, { publishedAt: "desc" }, { id: "asc" }],
       select: {
-        id: true, code: true, nameAr: true, creditHours: true, hasLab: true, publishedAt: true,
+        id: true, code: true, nameAr: true, nameEn: true, creditHours: true, hasLab: true, publishedAt: true, specificationType: true,
         _count: { select: { topics: true } },
         specification: {
           select: {
@@ -36,15 +38,34 @@ export async function listPublishedCourseTemplates() {
             },
           },
         },
+        courseSpecificationVersion: {
+          select: { id: true, officialVersion: true, revisionNumber: true,
+            academicCourse: { select: { id: true, ownerDepartment: { select: { id: true, code: true, nameAr: true, college: { select: { id: true, code: true, nameAr: true } } } },
+              curriculumCourses: { where: { tenantId, program: { deletedAt: null }, OR: [{ programTrackId: null }, { programTrack: { deletedAt: null } }] },
+                select: { id: true, courseSpecificationVersionId: true, program: { select: { id: true, code: true, nameAr: true } },
+                  programTrack: { select: { id: true, code: true, name: true, nameAr: true, nameEn: true } },
+                  programSpecification: { select: { id: true, title: true, version: true } } } } } } },
+        },
       },
     });
-    return templates.flatMap(({ specification, ...template }) => {
-      if (!specification) return [];
+    return templates.map(({ specification, courseSpecificationVersion, ...template }) => {
+      if (courseSpecificationVersion) {
+        const { academicCourse, officialVersion, revisionNumber } = courseSpecificationVersion;
+        const ownerDepartment = academicCourse.ownerDepartment;
+        return { ...template, templateId: template.id, tenant, ownerDepartment, officialVersion, revisionNumber,
+          sourceType: "COURSE_SPECIFICATION" as string, legacy: false,
+          college: ownerDepartment?.college ?? null, department: ownerDepartment, program: null, programSpecification: null,
+          curriculumContexts: academicCourse.curriculumCourses.filter((c) => !c.courseSpecificationVersionId || c.courseSpecificationVersionId === courseSpecificationVersion.id)
+            .map((c) => ({ id: c.id, program: c.program, track: c.programTrack, programSpecification: c.programSpecification })) };
+      }
+      if (!specification) return null;
       const { program, ...programSpecification } = specification;
       const { department, ...programContext } = program;
       const { college, ...departmentContext } = department;
-      return [{ ...template, tenant, college, department: departmentContext, program: programContext, programSpecification }];
-    });
+      return { ...template, templateId: template.id, tenant, college, department: departmentContext, program: programContext, programSpecification,
+        ownerDepartment: null, curriculumContexts: [{ id: programContext.id, program: programContext, track: null, programSpecification }],
+        officialVersion: null, revisionNumber: null, sourceType: "LEGACY_PROGRAM" as string, legacy: true };
+    }).filter((template) => template !== null);
   });
 }
 
