@@ -60,6 +60,7 @@ model Tenant {
 
   colleges      College[]
   specificationSources SpecificationSource[]
+  academicCourses AcademicCourse[]
   departments   Department[]
   users         User[]
   workspaces    Workspace[]
@@ -126,6 +127,7 @@ model Department {
   tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   college    College?    @relation(fields: [tenantId, collegeId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   programs   Program[]
+  ownedAcademicCourses AcademicCourse[] @relation("AcademicCourseOwner")
   workspaces Workspace[]
 
   @@unique([tenantId, id])
@@ -1455,6 +1457,27 @@ model College {
   @@unique([tenantId, code])
   @@index([tenantId])
   @@map("colleges")
+}
+
+model AcademicCourse {
+  id                String    @id @default(cuid())
+  tenantId          String
+  code              String
+  codeKey           String
+  nameAr            String?
+  nameEn            String?
+  ownerDepartmentId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  ownerDepartment Department? @relation("AcademicCourseOwner", fields: [tenantId, ownerDepartmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, codeKey])
+  @@index([tenantId, ownerDepartmentId])
+  @@map("academic_courses")
 }
 
 model Program {
