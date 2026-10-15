@@ -164,7 +164,7 @@ export async function requestGeneration(workspaceId: string, userId: string, inp
 // ── طابور بسيط داخل العملية ──
 const queue: (() => Promise<void>)[] = [];
 let active = 0;
-function enqueue(task: () => Promise<void>) {
+export function enqueue(task: () => Promise<void>) {
   queue.push(task);
   pump();
 }

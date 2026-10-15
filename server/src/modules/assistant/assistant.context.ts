@@ -14,6 +14,7 @@ export async function myCourses(workspaceId: string) {
       id: true,
       code: true,
       nameAr: true,
+      nameEn: true,
       semester: { select: { label: true } },
       sections: { where: { deletedAt: null }, select: { id: true, label: true, _count: { select: { enrollments: { where: { deletedAt: null } } } } }, orderBy: { label: "asc" } },
       _count: { select: { topics: { where: { deletedAt: null } } } },

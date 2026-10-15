@@ -13,6 +13,7 @@ import { renderCourseReportHtml, renderExamHtml } from "./printTemplates.js";
 import { renderHtmlToPdf } from "../../lib/pdf.js";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
+import { courseDisplayName } from "../../lib/courseName.js";
 
 export const documentsRouter = Router();
 
@@ -79,6 +80,7 @@ documentsRouter.get(
           select: {
             code: true,
             nameAr: true,
+            nameEn: true,
             semester: { select: { label: true, academicYear: { select: { label: true } } } },
             workspace: { select: { owner: { select: { fullName: true } }, tenant: { select: { name: true } } } },
           },
@@ -96,7 +98,7 @@ documentsRouter.get(
     const html = renderExamHtml({
       institution: a.course.workspace.tenant.name,
       courseCode: a.course.code,
-      courseName: a.course.nameAr,
+      courseName: courseDisplayName(a.course),
       term: `${a.course.semester.label} — ${a.course.semester.academicYear.label}`,
       teacher: a.course.workspace.owner.fullName,
       title: a.title,

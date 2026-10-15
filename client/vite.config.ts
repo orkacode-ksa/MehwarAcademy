@@ -32,7 +32,7 @@ export default defineConfig({
   ],
   // توكيل /api في التطوير حتى يرى المتصفح أصلًا واحدًا: كوكيز الجلسة SameSite=Strict
   // لا تُرسَل عبر أصلين مختلفين، فتبدو الجلسة تعمل في curl وتفشل صامتة في المتصفح.
-  server: { port: 5173, proxy: { "/api": { target: "http://127.0.0.1:4400", changeOrigin: false } } },
+  server: { port: 5173, proxy: { "/api": { target: process.env.VITE_DEV_PROXY_TARGET || "http://127.0.0.1:4400", changeOrigin: false } } },
   build: {
     sourcemap: false,
     rollupOptions: {

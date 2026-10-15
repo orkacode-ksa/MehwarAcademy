@@ -115,7 +115,7 @@ export async function getCompliance(workspaceId: string) {
   ]);
   const items = (reg?.facultyViolations as unknown as { key: string; label: string; category: string; check: PerformanceKpiKey | "" }[]) ?? [];
   const keys = [...new Set(items.map((i) => i.check).filter(Boolean))] as PerformanceKpiKey[];
-  const perCourse: { id: string; code: string; nameAr: string; kpis: ReturnType<typeof computePerformance>["kpis"] }[] = [];
+  const perCourse: { id: string; code: string; nameAr: string | null; kpis: ReturnType<typeof computePerformance>["kpis"] }[] = [];
   for (const c of courses) {
     const facts = await loadCourseFacts(workspaceId, c.id);
     perCourse.push({ ...c, kpis: computePerformance(facts, keys.map((key) => ({ key, weight: 1 }))).kpis });

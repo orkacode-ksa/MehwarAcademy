@@ -58,6 +58,16 @@ model Tenant {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  colleges      College[]
+  specificationSources SpecificationSource[]
+  academicCourses AcademicCourse[]
+  courseSpecificationVersions CourseSpecificationVersion[]
+  courseSpecificationReviews CourseSpecificationReview[]
+  courseSpecificationApprovalBatches CourseSpecificationApprovalBatch[]
+  courseSpecificationApprovals CourseSpecificationApproval[]
+  courseSpecificationPublications CourseSpecificationPublication[]
+  programTracks ProgramTrack[]
+  curriculumCourses CurriculumCourse[]
   departments   Department[]
   users         User[]
   workspaces    Workspace[]
@@ -114,16 +124,23 @@ model Regulation {
 model Department {
   id        String    @id @default(cuid())
   tenantId  String
+  /// اختياري مؤقتًا للأقسام الحالية.
+  collegeId String?
   code      String
   nameAr    String
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 
   tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  college    College?    @relation(fields: [tenantId, collegeId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  programs   Program[]
+  ownedAcademicCourses AcademicCourse[] @relation("AcademicCourseOwner")
   workspaces Workspace[]
 
+  @@unique([tenantId, id])
   @@unique([tenantId, code])
   @@index([tenantId])
+  @@index([tenantId, collegeId])
   @@map("departments")
 }
 
@@ -193,7 +210,14 @@ model User {
   passwordResetTokens  PasswordResetToken[]
   avatar               UserAvatar?
   officeBookings       OfficeBooking[]
+  specificationUploads SpecificationSource[]
+  courseSpecificationReviewsReviewed CourseSpecificationReview[] @relation("CourseReviewActor")
+  courseSpecificationApprovalBatchesRequested CourseSpecificationApprovalBatch[] @relation("CourseApprovalRequester")
+  courseSpecificationApprovalsDecided CourseSpecificationApproval[] @relation("CourseApprovalActor")
+  courseSpecificationPublicationsRequested CourseSpecificationPublication[] @relation("CoursePublicationRequester")
+  courseSpecificationPublicationsPublished CourseSpecificationPublication[] @relation("CoursePublicationActor")
 
+  @@unique([tenantId, id])
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
   @@index([tenantId, role])
@@ -524,14 +548,22 @@ model Course {
   tenantId               String
   workspaceId            String
   semesterId             String
+  /// اختياري للمقررات القديمة والبنك؛ التدفق الجديد ينشئ من قالب منشور.
+  courseTemplateId       String?
+  specificationType CourseSpecificationType?
+  projectionVersion String?
+  operationalPlan Json @default("{}")
   code                   String
-  nameAr                 String
+  nameAr                 String?
+  nameEn                 String?
   creditHours            Int
   /// مقرر ذو معمل: يفتح خطوة المعمل (دليل · شرائح · تقرير · نشاط · اختبار عملي).
   hasLab                 Boolean   @default(false)
   /// توزيع الدرجات لهذا المقرر — يُنسخ من لائحة الجامعة عند الإنشاء ثم يُحرَّر.
   /// نسخة لا إشارة: تعديل الجامعة لائحتها لا يجوز أن يغيّر أوزان مقرر جارٍ رصده.
   gradeScheme            Json      @default("[]")
+  /// نسخة من خطة التقييم الرسمية للقالب، مستقلة عن gradeScheme التشغيلي.
+  assessmentPlan         Json      @default("[]")
   /// متى **أقرّ الأستاذ** التوزيع.
   /// النسخ من اللائحة نقطة انطلاق لا إنجاز: بدون هذا الحقل كانت خطوة الدرجات تظهر
   /// مكتملة لحظة إنشاء المقرر، فيمرّ الأستاذ على أوزان لم يراجعها قط.
@@ -553,6 +585,7 @@ model Course {
   updatedAt              DateTime  @updatedAt
   deletedAt              DateTime?
 
+  courseTemplate CourseTemplate?   @relation(fields: [tenantId, courseTemplateId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   semester       Semester          @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   sections       Section[]
@@ -563,6 +596,7 @@ model Course {
   violations     Violation[]
 
   @@unique([workspaceId, semesterId, code])
+  @@index([tenantId, courseTemplateId])
   @@index([workspaceId])
   @@index([semesterId])
   @@index([tenantId])
@@ -620,21 +654,35 @@ model Enrollment {
   @@map("enrollments")
 }
 
+enum OperationalTopicKind {
+  THEORETICAL
+  PRACTICAL
+  UNCLASSIFIED
+}
+
 model Topic {
   id               String    @id @default(cuid())
   tenantId         String
   workspaceId      String
   courseId         String
+  /// اختياري للمواضيع القديمة والمضافة يدويًا.
+  sourceTemplateTopicId String?
+  kind OperationalTopicKind?
+  details String[] @default([])
+  contactHours Decimal? @db.Decimal(8, 2)
+  sourcePages Int[] @default([])
   title            String
   orderIndex       Int
   learningOutcomes String[]  @default([])
   createdAt        DateTime  @default(now())
   deletedAt        DateTime?
 
+  sourceTemplateTopic CourseTemplateTopic? @relation(fields: [tenantId, sourceTemplateTopicId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
   course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lectures Lecture[]
   sessions ClassSession[]
 
+  @@index([tenantId, sourceTemplateTopicId])
   @@index([workspaceId])
   @@index([courseId, orderIndex])
   @@index([tenantId])
@@ -948,7 +996,10 @@ model FileAsset {
   deletedAt    DateTime?
 
   blob FileBlob?
+  programSpecifications ProgramSpecification[]
+  specificationSources SpecificationSource[]
 
+  @@unique([tenantId, id])
   @@index([workspaceId])
   @@index([tenantId])
   @@map("file_assets")
@@ -1386,4 +1437,638 @@ model OfficeBooking {
   @@index([studentId])
   @@index([tenantId])
   @@map("office_bookings")
+}
+
+enum SpecificationExtractionStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum SpecificationReviewStatus {
+  NOT_STARTED
+  IN_REVIEW
+  CHANGES_REQUESTED
+  COMPLETED
+}
+
+enum SpecificationApprovalStatus {
+  NOT_REQUESTED
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+enum SpecificationPublicationStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model College {
+  id        String    @id @default(cuid())
+  tenantId  String
+  code      String
+  nameAr    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  departments Department[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("colleges")
+}
+
+model AcademicCourse {
+  id                String    @id @default(cuid())
+  tenantId          String
+  code              String
+  codeKey           String
+  nameAr            String?
+  nameEn            String?
+  ownerDepartmentId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  ownerDepartment Department? @relation("AcademicCourseOwner", fields: [tenantId, ownerDepartmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  specificationVersions CourseSpecificationVersion[]
+  curriculumCourses CurriculumCourse[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, codeKey])
+  @@index([tenantId, ownerDepartmentId])
+  @@map("academic_courses")
+}
+
+model Program {
+  id           String    @id @default(cuid())
+  tenantId     String
+  departmentId String
+  code         String
+  nameAr       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  department     Department             @relation(fields: [tenantId, departmentId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  specifications ProgramSpecification[]
+  tracks ProgramTrack[]
+  curriculumCourses CurriculumCourse[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, departmentId, code])
+  @@index([tenantId])
+  @@map("programs")
+}
+
+model ProgramTrack {
+  id        String    @id @default(cuid())
+  tenantId  String
+  programId String
+  code      String?
+  name      String
+  nameKey   String
+  nameAr    String?
+  nameEn    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  program Program @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  curriculumCourses CurriculumCourse[]
+
+  @@unique([tenantId, programId, id], map: "curriculum_track_parent_key")
+  @@index([tenantId, programId])
+  @@map("program_tracks")
+}
+
+enum CurriculumCourseRequirement {
+  REQUIRED
+  ELECTIVE
+}
+
+model CurriculumCourse {
+  id                           String                       @id @default(cuid())
+  tenantId                     String
+  programId                    String
+  programTrackId               String?
+  programSpecificationId       String?
+  academicCourseId             String
+  courseSpecificationVersionId String?
+  requirement                  CurriculumCourseRequirement?
+  level                        String?
+  year                         String?
+  orderIndex                   Int?
+  sourceId                     String?
+  sourcePages                  Int[]                        @default([])
+  metadata                     Json                         @default("{}")
+  createdAt                    DateTime                     @default(now())
+  updatedAt                    DateTime                     @updatedAt
+
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  program                    Program                     @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  programTrack               ProgramTrack?               @relation(fields: [tenantId, programId, programTrackId], references: [tenantId, programId, id], onDelete: Restrict, onUpdate: Restrict, map: "curriculum_track_fk")
+  programSpecification       ProgramSpecification?       @relation(fields: [tenantId, programId, programSpecificationId], references: [tenantId, programId, id], onDelete: Restrict, onUpdate: Restrict, map: "curriculum_program_spec_fk")
+  academicCourse             AcademicCourse              @relation(fields: [tenantId, academicCourseId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  courseSpecificationVersion CourseSpecificationVersion? @relation(fields: [tenantId, academicCourseId, courseSpecificationVersionId], references: [tenantId, academicCourseId, id], onDelete: Restrict, onUpdate: Restrict, map: "curriculum_course_version_fk")
+  source                     SpecificationSource?        @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, programId])
+  @@index([tenantId, academicCourseId])
+  @@index([tenantId, sourceId])
+  @@map("curriculum_courses")
+}
+
+enum CourseSpecificationType {
+  STANDARD_COURSE
+  FIELD_TRAINING
+  COOPERATIVE_TRAINING
+  GRADUATION_PROJECT
+  OTHER
+}
+
+enum CourseSpecificationVersionStatus {
+  DRAFT
+  IN_REVIEW
+  READY_FOR_APPROVAL
+  APPROVAL_PENDING
+  APPROVED
+}
+
+model CourseSpecificationVersion {
+  id               String @id @default(cuid())
+  tenantId         String
+  academicCourseId String
+  sourceId         String
+  extractionId     String
+  sourceCourseKey  String
+
+  revisionNumber    Int
+  officialVersion   String?
+  issuedAt          DateTime?
+  lastRevisionAt    DateTime?
+  specificationType CourseSpecificationType?
+  status            CourseSpecificationVersionStatus @default(DRAFT)
+
+  schemaVersion String  @default("course-specification-1")
+  extractedData Json
+  reviewedData  Json?
+  provenance    Json    @default("{}")
+  sourcePages   Int[]   @default([])
+  warnings      Json    @default("[]")
+  issues        Json    @default("[]")
+  contentHash   String?
+
+  creationKey  String?
+  supersedesId String?
+  currentReviewId String?
+  currentApprovalId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant         Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  academicCourse AcademicCourse                 @relation(fields: [tenantId, academicCourseId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  source         SpecificationSource            @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  extraction     ProgramSpecificationExtraction @relation("CourseVersionExtraction", fields: [tenantId, sourceId, extractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_extraction_fk")
+
+  supersedes CourseSpecificationVersion?  @relation("CourseVersionLineage", fields: [tenantId, academicCourseId, supersedesId], references: [tenantId, academicCourseId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_supersedes_fk")
+  successors CourseSpecificationVersion[] @relation("CourseVersionLineage")
+  reviews CourseSpecificationReview[] @relation("CourseVersionReviews")
+  currentReview CourseSpecificationReview? @relation("CurrentCourseVersionReview", fields: [tenantId, id, currentReviewId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_review_fk")
+  approvals CourseSpecificationApproval[] @relation("CourseVersionApprovals")
+  currentApproval CourseSpecificationApproval? @relation("CurrentCourseVersionApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_version_current_approval_fk")
+  publication CourseSpecificationPublication? @relation("CourseVersionPublication")
+  courseTemplate CourseTemplate? @relation("CourseVersionTemplate")
+  curriculumCourses CurriculumCourse[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, sourceId, id])
+  @@unique([tenantId, academicCourseId, id])
+  @@unique([tenantId, academicCourseId, revisionNumber], map: "course_version_revision_key")
+  @@unique([tenantId, creationKey])
+  @@unique([tenantId, id, currentReviewId], map: "course_version_current_review_key")
+  @@unique([tenantId, id, currentApprovalId], map: "course_version_current_approval_key")
+  @@index([tenantId, sourceId, extractionId, sourceCourseKey], map: "course_version_origin_idx")
+  @@index([tenantId, academicCourseId])
+  @@index([tenantId, status])
+  @@map("course_spec_versions")
+}
+
+model CourseSpecificationReview {
+  id        String                    @id @default(cuid())
+  tenantId  String
+  sourceId  String
+  versionId String
+  revision  Int
+  status    SpecificationReviewStatus @default(IN_REVIEW)
+
+  schemaVersion          String @default("course-specification-1")
+  readinessPolicyVersion String @default("course-readiness-1")
+  readinessReport        Json   @default("{}")
+
+  draftData    Json
+  reviewedData Json?
+  contentHash  String?
+  sourcePages  Int[]   @default([])
+
+  originSourceReviewId String?
+  originData           Json?
+  originSnapshotHash   String?
+
+  reviewedById String?
+  reviewedAt   DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant             Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  source             SpecificationSource         @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  version            CourseSpecificationVersion  @relation("CourseVersionReviews", fields: [tenantId, sourceId, versionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_review_version_fk")
+  originSourceReview ProgramSpecificationReview? @relation("CourseReviewOrigin", fields: [tenantId, sourceId, originSourceReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_review_origin_fk")
+  reviewedBy         User?                       @relation("CourseReviewActor", fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  currentForVersion  CourseSpecificationVersion? @relation("CurrentCourseVersionReview")
+  approvals CourseSpecificationApproval[]
+
+  @@unique([tenantId, versionId, id])
+  @@unique([tenantId, versionId, revision])
+  @@unique([tenantId, versionId, id, contentHash], map: "course_review_approval_snapshot_key")
+  @@index([tenantId, sourceId])
+  @@index([tenantId, status])
+  @@map("course_spec_reviews")
+}
+
+enum CourseSpecificationApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+model CourseSpecificationApprovalBatch {
+  id            String    @id @default(cuid())
+  tenantId      String
+  requestKey    String
+  manifestHash  String
+  requestedById String
+  requestedAt   DateTime  @default(now())
+  submittedAt   DateTime?
+  notes         String?
+
+  tenant      Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  requestedBy User                          @relation("CourseApprovalRequester", fields: [requestedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  items       CourseSpecificationApproval[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, requestKey])
+  @@index([tenantId, requestedAt])
+  @@map("course_spec_approval_batches")
+}
+
+model CourseSpecificationApproval {
+  id                  String                            @id @default(cuid())
+  tenantId            String
+  batchId             String
+  versionId           String
+  reviewId            String
+  contentHash         String
+  status              CourseSpecificationApprovalStatus @default(PENDING)
+  readinessExceptions Json                              @default("[]")
+  decidedById         String?
+  decidedAt           DateTime?
+  notes               String?
+  createdAt           DateTime                          @default(now())
+
+  tenant            Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  batch             CourseSpecificationApprovalBatch @relation(fields: [tenantId, batchId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  version           CourseSpecificationVersion       @relation("CourseVersionApprovals", fields: [tenantId, versionId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  review            CourseSpecificationReview        @relation(fields: [tenantId, versionId, reviewId, contentHash], references: [tenantId, versionId, id, contentHash], onDelete: Restrict, onUpdate: Restrict, map: "course_approval_review_snapshot_fk")
+  decidedBy         User?                            @relation("CourseApprovalActor", fields: [decidedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  currentForVersion CourseSpecificationVersion?      @relation("CurrentCourseVersionApproval")
+  publications CourseSpecificationPublication[] @relation("CourseApprovalPublications")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, versionId, id])
+  @@unique([tenantId, batchId, versionId])
+  @@index([tenantId, versionId, createdAt])
+  @@index([tenantId, status])
+  @@map("course_spec_approvals")
+}
+
+model CourseSpecificationPublication {
+  id                String                         @id @default(cuid())
+  tenantId          String
+  versionId         String
+  approvalId        String
+  projectionVersion String
+  projectionHash    String?
+  status            SpecificationPublicationStatus @default(PENDING)
+  requestedById     String
+  requestedAt       DateTime                       @default(now())
+  publishedById     String?
+  publishedAt       DateTime?
+  errorMessage      String?
+
+  tenant      Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  version     CourseSpecificationVersion  @relation("CourseVersionPublication", fields: [tenantId, versionId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  approval    CourseSpecificationApproval @relation("CourseApprovalPublications", fields: [tenantId, versionId, approvalId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_publication_approval_fk")
+  requestedBy User                        @relation("CoursePublicationRequester", fields: [requestedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  publishedBy User?                       @relation("CoursePublicationActor", fields: [publishedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  template    CourseTemplate?             @relation("CoursePublicationTemplate")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, versionId])
+  @@unique([tenantId, versionId, id])
+  @@index([tenantId, status])
+  @@map("course_spec_publications")
+}
+
+/// الملف والإصدار الرسمي للبرنامج كاملًا؛ يحتوي عدة مقررات.
+/// يرتبط بمصدر الجامعة وقرار اعتماده؛ يدعم المسار القديم قبل الاستخراج. بعد APPROVED يصبح السجل ثابتًا.
+model ProgramSpecification {
+  id                  String                        @id @default(cuid())
+  tenantId            String
+  programId           String
+  sourceId            String?
+  sourceProgramKey    String?
+  title               String
+  version             String
+  issuedAt            DateTime?
+  sourceFileId        String
+  sourceUrl           String?
+  sourceFileSha256    String
+  extractionStatus    SpecificationExtractionStatus @default(PENDING)
+  reviewStatus        SpecificationReviewStatus     @default(NOT_STARTED)
+  approvalStatus      SpecificationApprovalStatus   @default(NOT_REQUESTED)
+  currentExtractionId String?
+  currentReviewId     String?
+  currentApprovalId   String?
+  createdAt           DateTime                      @default(now())
+
+  source SpecificationSource? @relation(fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  program    Program   @relation(fields: [tenantId, programId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  sourceFile FileAsset @relation(fields: [tenantId, sourceFileId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  extractions ProgramSpecificationExtraction[] @relation("SpecificationExtractions")
+  reviews     ProgramSpecificationReview[]     @relation("SpecificationReviews")
+  approvals   ProgramSpecificationApproval[]   @relation("SpecificationApprovals")
+
+  currentExtraction ProgramSpecificationExtraction? @relation("CurrentSpecificationExtraction", fields: [tenantId, sourceId, currentExtractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentReview     ProgramSpecificationReview?     @relation("CurrentSpecificationReview", fields: [tenantId, sourceId, currentReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentApproval   ProgramSpecificationApproval?   @relation("CurrentSpecificationApproval", fields: [tenantId, sourceId, currentApprovalId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  publication     ProgramSpecificationPublication?
+  courseTemplates CourseTemplate[]
+  curriculumCourses CurriculumCourse[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, programId, id], map: "curriculum_program_spec_parent_key")
+  @@unique([tenantId, programId, sourceProgramKey, version])
+  @@unique([tenantId, sourceId, sourceProgramKey, version])
+  @@index([tenantId, sourceId])
+  @@unique([tenantId, id, currentExtractionId])
+  @@unique([tenantId, id, currentReviewId])
+  @@unique([tenantId, id, currentApprovalId])
+  @@index([tenantId])
+  @@index([tenantId, sourceFileId])
+  @@map("program_specifications")
+}
+
+model ProgramSpecificationExtraction {
+  id                     String                        @id @default(cuid())
+  tenantId               String
+  sourceId               String?
+  programSpecificationId String?
+  attempt                Int
+  status                 SpecificationExtractionStatus @default(PENDING)
+  requestedById          String
+  model                  String?
+  promptVersion          String
+  schemaVersion          String
+  rawOutput              Json?
+  extractedData          Json?
+  errorMessage           String?
+  createdAt              DateTime                      @default(now())
+  startedAt              DateTime?
+  finishedAt             DateTime?
+
+  specification ProgramSpecification?         @relation("SpecificationExtractions", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentFor    ProgramSpecification[]        @relation("CurrentSpecificationExtraction")
+  reviews       ProgramSpecificationReview[]
+  courseSpecificationVersions CourseSpecificationVersion[] @relation("CourseVersionExtraction")
+
+  source SpecificationSource? @relation("SourceExtractions", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentSource SpecificationSource? @relation("CurrentSourceExtraction")
+
+  @@unique([tenantId, sourceId, id])
+  @@unique([tenantId, programSpecificationId, id])
+  @@unique([tenantId, programSpecificationId, attempt])
+  @@unique([tenantId, sourceId, attempt])
+  @@index([tenantId, status])
+  @@map("program_spec_extractions")
+}
+
+/// reviewedData تحفظ بيانات البرنامج وعدة مقررات، ومواضيعها وخطة التقييم الرسمية.
+/// المراجعة COMPLETED ثابتة؛ تعديلها ينشئ revision جديدة.
+model ProgramSpecificationReview {
+  id                     String                    @id @default(cuid())
+  tenantId               String
+  sourceId               String?
+  programSpecificationId String?
+  extractionId           String
+  revision               Int
+  status                 SpecificationReviewStatus @default(IN_REVIEW)
+  draftData              Json
+  reviewedData           Json?
+  contentHash            String?
+  reviewedById           String?
+  reviewedAt             DateTime?
+  notes                  String?
+  createdAt              DateTime                  @default(now())
+
+  specification ProgramSpecification?           @relation("SpecificationReviews", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  extraction    ProgramSpecificationExtraction? @relation(fields: [tenantId, sourceId, extractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentFor    ProgramSpecification[]          @relation("CurrentSpecificationReview")
+  approval      ProgramSpecificationApproval?
+
+  source SpecificationSource? @relation("SourceReviews", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentSource SpecificationSource? @relation("CurrentSourceReview")
+  derivedCourseReviews CourseSpecificationReview[] @relation("CourseReviewOrigin")
+
+  @@unique([tenantId, sourceId, id])
+  @@unique([tenantId, programSpecificationId, id])
+  @@unique([tenantId, programSpecificationId, revision])
+  @@unique([tenantId, sourceId, revision])
+  @@index([tenantId, status])
+  @@map("program_spec_reviews")
+}
+
+model ProgramSpecificationApproval {
+  id                     String                      @id @default(cuid())
+  tenantId               String
+  sourceId               String?
+  programSpecificationId String?
+  reviewId               String
+  contentHash            String
+  status                 SpecificationApprovalStatus @default(PENDING)
+  requestedById          String
+  requestedAt            DateTime                    @default(now())
+  decidedById            String?
+  decidedAt              DateTime?
+  notes                  String?
+
+  specification ProgramSpecification?              @relation("SpecificationApprovals", fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  review        ProgramSpecificationReview?       @relation(fields: [tenantId, sourceId, reviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentFor    ProgramSpecification[]             @relation("CurrentSpecificationApproval")
+  publications  ProgramSpecificationPublication[]
+
+  source SpecificationSource? @relation("SourceApprovals", fields: [tenantId, sourceId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentSource SpecificationSource? @relation("CurrentSourceApproval")
+
+  @@unique([tenantId, sourceId, id])
+  @@unique([tenantId, programSpecificationId, id])
+  @@unique([tenantId, programSpecificationId, reviewId])
+  @@unique([tenantId, sourceId, reviewId])
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@map("program_spec_approvals")
+}
+
+/// النشر يقرأ نسخة المراجعة المعتمدة؛ إنشاء القوالب وتسجيل PUBLISHED ذريّان.
+model ProgramSpecificationPublication {
+  id                     String                         @id @default(cuid())
+  tenantId               String
+  programSpecificationId String
+  approvalId             String
+  status                 SpecificationPublicationStatus @default(PENDING)
+  requestedById          String
+  requestedAt            DateTime                       @default(now())
+  publishedById          String?
+  publishedAt            DateTime?
+  errorMessage           String?
+
+  specification ProgramSpecification         @relation(fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  approval      ProgramSpecificationApproval @relation(fields: [tenantId, approvalId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  templates     CourseTemplate[]
+
+  @@unique([tenantId, programSpecificationId])
+  @@unique([tenantId, programSpecificationId, id])
+  @@index([tenantId, status])
+  @@map("program_spec_publications")
+}
+
+/// القالب المنشور ومواضيعه ثابتة؛ يُنشأ من المراجعة المعتمدة عند النشر.
+model CourseTemplate {
+  id                     String   @id @default(cuid())
+  tenantId               String
+  programSpecificationId String?
+  publicationId          String?
+  courseSpecificationVersionId String?
+  coursePublicationId String?
+  specificationType CourseSpecificationType?
+  projectionVersion String?
+  operationalPlan Json @default("{}")
+  code                   String
+  nameAr                 String?
+  nameEn                 String?
+  creditHours            Int
+  hasLab                 Boolean  @default(false)
+  spec                   Json     @default("{}")
+  /// خطة التقييم الرسمية: [{ method, weight?, timing?, outcomeCodes? }].
+  /// تُنسخ إلى Course.assessmentPlan؛ لا تُنسخ إلى gradeScheme ولا تُزامن معه.
+  assessmentPlan         Json     @default("[]")
+  sourcePages            Int[]    @default([])
+  publishedAt            DateTime @default(now())
+
+  specification ProgramSpecification?            @relation(fields: [tenantId, programSpecificationId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  publication   ProgramSpecificationPublication? @relation(fields: [tenantId, programSpecificationId, publicationId], references: [tenantId, programSpecificationId, id], onDelete: Restrict, onUpdate: Restrict)
+  courseSpecificationVersion CourseSpecificationVersion? @relation("CourseVersionTemplate", fields: [tenantId, courseSpecificationVersionId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  coursePublication CourseSpecificationPublication? @relation("CoursePublicationTemplate", fields: [tenantId, courseSpecificationVersionId, coursePublicationId], references: [tenantId, versionId, id], onDelete: Restrict, onUpdate: Restrict, map: "course_template_course_publication_fk")
+  topics        CourseTemplateTopic[]
+  courses       Course[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, programSpecificationId, code])
+  @@unique([tenantId, courseSpecificationVersionId])
+  @@unique([tenantId, courseSpecificationVersionId, coursePublicationId], map: "course_template_course_publication_key")
+  @@index([tenantId])
+  @@map("course_templates")
+}
+
+/// title وorderIndex وlearningOutcomes تُنسخ إلى Topic عند إنشاء مقرر الأستاذ.
+model CourseTemplateTopic {
+  id               String   @id @default(cuid())
+  tenantId         String
+  courseTemplateId String
+  title            String
+  orderIndex       Int
+  learningOutcomes String[] @default([])
+  sourcePages      Int[]    @default([])
+  kind OperationalTopicKind?
+  details String[] @default([])
+  contactHours Decimal? @db.Decimal(8, 2)
+
+  courseTemplate CourseTemplate @relation(fields: [tenantId, courseTemplateId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  copiedTopics   Topic[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, courseTemplateId, orderIndex])
+  @@index([tenantId])
+  @@map("course_template_topics")
+}
+
+model SpecificationSource {
+  id                   String                        @id @default(cuid())
+  tenantId             String
+  fileId               String
+  /// Nullable only for imported records whose original uploader is absent from this tenant.
+  uploadedById         String?
+  legacyImported       Boolean                       @default(false)
+  legacyUploadedById   String?
+  fileSha256           String
+  title                String?
+  sourceUrl            String?
+  extractionStatus     SpecificationExtractionStatus @default(PENDING)
+  reviewStatus         SpecificationReviewStatus     @default(NOT_STARTED)
+  approvalStatus       SpecificationApprovalStatus   @default(NOT_REQUESTED)
+  currentExtractionId  String?
+  currentReviewId      String?
+  currentApprovalId    String?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  file       FileAsset @relation(fields: [tenantId, fileId], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+  uploadedBy User?     @relation(fields: [tenantId, uploadedById], references: [tenantId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  extractions ProgramSpecificationExtraction[] @relation("SourceExtractions")
+  reviews     ProgramSpecificationReview[]     @relation("SourceReviews")
+  approvals   ProgramSpecificationApproval[]   @relation("SourceApprovals")
+
+  currentExtraction ProgramSpecificationExtraction? @relation("CurrentSourceExtraction", fields: [tenantId, id, currentExtractionId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentReview     ProgramSpecificationReview?     @relation("CurrentSourceReview", fields: [tenantId, id, currentReviewId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+  currentApproval   ProgramSpecificationApproval?   @relation("CurrentSourceApproval", fields: [tenantId, id, currentApprovalId], references: [tenantId, sourceId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  programSpecifications ProgramSpecification[]
+  courseSpecificationVersions CourseSpecificationVersion[]
+  courseSpecificationReviews CourseSpecificationReview[]
+
+  curriculumCourses CurriculumCourse[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, id, currentExtractionId])
+  @@unique([tenantId, id, currentReviewId])
+  @@unique([tenantId, id, currentApprovalId])
+  @@index([tenantId, fileSha256])
+  @@index([tenantId, uploadedById, createdAt])
+  @@map("specification_sources")
 }

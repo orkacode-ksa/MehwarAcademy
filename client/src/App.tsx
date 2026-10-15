@@ -16,6 +16,8 @@ const CoursesPage = page(
   () => import("./pages/faculty/CoursesPage.js"),
   "CoursesPage",
 );
+const CourseSourceWorkflow = page(() => import("./pages/faculty/CourseSourceWorkflow.js"), "CourseSourceWorkflow");
+const InstitutionSpecificationSources = page(() => import("./pages/owner/InstitutionSpecificationSources.js"), "InstitutionSpecificationSources");
 const CourseHomePage = page(
   () => import("./pages/faculty/CourseHomePage.js"),
   "CourseHomePage",
@@ -202,6 +204,7 @@ export function App() {
             <Route path="tasks" element={<TasksPage />} />
             <Route path="today" element={<TodayPage />} />
             <Route path="courses" element={<CoursesPage />} />
+            <Route path="courses/specification-sources/:sourceId" element={<CourseSourceWorkflow />} />
             <Route path="course/:id" element={<CourseHomePage />} />
             <Route path="course/:id/setup" element={<CourseSetupPage />} />
             <Route path="course/:id/grades" element={<GradesPage />} />
@@ -233,6 +236,8 @@ export function App() {
             {/* المالك */}
             <Route path="ohome" element={<OwnerHomePage />} />
             <Route path="institutions" element={<InstitutionsPage />} />
+            <Route path="institutions/:tenantId/specification-sources" element={<InstitutionSpecificationSources />} />
+            <Route path="institutions/:tenantId/specification-sources/:sourceId" element={<CourseSourceWorkflow />} />
             <Route path="institutions/:tenantId" element={<RegulationPage />} />
             <Route
               path="institutions/:tenantId/calendar"

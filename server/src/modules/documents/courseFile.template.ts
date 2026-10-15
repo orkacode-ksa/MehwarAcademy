@@ -1,10 +1,12 @@
 import { OUTCOME_DOMAINS, type CourseSpec } from "@mihwar/shared";
 import { getEmbeddedFontFaceCss } from "../../lib/fontsDataUri.js";
 import { escapeHtml } from "./gradeSheet.template.js";
+import { courseDisplayName } from "../../lib/courseName.js";
 
 export interface CourseFileData {
   code: string;
-  nameAr: string;
+  nameAr: string | null;
+  nameEn?: string | null;
   creditHours: number;
   term: string;
   teacherName: string;
@@ -120,7 +122,7 @@ th, .summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
 <div class="cover">
   <h1>ملف المقرر</h1>
-  <div class="meta"><strong>${e(d.code)} — ${e(d.nameAr)}</strong> · ${n(d.creditHours)} ساعات</div>
+  <div class="meta"><strong>${e(d.code)} — ${e(courseDisplayName(d))}</strong> · ${n(d.creditHours)} ساعات</div>
   <div class="meta">${e(d.term)} · أستاذ المقرر: ${e(d.teacherName)} · أُصدر ${d.generatedAt.getDate()}/${d.generatedAt.getMonth() + 1}/${d.generatedAt.getFullYear()}</div>
 </div>
 <div class="summary">اكتمل <strong>${n(done)}</strong> من <strong>${n(required.length)}</strong> بنود إلزامية حسب لائحة الجامعة.</div>

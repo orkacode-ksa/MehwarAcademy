@@ -5,7 +5,12 @@ export interface GradeComponent { key: string; label: string; weight: number }
 export interface Course {
   id: string;
   code: string;
-  nameAr: string;
+  nameAr: string | null;
+  nameEn?: string | null;
+  courseTemplateId?: string | null;
+  specificationType?: string | null;
+  projectionVersion?: string | null;
+  operationalPlan?: Record<string, unknown> | null;
   creditHours: number;
   hasLab: boolean;
   spec: Partial<CourseSpec>;

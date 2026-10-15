@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
+import { courseDisplayName } from "../../lib/courseName.js";
 import { requireTenantId } from "../../lib/tenantContext.js";
 import { campusToday, holidayOn, isEscalated, scheduledDates, weekdayOf, type AbsencePolicy, type Meeting } from "../rules/rules.js";
 export { startSession, endSession, getSessionRoster, saveAttendance } from "./session.service.js";
@@ -66,6 +67,7 @@ export async function getToday(workspaceId: string, date: string = campusToday()
       id: true,
       code: true,
       nameAr: true,
+      nameEn: true,
       semester: { select: { startDate: true, endDate: true, holidays: true } },
       topics: { where: { deletedAt: null }, orderBy: { orderIndex: "asc" }, select: { id: true, title: true } },
       sections: {
@@ -130,7 +132,7 @@ export async function getToday(workspaceId: string, date: string = campusToday()
           sectionId: s.id,
           courseId: c.id,
           courseCode: c.code,
-          courseName: c.nameAr,
+          courseName: courseDisplayName(c),
           sectionLabel: s.label,
           start: m.start,
           end: m.end,

@@ -1,8 +1,11 @@
 import { getEmbeddedFontFaceCss } from "../../lib/fontsDataUri.js";
 
+import { courseDisplayName } from "../../lib/courseName.js";
+
 export interface GradeSheetData {
   courseCode: string;
-  courseNameAr: string;
+  courseNameAr: string | null;
+  courseNameEn?: string | null;
   sectionLabel: string;
   teacherName: string;
   generatedAt: Date;
@@ -108,7 +111,7 @@ tr:nth-child(even) { background: #FAFBFC; }
   <div class="header">
     <div>
       <div class="title">كشف الدرجات</div>
-      <div class="meta"><strong>${escapeHtml(data.courseCode)} — ${escapeHtml(data.courseNameAr)}</strong></div>
+      <div class="meta"><strong>${escapeHtml(data.courseCode)} — ${escapeHtml(courseDisplayName({ code: data.courseCode, nameAr: data.courseNameAr, nameEn: data.courseNameEn }))}</strong></div>
       <div class="meta">الشعبة: ${escapeHtml(data.sectionLabel)} · أستاذ المقرر: ${escapeHtml(data.teacherName)}</div>
     </div>
     <div class="meta">تاريخ الإصدار: ${formatDatePart(data.generatedAt.getDate())}/${formatDatePart(data.generatedAt.getMonth() + 1)}/${data.generatedAt.getFullYear()}</div>

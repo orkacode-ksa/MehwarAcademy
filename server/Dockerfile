@@ -29,7 +29,7 @@ COPY --from=build /repo/server/dist ./dist
 COPY --from=build /repo/server/prisma ./prisma
 COPY --from=build /repo/server/assets ./assets
 COPY --from=build /repo/server/package.json ./package.json
-COPY --from=build /repo/server/scripts ./scripts
+COPY --from=build /repo/server/scripts/start.sh ./scripts/start.sh
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 EXPOSE 4000
