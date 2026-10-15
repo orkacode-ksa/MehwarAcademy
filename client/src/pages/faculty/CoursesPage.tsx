@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createCourseSchema, normalizeCourseCode } from "@mihwar/shared";
 import { api, ApiError } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
@@ -10,112 +10,114 @@ import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import { NewCourseFromTemplateForm } from "./NewCourseFromTemplateForm.js";
 import { AcademicSpecificationSources } from "./AcademicSpecificationSources.js";
+import { OperationalCourseCard, type CourseListItem } from "./OperationalCourseCard.js";
 
-interface SetupStep { key: string; label: string; done: boolean }
-interface Course {
-  id: string;
-  code: string;
-  nameAr: string;
-  creditHours: number;
-  hasLab: boolean;
-  semester: { id: string; label: string; status: string };
-  setup: { done: number; total: number; next: { key: string; label: string } | null; steps: SetupStep[] };
-}
 interface Term { id: string; label: string }
 
 /**
  * مقرراتي — أول شاشة يلمسها الأستاذ.
  *
- * كل بطاقة تقول **أين هو وما التالي**: «الخطوة ٣ من ٦ — التالي: توزيع الدرجات».
- * هذا هو جواب «لم أستطع التحرّك شبرًا»: لا يُطلب منه أن يستنتج ما ينقصه من تسعة
- * تبويبات مفتوحة، بل يُقال له.
+ * بطاقات مختصرة بحالة وخطوة تالية واحدة؛ تفاصيل التجهيز داخل صفحة المقرر.
  */
 export function CoursesPage() {
-  const { data: courses, loading, error, reload } = useApi<Course[]>("/workspaces/me/academic/courses");
+  const navigate = useNavigate();
+  const [search, setSearch] = useSearchParams();
+  const sourcesMode = search.get("sources") === "1";
+  const creating = search.get("new") === "1";
+  const [visited, setVisited] = useState({ courses: !sourcesMode, sources: sourcesMode });
+  const coursesMounted = !sourcesMode || visited.courses;
+  const sourcesMounted = sourcesMode || visited.sources;
+  const { data: courses, loading, error, reload } = useApi<CourseListItem[]>(coursesMounted ? "/workspaces/me/academic/courses" : null);
+  const semesterId = search.get("semester") ?? "";
+  const semesters = [...new Map((courses ?? []).map((course) => [course.semester.id, course.semester])).values()];
+  const visibleCourses = (courses ?? []).filter((course) => !semesterId || course.semester.id === semesterId);
   const { showToast } = useToast();
-  const [open, setOpen] = useState<"templates" | "sources" | null>(null);
+  useEffect(() => {
+    setVisited((current) => sourcesMode
+      ? current.sources ? current : { ...current, sources: true }
+      : current.courses ? current : { ...current, courses: true });
+  }, [sourcesMode]);
+
+  function selectMode(sources: boolean) {
+    setSearch((current) => {
+      const next = new URLSearchParams(current);
+      if (sources) next.set("sources", "1"); else next.delete("sources");
+      // Keep a pending template selection when switching modes. Cancel explicitly clears it.
+      return next;
+    });
+  }
+  function selectTemplates(show: boolean, replace = false) {
+    setSearch((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("sources");
+      if (show) next.set("new", "1"); else next.delete("new");
+      return next;
+    }, { replace });
+  }
+  function selectSemester(id: string) {
+    setSearch((current) => {
+      const next = new URLSearchParams(current);
+      if (id) next.set("semester", id); else next.delete("semester");
+      return next;
+    });
+  }
 
   return (
-    <>
+    <div dir="rtl">
       <PageHeader
-        title="مقرراتي"
-        description="كل مقرر يعرض موضعه في التجهيز وما ينقصه."
-        actions={
-          open ? undefined : (
-            <>
-              <Button variant="primary" data-tour="add-course" onClick={() => setOpen("templates")}>
-                <Icon name="plus" /> مقرر جديد
-              </Button>
-              <Button variant="secondary" onClick={() => setOpen("sources")}>
-                <Icon name="file" /> التوصيفات المرفوعة
-              </Button>
-            </>
-          )
-        }
+        title={sourcesMode ? "التوصيفات الأكاديمية" : "مقرراتي"}
       />
 
-      {open === "templates" && (
+      <div role="group" aria-label="عرض المقررات والتوصيفات" className="inline-flex max-w-full gap-1 p-1 mb-5 bg-paper border border-line rounded-xl">
+        <Button variant={!sourcesMode ? "primary" : "text"} aria-pressed={!sourcesMode} aria-controls="courses-view" onClick={() => selectMode(false)}>مقرراتي</Button>
+        <Button variant={sourcesMode ? "primary" : "text"} aria-pressed={sourcesMode} aria-controls="sources-view" onClick={() => selectMode(true)}>التوصيفات الأكاديمية</Button>
+      </div>
+
+      {/* Visited panels stay mounted to preserve file inputs and drafts; hidden removes the inactive view from sight and accessibility. */}
+      <section id="courses-view" aria-label="مقرراتي" hidden={sourcesMode}>
+      {coursesMounted && <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+        <label className="block w-full sm:w-64">
+          <span className="block text-[12px] font-medium mb-1.5">الفصل الدراسي</span>
+          <select aria-label="تصفية المقررات حسب الفصل الدراسي" value={semesterId} onChange={(event) => selectSemester(event.target.value)}
+            disabled={loading && !courses} className="w-full border border-line rounded-[11px] px-3 py-2.5 bg-surface text-[13px]">
+            <option value="">كل الفصول</option>
+            {semesterId && !semesters.some((semester) => semester.id === semesterId) && <option value={semesterId}>الفصل المختار</option>}
+            {semesters.map((semester) => <option key={semester.id} value={semester.id}>{semester.label}</option>)}
+          </select>
+        </label>
+        <Button variant="primary" data-tour="add-course" disabled={creating} onClick={() => selectTemplates(true)}><Icon name="plus" /> مقرر جديد</Button>
+      </div>}
+      {creating && (
         <NewCourseFromTemplateForm
-          onCancel={() => setOpen(null)}
-          onUploadSpecification={() => setOpen("sources")}
-          onCreated={() => {
-            setOpen(null);
+          onCancel={() => selectTemplates(false)}
+          onUploadSpecification={() => selectMode(true)}
+          onCreated={(courseId) => {
+            selectTemplates(false, true);
             showToast("أُنشئ المقرر من القالب الأكاديمي");
             reload();
+            navigate(`/course/${courseId}`);
           }}
         />
       )}
 
-      {open === "sources" && (
-        <AcademicSpecificationSources onClose={() => setOpen(null)} onBrowseTemplates={() => setOpen("templates")} />
-      )}
-
+      {coursesMounted && <>
       {loading && <p className="text-sm text-ink-3">جارٍ التحميل…</p>}
       {error && <p className="text-sm text-crim">{error}</p>}
-      {courses?.length === 0 && !open && (
+      {courses?.length === 0 && !creating && (
         <p className="text-sm text-ink-3 py-10 text-center">لم تُضِف مقرراً بعد.</p>
       )}
 
-      <div className="grid gap-3 [&>*]:min-w-0">
-        {courses?.map((c) => (
-          <Link
-            key={c.id}
-            to={`/course/${c.id}`}
-            className="block bg-surface border border-line rounded-[14px] p-4 hover:border-line-strong hover:shadow-s1 transition-all"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <div className="font-semibold text-[15.5px] truncate">{c.nameAr}</div>
-                <div className="text-[12.5px] text-ink-3 mt-0.5">
-                  <span dir="ltr">{c.code}</span> · {formatNum(c.creditHours)} ساعات
-                  {c.hasLab ? " · بمعمل" : ""} · {c.semester.label}
-                </div>
-              </div>
-              <Icon name="arrl" className="w-4 h-4 text-ink-3 flex-none mt-1" />
-            </div>
-
-            <div className="mt-3.5">
-              <div className="flex items-center justify-between gap-3 text-[12.5px] mb-1.5">
-                {/* «اكتمل» لا «الخطوة»: العدد حصيلة لا موضع — والخطوات قد تكتمل بغير ترتيبها،
-                    فـ«الخطوة ٣» كانت تُقرأ كأنه واقف عند الثالثة وهي قد تكون منجزة. */}
-                <span className="text-ink-2">
-                  اكتمل {formatNum(c.setup.done)} من {formatNum(c.setup.total)}
-                </span>
-                <span className={c.setup.next ? "text-gold-text font-medium" : "text-teal font-medium"}>
-                  {c.setup.next ? `التالي: ${c.setup.next.label}` : "التجهيز مكتمل"}
-                </span>
-              </div>
-              {/* خانة لكل خطوة: ست خطوات فيُقرأ الموضع بلمحة بلا نسبة مئوية تحتاج حسابًا */}
-              <div className="flex gap-1" aria-hidden>
-                {c.setup.steps.map((s) => (
-                  <span key={s.key} className={`h-1.5 flex-1 rounded-full ${s.done ? "bg-teal" : "bg-line"}`} />
-                ))}
-              </div>
-            </div>
-          </Link>
-        ))}
+      {!loading && !error && !!courses?.length && visibleCourses.length === 0 && <p role="status" className="text-sm text-ink-3 py-10 text-center">لا توجد مقررات في هذا الفصل.</p>}
+      <div aria-label="قائمة مقرراتي" className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+        {visibleCourses.map((course) => <OperationalCourseCard key={course.id} course={course} />)}
       </div>
-    </>
+      </>}
+      </section>
+
+      <section id="sources-view" aria-label="التوصيفات الأكاديمية" hidden={!sourcesMode}>
+        {sourcesMounted && <AcademicSpecificationSources onClose={() => selectMode(false)} onBrowseTemplates={() => selectTemplates(true)} />}
+      </section>
+    </div>
   );
 }
 

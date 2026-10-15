@@ -5,31 +5,19 @@ import { useApi } from "../../hooks/useApi.js";
 import { Button } from "../../components/ui/Button.js";
 import { Icon } from "../../icons/Icon.js";
 import { formatNum } from "../../lib/numerals.js";
+import { catalogContext, courseName, SPECIFICATION_TYPES, type CatalogTemplate } from "../../lib/academicWorkflow.js";
 
-interface AcademicContext { id: string; code: string; nameAr: string }
-interface CourseTemplate {
-  id: string;
-  code: string;
-  nameAr: string;
-  creditHours: number;
-  hasLab: boolean;
-  college: AcademicContext | null;
-  department: AcademicContext;
-  program: AcademicContext;
-  programSpecification: { id: string; title: string; version: string };
-  _count: { topics: number };
-}
+type CourseTemplate = CatalogTemplate;
 interface Term { id: string; label: string; status: string }
 
 const field = "w-full border border-line rounded-[10px] px-3 py-2.5 bg-surface text-[13.5px] disabled:opacity-50";
 
 function academicPath(template: CourseTemplate) {
-  return [template.college?.nameAr ?? "الكلية غير محددة", template.department.nameAr, template.program.nameAr,
-    `إصدار التوصيف ${template.programSpecification.version}`].join(" ← ");
+  return catalogContext(template);
 }
 
 export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecification }: {
-  onCancel: () => void; onCreated: () => void; onUploadSpecification: () => void;
+  onCancel: () => void; onCreated: (courseId: string) => void; onUploadSpecification: () => void;
 }) {
   const { data: templates, loading: templatesLoading, error: templatesError, reload: reloadTemplates } = useApi<CourseTemplate[]>("/workspaces/me/academic/course-templates");
   const { data: terms, loading: termsLoading, error: termsError, reload: reloadTerms } = useApi<Term[]>("/workspaces/me/academic/terms");
@@ -46,8 +34,8 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecifi
   const search = query.trim().toLocaleLowerCase("ar");
   const groups = new Map<string, { template: CourseTemplate; courses: CourseTemplate[] }>();
   for (const template of templates ?? []) {
-    if (search && !`${template.nameAr} ${template.code} ${academicPath(template)}`.toLocaleLowerCase("ar").includes(search)) continue;
-    const key = template.programSpecification.id;
+    if (search && !`${courseName(template)} ${template.nameEn || ""} ${template.code} ${academicPath(template)}`.toLocaleLowerCase("ar").includes(search)) continue;
+    const key = template.programSpecification?.id ?? template.id;
     const group = groups.get(key);
     if (group) group.courses.push(template);
     else groups.set(key, { template, courses: [template] });
@@ -64,8 +52,8 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecifi
     setBusy(true);
     setError(null);
     try {
-      await api.post("/workspaces/me/academic/courses/from-template", parsed.data);
-      onCreated();
+      const course = await api.post<{ id: string }>("/workspaces/me/academic/courses/from-template", parsed.data);
+      onCreated(course.id);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "تعذّر إنشاء المقرر — حاول مجددًا");
     } finally {
@@ -80,7 +68,7 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecifi
       <p className="text-[12.5px] text-ink-3 mt-1 mb-4">اختر مقررًا من القوالب الأكاديمية المنشورة في جامعتك، ثم اختر الفصل.</p>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border border-line rounded-[10px] bg-paper p-3 mb-4">
-        <p className="text-[12.5px] text-ink-2">لم تجد القالب المناسب؟ ارفع ملف التوصيف الرسمي لبرنامجك.</p>
+        <p className="text-[12.5px] text-ink-2">لم تجد مقررك؟ أضف ملف التوصيف الرسمي عبر التوصيفات الأكاديمية.</p>
         <Button type="button" variant="secondary" onClick={onUploadSpecification} disabled={busy}>
           <Icon name="up" /> رفع توصيف أكاديمي
         </Button>
@@ -109,8 +97,8 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecifi
           ) : (
             <ul className="grid gap-3 max-h-72 overflow-y-auto border border-line rounded-[10px] p-2">
               {[...groups.values()].map(({ template, courses }) => (
-                <li key={template.programSpecification.id}>
-                  <p className="text-[11.5px] text-ink-3 px-2 py-1.5 leading-relaxed">{academicPath(template)}</p>
+                <li key={template.programSpecification?.id ?? template.id}>
+                  <p className="text-[11.5px] text-ink-3 px-2 py-1.5 leading-relaxed"><bdi>{academicPath(template)}</bdi></p>
                   <ul className="grid gap-1">
                     {courses.map((course) => (
                       <li key={course.id}>
@@ -118,7 +106,8 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecifi
                           <input type="radio" name="templateId" value={course.id} checked={templateId === course.id}
                             onChange={() => { setTemplateId(course.id); setError(null); }} className="w-4 h-4 p-0 flex-none mt-1 accent-teal" />
                           <span className="min-w-0">
-                            <span className="block text-[13.5px] font-medium">{course.nameAr}</span>
+                            <span className="block text-[13.5px] font-medium"><bdi>{courseName(course)}</bdi></span>
+                            {course.specificationType && <span className="block text-[11.5px] text-ink-3">{SPECIFICATION_TYPES[course.specificationType] || "نوع غير محدد"}</span>}
                             <span className="block text-[12px] text-ink-3 mt-0.5"><bdi dir="ltr">{course.code}</bdi> · {formatNum(course.creditHours)} ساعات{course.hasLab ? " · بمعمل" : ""}</span>
                           </span>
                         </label>
@@ -136,12 +125,12 @@ export function NewCourseFromTemplateForm({ onCancel, onCreated, onUploadSpecifi
         <section aria-label="معاينة قالب المقرر" className="bg-paper border border-line rounded-[10px] p-3 mt-4">
           <h3 className="text-[13px] font-semibold mb-3">معاينة المقرر</h3>
           <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[12.5px] [&_dt]:text-ink-3 [&_dd]:mt-0.5 [&_dd]:font-medium">
-            <div className="col-span-2 sm:col-span-3"><dt>اسم المقرر</dt><dd>{selectedTemplate.nameAr}</dd></div>
+            <div className="col-span-2 sm:col-span-3"><dt>اسم المقرر</dt><dd><bdi>{courseName(selectedTemplate)}</bdi></dd></div>
             <div><dt>الرمز</dt><dd><bdi dir="ltr">{selectedTemplate.code}</bdi></dd></div>
             <div><dt>الساعات المعتمدة</dt><dd>{formatNum(selectedTemplate.creditHours)}</dd></div>
             <div><dt>المعمل</dt><dd>{selectedTemplate.hasLab ? "له معمل" : "بدون معمل"}</dd></div>
-            <div><dt>البرنامج</dt><dd>{selectedTemplate.program.nameAr}</dd></div>
-            <div><dt>إصدار التوصيف</dt><dd><bdi>{selectedTemplate.programSpecification.version}</bdi></dd></div>
+            <div><dt>القسم المالك</dt><dd>{selectedTemplate.ownerDepartment?.nameAr || "غير محدد"}</dd></div>
+            <div className="col-span-2"><dt>السياق الأكاديمي والإصدار</dt><dd><bdi>{academicPath(selectedTemplate)}</bdi></dd></div>
             <div><dt>عدد المواضيع</dt><dd>{formatNum(selectedTemplate._count.topics)}</dd></div>
           </dl>
         </section>

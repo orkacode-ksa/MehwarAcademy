@@ -1,5 +1,5 @@
 import { Prisma, type CourseSpecificationType } from "@prisma/client";
-import { courseWorkflowDataSchema, normalizeCourseCode, COURSE_WORKFLOW_DATA_VERSION, type CourseWorkflowData } from "@mihwar/shared";
+import { courseWorkflowDataSchema, normalizeCourseCode, isSpecificationPlaceholder, COURSE_WORKFLOW_DATA_VERSION, type CourseWorkflowData } from "@mihwar/shared";
 import { withTenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { editableVersion, versionAccess, workflowActor, workflowAudit } from "./courseWorkflow.access.js";
@@ -38,6 +38,7 @@ export async function openCourseReview(userId: string, versionId: string, revisi
     const resolvedCode = (version.provenance as Record<string, Prisma.JsonValue> | null)?.identityResolution;
     const identity = resolvedCode ? await tx.academicCourse.findFirstOrThrow({ where: { tenantId, id: version.academicCourseId } }) : null;
     const data = courseWorkflowDataSchema.parse({ ...(seed as object), ...(identity ? { courseCode: identity.code } : {}),
+      ...(!current && !version.supersedesId ? { version: version.officialVersion } : {}),
       courseKey: version.sourceCourseKey, status: "IN_REVIEW", specificationType: version.specificationType });
     const max = await tx.courseSpecificationReview.aggregate({ where: { tenantId, versionId }, _max: { revision: true } });
     const review = await tx.courseSpecificationReview.create({ data: { tenantId, sourceId: version.sourceId, versionId,
@@ -71,7 +72,8 @@ export async function saveCourseReview(userId: string, versionId: string, review
     const reviewReport = courseWorkflowReadiness(data, type ?? null, version.sourceCourseKey);
     await tx.courseSpecificationReview.update({ where: { id: reviewId }, data: { draftData: data as Prisma.InputJsonValue,
       notes: input.notes, sourcePages: data.sourcePages, readinessReport: reviewReport } });
-    await tx.courseSpecificationVersion.update({ where: { id: versionId }, data: { specificationType: type } });
+    await tx.courseSpecificationVersion.update({ where: { id: versionId }, data: { specificationType: type,
+      officialVersion: isSpecificationPlaceholder(data.version) ? null : data.version } });
     await workflowAudit(tx, tenantId, userId, "COURSE_REVIEW_SAVE", reviewId, { versionId });
   });
   return getCourseReview(userId, versionId, reviewId);

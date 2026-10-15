@@ -7,7 +7,6 @@ import { uploadFile, readFile } from "../files/files.service.js";
 import { mayReadSpecificationSource, specificationCapabilities } from "./specificationSources.policy.js";
 import { sourceUploadMetadataSchema } from "./specificationSources.schemas.js";
 import { extractionProgress } from "./specificationExtraction.progress.js";
-import { developmentReviewPreviewAvailable } from "./specificationReview.preview.js";
 import { courseSourceSummary, courseSummarySelect } from "./courseWorkflow.readModels.js";
 import { courseSourceNeedsReview } from "./courseWorkflow.sourceAdmission.js";
 
@@ -26,7 +25,7 @@ const sourceSelect = {
 type SourceSummary = Prisma.SpecificationSourceGetPayload<{ select: typeof sourceSelect }>;
 function sourceView(source: SourceSummary) {
   const { courseSpecificationVersions, ...legacySource } = source;
-  const base = { ...legacySource, courseWorkflowSummary: courseSourceSummary(courseSpecificationVersions), developmentReviewPreviewAvailable: developmentReviewPreviewAvailable(source.fileSha256) };
+  const base = { ...legacySource, courseWorkflowSummary: courseSourceSummary(courseSpecificationVersions) };
   if (!source.currentExtraction) return { ...base, currentExtraction: null };
   const { rawOutput, ...attempt } = source.currentExtraction;
   return { ...base, currentExtraction: { ...attempt, progress: extractionProgress(attempt.status, rawOutput) } };

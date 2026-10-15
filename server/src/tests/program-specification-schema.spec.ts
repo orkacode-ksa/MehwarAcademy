@@ -3,6 +3,11 @@ import crypto from "node:crypto";
 import { prisma, prismaBase, type TenantTx } from "../lib/prisma.js";
 import { type TenantScopedModel } from "../lib/tenantScope.js";
 
+function required<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined) throw new Error("Missing test fixture value");
+  return value;
+}
+
 const CATALOG = [
   ["College", "colleges", "college"],
   ["Program", "programs", "program"],
@@ -62,7 +67,7 @@ async function seedSpecification(
   const template = await tx.courseTemplate.create({
     data: {
       tenantId, programSpecificationId: specification.id, publicationId: publication.id,
-      code: "CS101", nameAr: "Introduction", creditHours: 3, spec: snapshot.courses[0]!.spec, assessmentPlan,
+      code: "CS101", nameAr: "Introduction", creditHours: 3, spec: required(snapshot.courses[0]).spec, assessmentPlan,
     },
   });
   const templateTopic = await tx.courseTemplateTopic.create({
@@ -256,7 +261,7 @@ describe("program specification schema and tenant isolation", () => {
         data: {
           tenantId: a.tenantId, workspaceId: a.workspace.id, semesterId: a.semester.id,
           courseTemplateId: template.id, code: template.code, nameAr: template.nameAr,
-          creditHours: template.creditHours, spec: template.spec!, assessmentPlan: template.assessmentPlan!,
+          creditHours: template.creditHours, spec: required(template.spec), assessmentPlan: required(template.assessmentPlan),
           gradeScheme: operationalGrades,
           topics: {
             create: template.topics.map((topic) => ({
@@ -271,7 +276,7 @@ describe("program specification schema and tenant isolation", () => {
     expect(course.assessmentPlan).toEqual(assessmentPlan);
     expect(course.gradeScheme).toEqual(operationalGrades);
     expect(course.topics).toHaveLength(1);
-    const copiedTopic = course.topics[0]!;
+    const copiedTopic = required(course.topics[0]);
     expect(copiedTopic).toMatchObject({ title: "Foundations", orderIndex: 0, learningOutcomes: ["CLO1"], sourceTemplateTopicId: published.templateTopic.id });
     await inTenant(a.tenantId, async (tx) => {
       await tx.course.update({ where: { id: course.id }, data: { assessmentPlan: [] } });

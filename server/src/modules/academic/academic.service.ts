@@ -125,8 +125,10 @@ export async function listCourses(workspaceId: string, semesterId?: string) {
   return courses.map((c) => ({
     ...c,
     setup: computeSetupProgress({
-      specComplete: isSpecComplete(c.spec as Partial<CourseSpec>),
+      specComplete: isSpecComplete(c.spec as Partial<CourseSpec>) || !!(c.courseTemplateId && c.projectionVersion),
       topics: c._count.topics,
+      operationalPlanComplete: !!(c.courseTemplateId && c.projectionVersion && c.specificationType && c.specificationType !== "STANDARD_COURSE"
+        && c.operationalPlan && typeof c.operationalPlan === "object" && !Array.isArray(c.operationalPlan) && "data" in c.operationalPlan),
       sections: c._count.sections,
       gradeScheme: c.gradeScheme,
       gradeSchemeConfirmedAt: c.gradeSchemeConfirmedAt,

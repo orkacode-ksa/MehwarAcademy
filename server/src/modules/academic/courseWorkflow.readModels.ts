@@ -22,7 +22,7 @@ export async function listSourceCourseVersions(userId: string, sourceId: string)
   return withTenantTx(async (tx, tenantId) => {
     await sourceAccess(tx, tenantId, sourceId, cap);
     const versions = await tx.courseSpecificationVersion.findMany({ where: { tenantId, sourceId }, orderBy: [{ academicCourseId: "asc" }, { revisionNumber: "asc" }],
-      include: { academicCourse: true, currentReview: { select: { id: true, status: true } }, currentApproval: true, publication: true } });
+      include: { academicCourse: { include: { ownerDepartment: { select: { id: true, nameAr: true } } } }, currentReview: { select: { id: true, status: true } }, currentApproval: true, publication: true } });
     return { items: versions, summary: courseSourceSummary(versions) };
   });
 }
@@ -31,7 +31,7 @@ export async function getCourseVersion(userId: string, versionId: string) {
   return withTenantTx(async (tx, tenantId) => {
     const version = await versionAccess(tx, tenantId, versionId, cap);
     const detail = await tx.courseSpecificationVersion.findFirstOrThrow({ where: { tenantId, id: versionId },
-      include: { academicCourse: true, currentReview: true, reviews: { where: { tenantId }, orderBy: { revision: "desc" } },
+      include: { academicCourse: { include: { ownerDepartment: { select: { id: true, nameAr: true } } } }, currentReview: true, reviews: { where: { tenantId }, orderBy: { revision: "desc" } },
         currentApproval: true, approvals: { where: { tenantId }, orderBy: { createdAt: "desc" } }, publication: { include: { template: true } } } });
     return { ...detail, academicContexts: (version.provenance as Record<string, Prisma.JsonValue> | null)?.contexts ?? {},
       readiness: courseWorkflowReadiness(detail.currentReview?.reviewedData ?? detail.currentReview?.draftData ?? version.extractedData, version.specificationType, version.sourceCourseKey) };

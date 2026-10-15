@@ -12,6 +12,7 @@ import { SectionsStep } from "../../components/setup/SectionsStep.js";
 import { GradesStep } from "../../components/setup/GradesStep.js";
 import { MaterialsStep } from "../../components/setup/MaterialsStep.js";
 import { AssessmentsStep } from "../../components/setup/AssessmentsStep.js";
+import { courseName } from "../../lib/academicWorkflow.js";
 
 /**
  * مسار تجهيز المقرر — ست خطوات، **خطوة واحدة على الشاشة**.
@@ -52,7 +53,7 @@ export function CourseSetupPage() {
     <>
       <PageHeader
         kicker="تجهيز المقرر"
-        title={course.nameAr}
+        title={courseName(course)}
         description={`${course.code} · اكتمل ${formatNum(course.setup.done)} من ${formatNum(course.setup.total)}`}
         actions={
           <Link to={`/course/${course.id}`} className="text-[13px] text-deep font-medium px-3 py-2">

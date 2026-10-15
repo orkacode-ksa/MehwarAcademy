@@ -14,11 +14,10 @@ interface Review {
   extractedCourseSpecifications: ReviewedCourseSpecification[];
   extractionMetadata: { warnings: { code: string; message: string; sourcePages: number[] }[];
     uncertainty: { kind: string; field: string; message: string; sourcePages: number[] }[] };
-  preview?: { sampleOnly: boolean; savedChunks: number; totalChunks: number };
 }
 
-export function AcademicSpecificationReview({ sourceId, fileName, reviewId, preview = false, onClose }: {
-  sourceId: string; fileName: string; reviewId?: string; preview?: boolean; onClose: () => void;
+export function AcademicSpecificationReview({ sourceId, fileName, reviewId, onClose }: {
+  sourceId: string; fileName: string; reviewId?: string; onClose: () => void;
 }) {
   const base = `/workspaces/me/academic/specification-sources/${sourceId}`;
   const [review, setReview] = useState<Review | null>(null);
@@ -36,8 +35,7 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
   useEffect(() => {
     let alive = true;
     setLoading(true); setError(null);
-    const request = preview ? api.get<Review>(`${base}/reviews/preview`)
-      : loadedReviewId.current ? api.get<Review>(`${base}/reviews/${loadedReviewId.current}`) : api.post<Review>(`${base}/reviews`, {});
+    const request = loadedReviewId.current ? api.get<Review>(`${base}/reviews/${loadedReviewId.current}`) : api.post<Review>(`${base}/reviews`, {});
     request.then((data) => {
       if (!alive) return;
       loadedReviewId.current = data.id;
@@ -47,11 +45,11 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
     }).catch((err: unknown) => { if (alive) setError(err instanceof ApiError ? err.message : "تعذّر تحميل المراجعة"); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [base, reviewId, preview, tick]);
+  }, [base, reviewId, tick]);
 
   function accept(data: Review) { loadedReviewId.current = data.id; setReview(data); setDraft(data.reviewedData ?? data.draftData); setDirty(false); }
   async function save(next = draft): Promise<boolean> {
-    if (!review || !next || preview || busy) return false;
+    if (!review || !next || busy) return false;
     setBusy(true); setError(null);
     try {
       const course = next.reviewedCourseSpecifications.find((item) => item.courseKey === selectedKey);
@@ -62,7 +60,7 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
     finally { setBusy(false); }
   }
   async function complete() {
-    if (!review || busy || dirty || preview) return;
+    if (!review || busy || dirty) return;
     setBusy(true); setError(null);
     try { const data = await api.post<Review>(`${base}/reviews/${review.id}/complete`, { expectedVersion: review.version });
       accept(data); showToast("اكتملت المراجعة؛ الاعتماد مرحلة لاحقة"); }
@@ -70,7 +68,7 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
     finally { setBusy(false); }
   }
   async function revision() {
-    if (!review || busy || preview) return;
+    if (!review || busy) return;
     setBusy(true); setError(null);
     try { accept(await api.post<Review>(`${base}/reviews`, { revisionOf: review.id })); showToast("فُتحت نسخة مراجعة جديدة؛ النسخة المكتملة محفوظة"); }
     catch (err) { setError(err instanceof ApiError ? err.message : "تعذّر فتح نسخة جديدة"); }
@@ -83,7 +81,7 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
   }
   async function selectCourse(courseKey: string) {
     if (busy || courseKey === selectedKey) return;
-    if (dirty && !preview && !completed && !await save()) return;
+    if (dirty && !completed && !await save()) return;
     setSelectedKey(courseKey);
   }
   async function markReady(course: ReviewedCourseSpecification) {
@@ -92,7 +90,6 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
     if (!readiness.ready) { setError(`مطلوب قبل الاعتماد: ${readiness.required.join("، ")}`); return; }
     const next: SpecificationReviewData = { ...draft, reviewedCourseSpecifications: draft.reviewedCourseSpecifications.map((item) => item.courseKey === course.courseKey
       ? { ...item, status: "READY" } : item) };
-    if (preview) { setDraft(next); setDirty(true); return; }
     await save(next);
   }
 
@@ -106,12 +103,9 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
     <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
       <div><h3 className="font-semibold text-[15px]">مراجعة التوصيف</h3><p className="text-[12px] text-ink-3 mt-1"><bdi>{fileName}</bdi></p></div>
       <Button type="button" size="sm" variant="text" disabled={busy} onClick={() => {
-        if (dirty && !preview && !completed) void save().then((saved) => { if (saved) onClose(); }); else onClose();
-      }}>{dirty && !preview && !completed ? "حفظ والرجوع" : "رجوع للملفات"}</Button>
+        if (dirty && !completed) void save().then((saved) => { if (saved) onClose(); }); else onClose();
+      }}>{dirty && !completed ? "حفظ والرجوع" : "رجوع للملفات"}</Button>
     </div>
-    {preview && <p role="status" className="text-[12.5px] p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
-      معاينة تطوير فقط لثلاثة مقررات من محتوى الـPDF الحقيقي. الاستخراج الفعلي ما زال غير مكتمل؛ لا تحفظ هذه المعاينة على المصدر ولا تكمل مراجعته.
-      يمكنك تجربة التصحيح والترتيب هنا. التعديلات في المعاينة مؤقتة.</p>}
     {loading && <p role="status" className="text-[13px] text-ink-3">جارٍ تحميل بيانات التوصيف…</p>}
     {error && <div role="alert" className="text-[12.5px] text-crim mb-3">{error}
       {!loading && <Button type="button" variant="text" size="sm" disabled={busy || dirty} onClick={() => setTick((value) => value + 1)}>إعادة تحميل المراجعة</Button>}
@@ -142,7 +136,7 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
               original={review.extractedCourseSpecifications.find((course) => course.courseKey === selected.courseKey)}
               fileUrl={pdfDownloadUrl(`${base}/file`)} readOnly={completed || busy} onChange={edit} />
             {!completed && <div className="flex flex-wrap gap-2 mt-4 border-t border-line pt-3">
-              <Button type="button" size="sm" variant="primary" disabled={busy || preview || !dirty} onClick={() => void save()}>حفظ المسودة</Button>
+              <Button type="button" size="sm" variant="primary" disabled={busy || !dirty} onClick={() => void save()}>حفظ المسودة</Button>
               <Button type="button" size="sm" variant="secondary" disabled={busy || !courseReviewReadiness(selected).ready} onClick={() => void markReady(selected)}>راجعت هذا المقرر — جاهز</Button>
             </div>}
           </>}
@@ -157,8 +151,8 @@ export function AcademicSpecificationReview({ sourceId, fileName, reviewId, prev
       </details>}
       <div className="mt-4 border-t border-line pt-3 flex flex-wrap gap-2 items-center justify-between">
         <p className="text-[12px] text-ink-3">إكمال المراجعة يثبت هذه النسخة. الاعتماد والنشر مرحلة لاحقة.</p>
-        {completed ? <Button type="button" variant="secondary" size="sm" disabled={busy || preview} onClick={() => void revision()}>إنشاء نسخة مراجعة جديدة</Button>
-          : <Button type="button" variant="primary" size="sm" disabled={busy || dirty || preview || ready !== courses.length || courses.length === 0} onClick={() => void complete()}>إكمال المراجعة</Button>}
+        {completed ? <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={() => void revision()}>إنشاء نسخة مراجعة جديدة</Button>
+          : <Button type="button" variant="primary" size="sm" disabled={busy || dirty || ready !== courses.length || courses.length === 0} onClick={() => void complete()}>إكمال المراجعة</Button>}
       </div>
     </>}
   </section>;

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { courseReviewReadiness, type ReviewedCourseSpecification } from "@mihwar/shared";
+import { courseReviewReadiness, type ReviewedCourseSpecification, type CourseWorkflowData } from "@mihwar/shared";
 import { Button } from "../../components/ui/Button.js";
 import { Input, Label, Select, Textarea } from "../../components/ui/Form.js";
 import { formatNum } from "../../lib/numerals.js";
+import { SPECIFICATION_TYPES } from "../../lib/academicWorkflow.js";
 
 type Course = ReviewedCourseSpecification;
 type TopicGroup = "theoreticalTopics" | "practicalTopics" | "unclassifiedTopics";
@@ -18,18 +19,18 @@ function TextList({ label, values, onChange }: { label: string; values: string[]
 
 function SourcePages({ pages, fileUrl }: { pages: number[]; fileUrl: string }) {
   return <p className="text-[11.5px] text-ink-3 mt-2">{pages.length ? <>صفحات المصدر: {pages.map((page, index) => <span key={page}>
-    {index > 0 && "، "}<a href={`${fileUrl}#page=${page}`} target="_blank" rel="noopener noreferrer" className="underline">{formatNum(page)}</a>
+    {index > 0 && "، "}<a href={fileUrl} target="_blank" rel="noopener noreferrer" title={`افتح الملف وانتقل إلى الصفحة ${page}`} className="underline">{formatNum(page)}</a>
   </span>)}</> : "إدخال الأستاذ — لم تُنسب له صفحات من الملف"}</p>;
 }
 
-export function SpecificationCourseEditor({ course, original, fileUrl, readOnly, onChange }: {
-  course: Course; original: Course | undefined; fileUrl: string; readOnly: boolean; onChange: (course: Course) => void;
+export function SpecificationCourseEditor({ course, original, fileUrl, readOnly, onChange, workflow = false, developerTools = false }: {
+  course: CourseWorkflowData; original: CourseWorkflowData | undefined; fileUrl: string; readOnly: boolean; onChange: (course: CourseWorkflowData) => void; workflow?: boolean; developerTools?: boolean;
 }) {
   const [section, setSection] = useState("basic");
   const readiness = courseReviewReadiness(course);
   const scalar = (key: keyof Course, label: string, recommended = false, numeric = false) => {
     const value = course[key]; const old = original?.[key];
-    const required = ["courseTitle", "courseCode", "creditHours"].includes(key);
+    const required = (workflow ? ["courseCode", "creditHours"] : ["courseTitle", "courseCode", "creditHours"]).includes(key);
     const empty = value === null || value === "";
     return <Label key={key} text={<>{label} {empty && <span className={required ? "text-crim" : "text-ink-3"}>· {required ? "مطلوب قبل الاعتماد" : recommended ? "يمكن استكماله" : "اختياري"}</span>}</>}>
       <Input type={numeric ? "number" : "text"} step={numeric ? key === "creditHours" ? "1" : "any" : undefined}
@@ -37,6 +38,7 @@ export function SpecificationCourseEditor({ course, original, fileUrl, readOnly,
         className={empty ? "border-amber-500/40 bg-amber-50/20" : ""} placeholder="غير محدد"
         value={typeof value === "string" || typeof value === "number" ? value : ""}
         onChange={(event) => onChange({ ...course, [key]: event.target.value === "" ? null : numeric ? Number(event.target.value) : event.target.value })} />
+      <span className="block text-[11px] text-ink-3 mt-1">{empty ? "ناقص / غير معروف" : old !== value ? "تم تعديله بواسطة المراجع" : "مستخرج من الملف"}</span>
       {old !== value && (typeof old === "string" || typeof old === "number") && <span className="block text-[11px] text-ink-3 mt-1">الأصل في الاستخراج: <bdi>{old}</bdi></span>}
     </Label>;
   };
@@ -52,12 +54,12 @@ export function SpecificationCourseEditor({ course, original, fileUrl, readOnly,
     onChange({ ...course, [group]: course[group].filter((_, position) => position !== index).map((item, orderIndex) => ({ ...item, orderIndex })),
       [target]: [...course[target], { ...topic, orderIndex: course[target].length }] });
   }
-  const tabs = [["basic", "البيانات الأساسية"], ["content", "محتوى المقرر"], ["outcomes", "مخرجات التعلم"], ["assessment", "خطة التقييم"], ["references", "المراجع"]];
+  const tabs = [["basic", "البيانات الأساسية"], ["content", "محتوى المقرر"], ["outcomes", "مخرجات التعلم"], ["assessment", "خطة التقييم"], ["references", "المراجع"], ...(workflow ? [["plan", "خطة التدريب / المشروع"]] : [])];
   return <div className="min-w-0">
-    <div className="mb-3 text-[12px]">
+    {!workflow && <div className="mb-3 text-[12px]">
       {readiness.required.length > 0 && <p className="text-crim">مطلوب قبل الاعتماد: {readiness.required.join("، ")}. يمكنك حفظ المسودة الآن.</p>}
       {readiness.recommended.length > 0 && <p className="text-ink-3 mt-1">يمكن استكماله: {readiness.recommended.join("، ")}.</p>}
-    </div>
+    </div>}
     <div role="tablist" aria-label="أقسام التوصيف" className="flex flex-wrap gap-1 mb-4 border-b border-line pb-2">
       {tabs.map(([key, title]) => <button key={key} type="button" role="tab" aria-selected={section === key}
         aria-controls={`review-panel-${course.courseKey}`} onClick={() => setSection(key ?? "basic")}
@@ -65,11 +67,16 @@ export function SpecificationCourseEditor({ course, original, fileUrl, readOnly,
     </div>
     <fieldset disabled={readOnly} id={`review-panel-${course.courseKey}`} className="min-w-0 space-y-4">
       {section === "basic" && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {scalar("courseTitle", "اسم المقرر")}{scalar("courseCode", "رمز المقرر")}{scalar("creditHours", "الساعات المعتمدة", false, true)}
+        {workflow ? <>{scalar("nameAr", "الاسم بالعربية")}{scalar("nameEn", "الاسم بالإنجليزية")}
+          <Label text="نوع توصيف المقرر"><Select value={course.specificationType ?? ""} onChange={(e) => onChange({ ...course, specificationType: (e.target.value || null) as CourseWorkflowData["specificationType"] })}>
+            <option value="">غير محدد</option>{Object.entries(SPECIFICATION_TYPES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Label></>
+          : scalar("courseTitle", "اسم المقرر")}
+        {scalar("courseCode", "رمز المقرر")}{scalar("creditHours", "الساعات المعتمدة", false, true)}
+        {workflow && scalar("version", "إصدار التوصيف الرسمي")}
         <Label text="هل للمقرر معمل؟"><Select value={course.hasLab === null ? "" : String(course.hasLab)}
           onChange={(event) => onChange({ ...course, hasLab: event.target.value === "" ? null : event.target.value === "true" })}>
           <option value="">غير محدد</option><option value="true">نعم</option><option value="false">لا</option></Select></Label>
-        {scalar("program", "البرنامج", true)}{scalar("track", "المسار", true)}{scalar("department", "القسم")}
+        {scalar("program", workflow ? "سياق البرنامج (نص مستخرج)" : "البرنامج", true)}{scalar("track", "المسار", true)}{scalar("department", workflow ? "القسم المستخرج (لا يغير الملكية)" : "القسم")}
         {scalar("level", "المستوى", true)}{scalar("year", "السنة")}
         <Label text="إجباري أم اختياري؟"><Select value={course.requiredOrElective ?? ""} onChange={(event) => onChange({ ...course,
           requiredOrElective: event.target.value === "REQUIRED" ? "REQUIRED" : event.target.value === "ELECTIVE" ? "ELECTIVE" : null })}>
@@ -153,11 +160,12 @@ export function SpecificationCourseEditor({ course, original, fileUrl, readOnly,
         <Button type="button" size="sm" variant="secondary" onClick={() => onChange({ ...course, references: { ...course.references,
           [group]: [...course.references[group], { id: humanId(), citation: "", type: group, sourcePages: [] }] } })}>إضافة مرجع</Button>
       </section>)}
+      {section === "plan" && <OperationalPlanEditor course={course} onChange={onChange} developerTools={developerTools} />}
       <details className="border-t border-line pt-3"><summary className="cursor-pointer text-[13px] font-medium">معلومات إضافية — اختيارية</summary>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           {scalar("institution", "الجامعة")}{scalar("college", "الكلية")}{scalar("programCode", "رمز البرنامج")}{scalar("programVersion", "إصدار البرنامج")}
-          {scalar("version", "إصدار توصيف المقرر")}{scalar("lastRevisionDate", "تاريخ آخر مراجعة")}{scalar("courseType", "نوع المقرر")}
-          {scalar("nameAr", "الاسم بالعربية")}{scalar("nameEn", "الاسم بالإنجليزية")}
+          {!workflow && scalar("version", "إصدار توصيف المقرر")}{scalar("lastRevisionDate", "تاريخ آخر مراجعة")}{scalar("courseType", "نوع المقرر")}
+          {!workflow && <>{scalar("nameAr", "الاسم بالعربية")}{scalar("nameEn", "الاسم بالإنجليزية")}</>}
           {scalar("theoreticalHours", "الساعات النظرية", false, true)}{scalar("practicalHours", "الساعات العملية", false, true)}
           {(["facilities", "qualityAssessment", "specificationApproval"] as const).map((key, index) => <Label key={key}
             text={["التجهيزات", "تقويم الجودة", "تفاصيل اعتماد التوصيف في المصدر"][index]}><Textarea value={course[key] ?? ""} onChange={(event) => onChange({ ...course, [key]: event.target.value || null })} /></Label>)}
@@ -165,5 +173,58 @@ export function SpecificationCourseEditor({ course, original, fileUrl, readOnly,
       </details>
     </fieldset>
     <SourcePages pages={course.sourcePages} fileUrl={fileUrl} />
+    <p className="text-[11.5px] text-ink-3 mt-1">يفتح الرابط الملف الأصلي؛ انتقل داخله إلى رقم الصفحة المعروض.</p>
   </div>;
+}
+
+const PLAN_LABELS: Record<string, string> = { activities: "الأنشطة", trainingOutcomes: "مخرجات التدريب", duration: "المدة", scope: "النطاق",
+  stages: "المراحل", deliverables: "التسليمات", supervision: "الإشراف" };
+
+function PlanValue({ value }: { value: unknown }) {
+  if (value === null || value === undefined) return <span>غير مذكور</span>;
+  if (Array.isArray(value)) return <ul className="space-y-1">{value.map((item, index) => <li key={index}><PlanValue value={item} /></li>)}</ul>;
+  if (typeof value === "object") return <dl className="space-y-2">{Object.entries(value).map(([key, item]) => <div key={key}>
+    <dt className="font-medium">{PLAN_LABELS[key] ?? key}</dt><dd><PlanValue value={item} /></dd></div>)}</dl>;
+  return <span className="whitespace-pre-wrap break-words">{typeof value === "boolean" ? value ? "نعم" : "لا" : String(value)}</span>;
+}
+
+function OperationalPlanEditor({ course, onChange, developerTools }: { course: CourseWorkflowData; onChange: (course: CourseWorkflowData) => void; developerTools: boolean }) {
+  const fields = ["activities", "trainingOutcomes", "duration", "scope", "stages", "deliverables", "supervision"] as const;
+  const update = (field: typeof fields[number], value: unknown) => onChange(course[field] !== undefined ? { ...course, [field]: value }
+    : { ...course, operationalPlan: { ...course.operationalPlan, [field]: value } });
+  return <section className="space-y-3 text-[13px]">
+    <p className="text-ink-3">أكمل البنود المناسبة لنوع التدريب أو المشروع. متطلبات الاعتماد موضحة في جاهزية المقرر؛ ليست جميع هذه البنود إلزامية.</p>
+    {fields.map((field) => {
+      const value = course[field] !== undefined ? course[field] : course.operationalPlan?.[field];
+      if (value === null || value === undefined || typeof value === "string" || typeof value === "number") return <Label key={field} text={PLAN_LABELS[field]}>
+        <Textarea aria-label={PLAN_LABELS[field]} value={value === null || value === undefined ? "" : String(value)} onChange={(event) => update(field, event.target.value.trim() ? typeof value === "number" && Number.isFinite(Number(event.target.value)) ? Number(event.target.value) : event.target.value : null)} /></Label>;
+      if (Array.isArray(value) && value.every((item) => typeof item === "string")) return <Label key={field} text={`${PLAN_LABELS[field]} — عنصر في كل سطر`}>
+        <Textarea aria-label={`${PLAN_LABELS[field]} — عنصر في كل سطر`} value={value.join("\n")} onChange={(event) => update(field, event.target.value.split("\n").filter((line) => line.trim()))} /></Label>;
+      return <details key={field} className="border border-line rounded-lg p-3"><summary>{PLAN_LABELS[field]} — بيانات منظمة محفوظة</summary>
+        <div className="mt-2 max-h-64 overflow-auto"><PlanValue value={value} /></div></details>;
+    })}
+    {Object.keys(course.operationalPlan ?? {}).some((key) => !fields.includes(key as typeof fields[number])) && <details className="border border-line rounded-lg p-3">
+      <summary>تفاصيل إضافية محفوظة من خطة التدريب أو المشروع</summary><div className="mt-2 max-h-64 overflow-auto"><PlanValue value={Object.fromEntries(Object.entries(course.operationalPlan ?? {}).filter(([key]) => !fields.includes(key as typeof fields[number])))} /></div>
+    </details>}
+    {import.meta.env.DEV && developerTools && <RawOperationalPlanEditor key={JSON.stringify({ ...course.operationalPlan, ...Object.fromEntries(fields.filter((field) => course[field] !== undefined).map((field) => [field, course[field]])) })} course={course} onChange={onChange} />}
+  </section>;
+}
+
+function RawOperationalPlanEditor({ course, onChange }: { course: CourseWorkflowData; onChange: (course: CourseWorkflowData) => void }) {
+  const fields = ["activities", "trainingOutcomes", "duration", "scope", "stages", "deliverables", "supervision"] as const;
+  const initial = { ...course.operationalPlan };
+  for (const field of fields) if (course[field] !== undefined) initial[field] = course[field];
+  const [text, setText] = useState(JSON.stringify(initial, null, 2));
+  const [error, setError] = useState<string | null>(null);
+  return <details className="space-y-3 text-[13px]"><summary>أدوات التطوير: تحرير بيانات الخطة المنظمة</summary>
+    <Label text="بيانات الخطة التشغيلية (JSON)"><Textarea dir="ltr" rows={12} value={text} onChange={(e) => { setText(e.target.value); setError(null); }} /></Label>
+    <Button type="button" size="sm" variant="secondary" onClick={() => {
+      try { const plan: unknown = JSON.parse(text); if (!plan || typeof plan !== "object" || Array.isArray(plan)) throw new Error();
+        const next = { ...course, operationalPlan: plan as Record<string, unknown> };
+        for (const field of fields) delete next[field];
+        onChange(next); setError(null);
+      } catch { setError("أدخل كائن JSON صالحًا ثم طبّق البيانات قبل حفظ المسودة"); }
+    }}>تطبيق بيانات الخطة</Button>
+    {error && <p role="alert" className="text-crim">{error}</p>}
+  </details>;
 }

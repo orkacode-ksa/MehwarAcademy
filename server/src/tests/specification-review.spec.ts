@@ -14,7 +14,7 @@ import { extractedSpecificationSchema, SPECIFICATION_PROMPT_VERSION, SPECIFICATI
 
 const app = createApp();
 const API = "/api/workspaces/me/academic/specification-sources";
-const sample = JSON.parse(await readFile(new URL("../dev/fixtures/botany-review.fixture.json", import.meta.url), "utf8")) as { extractedData: unknown };
+const sample = JSON.parse(await readFile(new URL("./fixtures/botany-review.fixture.json", import.meta.url), "utf8")) as { extractedData: unknown };
 const fixture = extractedSpecificationSchema.parse(sample.extractedData);
 const bytes = Buffer.from("%PDF-1.7\nAutomated review test fixture\n%%EOF");
 const required = <T>(value: T | null | undefined): T => { if (value === null || value === undefined) throw new Error("Missing fixture"); return value; };
@@ -203,7 +203,7 @@ describe("source review API and immutable snapshots", () => {
   it("cannot review a failed/partial extraction and does not silently use the development fixture", async () => {
     const uploaded = await source(fixture, "FAILED");
     expect((await teacher.agent.post(`${API}/${uploaded.id}/reviews`).send({})).status).toBe(409);
-    expect((await teacher.agent.get(`${API}/${uploaded.id}/reviews/preview`)).status).toBe(404);
+    expect((await teacher.agent.get(`${API}/${uploaded.id}/reviews/preview`)).status).toBe(400);
     await inTenant(teacher.tenantId, async (tx) => { expect(await tx.programSpecificationReview.count({ where: { sourceId: uploaded.id } })).toBe(0); });
   });
   it("rejects arbitrary ownership/extraction fields in review payloads", async () => {

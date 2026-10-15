@@ -15,6 +15,7 @@ import * as publications from "./courseWorkflow.publications.js";
 import * as reads from "./courseWorkflow.readModels.js";
 import { linkCourseCurriculum } from "./courseWorkflow.curriculum.js";
 import { listPublishedCourseTemplates } from "./courseTemplates.service.js";
+import { workflowActor } from "./courseWorkflow.access.js";
 
 const empty = z.object({}).strict();
 const params = (shape: Record<string, z.ZodTypeAny>) => z.object(shape).passthrough();
@@ -22,6 +23,11 @@ const source = params({ sourceId: cuidSchema }), version = params({ versionId: c
 const review = params({ versionId: cuidSchema, reviewId: cuidSchema }), batch = params({ batchId: cuidSchema });
 export const courseWorkflowRouter = Router({ mergeParams: true });
 const r = courseWorkflowRouter;
+r.get("/capabilities", validate({ query: empty }), asyncHandler(async (req, res) => {
+  const cap = await workflowActor(actor(req));
+  res.json({ success: true, data: { canReview: cap.uploadSources || cap.reviewSources, canApprove: cap.approveSources,
+    canPublish: cap.publishSources, canResolve: cap.resolveAcademicEntities } });
+}));
 r.get("/specification-sources/:sourceId/course-candidates", validate({ params: source, query: z.object({ extractionId: cuidSchema.optional() }).strict() }),
   asyncHandler(async (req, res) => res.json({ success: true, data: await ingestion.normalizedSourceCandidates(actor(req), req.params.sourceId as string, req.query.extractionId as string | undefined) })));
 r.get("/specification-sources/:sourceId/course-versions", validate({ params: source, query: empty }),

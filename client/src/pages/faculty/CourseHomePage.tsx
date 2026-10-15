@@ -10,6 +10,7 @@ import { Icon, type IconName } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
 import { W, type Course, type Section } from "../../components/setup/types.js";
+import { courseName, SPECIFICATION_TYPES } from "../../lib/academicWorkflow.js";
 
 interface QualityFile { requiredDone: number; requiredTotal: number }
 interface Term { id: string; label: string }
@@ -62,13 +63,18 @@ export function CourseHomePage() {
     <>
       <PageHeader
         kicker={`${course.code} · ${course.semester.label}`}
-        title={course.nameAr}
+        title={courseName(course)}
         actions={
           <Link to="/courses" className="text-[13px] text-deep font-medium px-3 py-2">
             كل المقررات
           </Link>
         }
       />
+      {course.courseTemplateId && <section aria-label="المحتوى الأكاديمي الموروث" className="mb-4 p-4 bg-surface border border-line rounded-xl text-[13px]">
+        <p className="font-medium">المحتوى الأكاديمي من القالب المنشور{course.specificationType ? ` · ${SPECIFICATION_TYPES[course.specificationType] || "مقرر"}` : ""}</p>
+        <p className="text-ink-3 mt-2">التوصيف {course.setup.steps.find((s) => s.key === "COURSE")?.done ? "✓" : "يحتاج استكمالًا"} · المحتوى {course.setup.steps.find((s) => s.key === "INDEX")?.done ? "✓" : "يحتاج استكمالًا"} · مخرجات التعلم {(course.spec?.outcomes?.length ?? 0) > 0 ? "✓" : "تحتاج استكمالًا"}</p>
+        <p className="text-ink-3 mt-2">تابع تجهيز الشعب والطلاب، وتأكيد توزيع الدرجات، والمواد التعليمية والتقييمات.</p>
+      </section>}
       {(course.semester.status === "CLOSED" || course.semester.status === "ARCHIVED") && (
         <div role="status" className="mb-4 rounded-[14px] border border-line bg-deep/[.04] p-3.5 text-[13px] flex gap-2 items-start">
           <Icon name="shield" className="w-4 h-4 mt-0.5 text-deep flex-none" />

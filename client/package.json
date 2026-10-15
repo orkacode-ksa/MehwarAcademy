@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run --config vitest.config.ts",
+    "test:academic-e2e": "node ../server/test/academic/run.mjs browser"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -35,6 +37,7 @@
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.3",
     "vite": "^5.4.8",
-    "vite-plugin-pwa": "^0.20.5"
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "^2.1.1"
   }
 }

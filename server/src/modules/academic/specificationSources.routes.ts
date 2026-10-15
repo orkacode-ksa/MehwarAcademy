@@ -14,7 +14,6 @@ import { specificationCapabilities } from "./specificationSources.policy.js";
 import * as service from "./specificationSources.service.js";
 import * as extraction from "./specificationExtraction.service.js";
 import * as reviews from "./specificationReview.service.js";
-import { getDevelopmentSpecificationReview } from "./specificationReview.preview.js";
 
 function decodedHeader(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
@@ -92,10 +91,6 @@ specificationSourcesRouter.post("/:sourceId/reviews",
   validate({ params: sourceIdParamsSchema, body: startSpecificationReviewSchema, query: z.object({}).strict() }),
   asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: await reviews.startSpecificationReview(actor(req), req.params.sourceId as string, req.body.revisionOf) });
-  }));
-specificationSourcesRouter.get("/:sourceId/reviews/preview", validate({ params: sourceIdParamsSchema, query: z.object({}).strict() }),
-  asyncHandler(async (req, res) => {
-    res.json({ success: true, data: await getDevelopmentSpecificationReview(actor(req), req.params.sourceId as string) });
   }));
 specificationSourcesRouter.get("/:sourceId/reviews/:reviewId", validate({ params: reviewParams, query: z.object({}).strict() }),
   asyncHandler(async (req, res) => {

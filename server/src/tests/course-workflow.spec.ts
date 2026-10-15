@@ -112,6 +112,13 @@ afterEach(() => vi.restoreAllMocks());
 afterAll(async () => { await prismaBase.$disconnect(); });
 
 describe("production course workflow via HTTP", () => {
+  it("returns workflow capabilities from the permission adapter without exposing staff actions to teachers", async () => {
+    const teacher = await a.agent.get(`${W}/capabilities`);
+    expect(teacher.status).toBe(200); expect(teacher.body.data).toEqual({ canReview: true, canApprove: false, canPublish: false, canResolve: false });
+    const reviewer = await staff.agent.get(`${P()}/capabilities`);
+    expect(reviewer.status).toBe(200); expect(reviewer.body.data).toEqual({ canReview: true, canApprove: true, canPublish: true, canResolve: true });
+    expect((await deniedStaff.agent.get(`${P()}/capabilities`)).status).toBe(403);
+  });
   it.each([
     { nameAr: null, nameEn: "General Biology", label: "English only" },
     { nameAr: "الأحياء العامة", nameEn: null, label: "Arabic only" },
@@ -201,6 +208,20 @@ describe("production course workflow via HTTP", () => {
     const published = await staff.agent.post(`${P()}/course-specification-versions/${versionId}/publications`).send({});
     expect(published.status, JSON.stringify(published.body)).toBe(200);
     expect(published.body.data.code).toBe(officialCode);
+  });
+
+  it("keeps explicitly reviewed official-version metadata aligned with the catalog and preserves extraction", async () => {
+    const src = await source(), versionId = first(await materialize(src)).version.id;
+    const review = await complete(versionId, a, { version: "2025" });
+    const requestBatch = await batch(versionId, review);
+    expect((await staff.agent.post(`${P()}/course-specification-approvals/${first(requestBatch.items).id}/approve`).send({})).status).toBe(200);
+    const published = await staff.agent.post(`${P()}/course-specification-versions/${versionId}/publications`).send({});
+    expect(published.status).toBe(200);
+    const catalog = await a.agent.get(`${W}/course-templates`);
+    expect(catalog.body.data.find((t: { id: string }) => t.id === published.body.data.id).officialVersion).toBe("2025");
+    const detail = await a.agent.get(`${W}/course-specification-versions/${versionId}`);
+    expect(detail.body.data.extractedData.version).toBeNull();
+    expect(detail.body.data.currentReview.reviewedData.version).toBe("2025");
   });
 
   it("validates page provenance at ingestion and draft save instead of accepting nonexistent pages", async () => {
