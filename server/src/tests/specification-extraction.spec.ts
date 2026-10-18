@@ -229,7 +229,20 @@ describe("durable extraction attempts and tenant permissions", () => {
     const source = await upload(pdf(Array.from({ length: 25 }, () => text)));
     const out = await teacher.agent.post(`${S}/${source.id}/extractions`).send({}); await runNext();
     const result = await teacher.agent.get(`${S}/${source.id}/extractions/${out.body.data.id}?view=full`);
-    expect(result.body.data.status).toBe("SUCCEEDED"); expect(sentWindows.length).toBeGreaterThan(1);
+    let diagnostic: string | undefined;
+    if (result.body.data.status === "FAILED") {
+      const failure = result.body.data.rawOutput?.failure;
+      diagnostic = JSON.stringify({ errorMessage: result.body.data.errorMessage,
+        "rawOutput.failure": failure ? { type: failure.type, message: failure.message, httpStatus: failure.httpStatus } : null });
+      for (const [key, value] of [...Object.entries(env), ...Object.entries(process.env)]) {
+        if (/SECRET|PASSWORD|TOKEN|API_KEY|DATABASE_URL/i.test(key) && typeof value === "string" && value) {
+          diagnostic = diagnostic.replaceAll(value, "[REDACTED]");
+        }
+      }
+      diagnostic = diagnostic.replace(/(?:postgres(?:ql)?|https?):\/\/[^\s"\\]+/gi, "[REDACTED_URL]")
+        .replace(/Bearer\s+[\w.-]+/gi, "Bearer [REDACTED]");
+    }
+    expect(result.body.data.status, diagnostic).toBe("SUCCEEDED"); expect(sentWindows.length).toBeGreaterThan(1);
     expect(sentWindows.every((window) => window.length < 24000)).toBe(true);
     expect(result.body.data.extractedData.document).toMatchObject({ pageCount: 25, processedPages: Array.from({ length: 25 }, (_, i) => i + 1) });
     expect(result.body.data.summary.courseCount).toBe(2); expect(result.body.data.extractedData.programs[0].courses[0].sourcePages).toEqual([1, 8, 15, 22]);

@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { once } from "node:events";
+import { createServer } from "node:http";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Prisma, type UserRole } from "@prisma/client";
@@ -14,7 +16,7 @@ import { associateAcademicCourseCurriculum } from "../modules/academic/courseWor
 import { courseSourceNeedsReview } from "../modules/academic/courseWorkflow.sourceAdmission.js";
 import * as projection from "../modules/academic/courseSpecificationProjection.data.js";
 
-const app = createApp();
+const server = createServer(createApp());
 const W = "/api/workspaces/me/academic";
 const grades = [{ key: "FINAL", label: "Regulation final", weight: 100 }];
 const fileItems = [{ key: "REPORT", label: "Report", required: true }];
@@ -44,7 +46,7 @@ async function actor(tenantId?: string, role: UserRole = "TEACHER", screens: str
     return ws;
   });
   const token = signAccessToken({ tenantId: tenant.id, userId: user.id, role, tv: user.tokenVersion, jti: crypto.randomUUID() });
-  return { tenantId: tenant.id, userId: user.id, workspace, agent: request.agent(app).set("Authorization", `Bearer ${token}`) };
+  return { tenantId: tenant.id, userId: user.id, workspace, agent: request.agent(server).set("Authorization", `Bearer ${token}`) };
 }
 type Actor = Awaited<ReturnType<typeof actor>>;
 let a: Actor, b: Actor, colleague: Actor, staff: Actor, deniedStaff: Actor, student: Actor;
@@ -98,6 +100,8 @@ async function approved(versionId: string) {
 }
 
 beforeAll(async () => {
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
   const [role] = await prismaBase.$queryRaw<Array<{ rolsuper: boolean; rolbypassrls: boolean }>>`SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname=current_user`;
   expect(role).toEqual({ rolsuper: false, rolbypassrls: false });
   a = await actor(); b = await actor(); colleague = await actor(a.tenantId); student = await actor(a.tenantId, "STUDENT");
@@ -109,7 +113,15 @@ beforeAll(async () => {
   });
 });
 afterEach(() => vi.restoreAllMocks());
-afterAll(async () => { await prismaBase.$disconnect(); });
+afterAll(async () => {
+  try {
+    if (server.listening) {
+      const closed = once(server, "close");
+      server.close();
+      await closed;
+    }
+  } finally { await prismaBase.$disconnect(); }
+});
 
 describe("production course workflow via HTTP", () => {
   it("returns workflow capabilities from the permission adapter without exposing staff actions to teachers", async () => {
