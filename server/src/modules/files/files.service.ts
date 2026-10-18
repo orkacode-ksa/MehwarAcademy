@@ -1,9 +1,13 @@
 import crypto from "node:crypto";
-import { prisma, withTenantTx } from "../../lib/prisma.js";
+import { prisma, withTenantTx, type TenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
 import { getStorageProvider } from "../../adapters/storage.provider.js";
 import { getEntitlements, getUsage } from "../store/entitlements.js";
 import { stripImageMetadata } from "../../lib/stripMetadata.js";
+import { currentContext } from "../../lib/tenantContext.js";
+import { mayReadSpecificationSource, specificationCapabilities } from "../academic/specificationSources.policy.js";
+
+type UploadedFile = { id: string; originalName: string; mimeType: string; sizeBytes: number; createdAt: Date };
 
 /** الأنواع المقبولة — ما يرفعه الأستاذ فعلًا: مستندات وصور وعروض وصوت وفيديو قصير. */
 export const ALLOWED_MIME = new Set([
@@ -41,7 +45,7 @@ export async function uploadFile(input: {
   data: Buffer;
   /** مساهمات المنصة (لوائح الجامعات) لا تُحسب على مساحة الأستاذ. */
   skipQuota?: boolean;
-}) {
+}, onCreated?: (tx: TenantTx, tenantId: string, file: UploadedFile) => Promise<void>) {
   if (!ALLOWED_MIME.has(input.mimeType)) throw AppError.badRequest("نوع الملف غير مدعوم — PDF أو صورة أو Word أو PowerPoint أو Excel أو صوت أو فيديو");
   if (input.data.length === 0) throw AppError.badRequest("الملف فارغ");
   if (input.data.length > MAX_UPLOAD_BYTES) throw AppError.badRequest("الملف أكبر من ٢٥ ميجابايت");
@@ -60,7 +64,7 @@ export async function uploadFile(input: {
   const objectKey = `${input.workspaceId}/${input.purpose.toLowerCase()}/${crypto.randomUUID()}-${fileName.replace(/[^\w.-]/g, "_")}`;
   if (storage.mode === "r2") await storage.put(objectKey, input.data, input.mimeType);
 
-  return withTenantTx(async (tx, tenantId) => {
+  const pendingWrite = withTenantTx(async (tx, tenantId) => {
     const file = await tx.fileAsset.create({
       data: {
         tenantId,
@@ -76,7 +80,12 @@ export async function uploadFile(input: {
       select: { id: true, originalName: true, mimeType: true, sizeBytes: true, createdAt: true },
     });
     if (storage.mode === "db") await tx.fileBlob.create({ data: { fileId: file.id, tenantId, data: input.data } });
+    if (onCreated) await onCreated(tx, tenantId, file);
     return file;
+  });
+  return pendingWrite.catch(async (error: unknown) => {
+    if (onCreated && storage.mode === "r2") await storage.remove(objectKey).catch(() => undefined);
+    throw error;
   });
 }
 
@@ -85,12 +94,21 @@ export async function uploadFile(input: {
  * خُمّن معرّفه. داخل الجامعة، الملفات مواد مقررات يراها طلابها — والأسرار (نماذج الإجابة)
  * نصوص في قاعدة البيانات لا ملفات.
  */
-export async function readFile(fileId: string) {
+export async function readFile(fileId: string, options: { redirect?: boolean } = {}) {
   const file = await prisma.fileAsset.findFirst({ where: { id: fileId, deletedAt: null } });
   if (!file) throw AppError.notFound("الملف غير موجود");
+  const sources = await prisma.specificationSource.findMany({
+    where: { fileId }, select: { tenantId: true, uploadedById: true },
+  });
+  if (sources.length > 0) {
+    const userId = currentContext()?.userId;
+    if (!userId) throw AppError.notFound();
+    const capabilities = await specificationCapabilities(userId);
+    if (!sources.some((source) => mayReadSpecificationSource(capabilities, source))) throw AppError.notFound();
+  }
   if (file.storage === "R2") {
     const storage = getStorageProvider();
-    const url = await storage.presignGet(file.objectKey, file.originalName);
+    const url = options.redirect === false ? null : await storage.presignGet(file.objectKey, file.originalName);
     if (url) return { kind: "redirect" as const, url, file };
     return { kind: "bytes" as const, data: await storage.get(file.objectKey), file };
   }
@@ -102,6 +120,9 @@ export async function readFile(fileId: string) {
 export async function removeFile(workspaceId: string, fileId: string) {
   const file = await prisma.fileAsset.findFirst({ where: { id: fileId, workspaceId, deletedAt: null } });
   if (!file) throw AppError.notFound("الملف غير موجود");
+  if (await prisma.specificationSource.count({ where: { fileId } }) > 0) {
+    throw AppError.conflict("Official specification source files must be retained");
+  }
   await prisma.fileAsset.update({ where: { id: file.id }, data: { deletedAt: new Date() } });
   if (file.storage === "R2") await getStorageProvider().remove(file.objectKey).catch(() => undefined);
   else await prisma.fileBlob.deleteMany({ where: { fileId } });

@@ -35,6 +35,7 @@ export interface SetupCounts {
   /** التوصيف بحدّه الأدنى (وصف · مخرج · مرجع) — انظر `isSpecComplete`. */
   specComplete: boolean;
   topics: number;
+  operationalPlanComplete?: boolean;
   sections: number;
   gradeScheme: Prisma.JsonValue;
   /** متى أقرّ الأستاذ التوزيع — النسخ من اللائحة وحده لا يُكمل الخطوة. */
@@ -53,7 +54,7 @@ export function computeSetupProgress(counts: SetupCounts): SetupProgress {
     // كانت تكتمل بإنشاء الصف نفسه، فكان «اكتمل ١ من ٦» يُعلن إنجازًا لم يحدث: المقرر
     // بلا توصيف ليس مقررًا جاهزًا. التوصيف هو أساس ملف المقرر كله.
     COURSE: counts.specComplete,
-    INDEX: counts.topics > 0,
+    INDEX: counts.topics > 0 || counts.operationalPlanComplete === true,
     SECTIONS: counts.sections > 0,
     GRADES: weightsSet,
     MATERIALS: counts.materials > 0,

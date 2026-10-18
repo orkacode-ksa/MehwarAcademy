@@ -8,6 +8,12 @@ import { computeSetupProgress, SETUP_STEPS } from "../modules/academic/courseSet
 const EMPTY = { specComplete: true, topics: 0, sections: 0, gradeScheme: [] as never[], gradeSchemeConfirmedAt: null, materials: 0, assessments: 0 };
 
 describe("تقدّم تجهيز المقرر", () => {
+  it("تحتسب خطة تدريب تشغيلية دون فرض مواضيع، وتبقي الشعب والدرجات غير مكتملة", () => {
+    const result = computeSetupProgress({ ...EMPTY, operationalPlanComplete: true });
+    expect(result.steps.find((s) => s.key === "INDEX")?.done).toBe(true);
+    expect(result.next?.key).toBe("SECTIONS");
+    expect(result.steps.find((s) => s.key === "GRADES")?.done).toBe(false);
+  });
   it("مقرر جديد: خطوة واحدة مكتملة والتالي هو الفهرس", () => {
     const p = computeSetupProgress(EMPTY);
     expect(p.done).toBe(1);

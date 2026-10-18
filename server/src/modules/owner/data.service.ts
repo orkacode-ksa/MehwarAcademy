@@ -1,5 +1,6 @@
 import { prismaBase, withExplicitTenantTx, type TenantTx } from "../../lib/prisma.js";
 import { AppError } from "../../lib/AppError.js";
+import { courseDisplayName } from "../../lib/courseName.js";
 import { recordAudit } from "../../lib/auditLog.js";
 import { forgetSessions } from "../../lib/sessionCache.js";
 
@@ -108,9 +109,9 @@ async function listTenantKind(tx: TenantTx, kind: DataKind, q?: string): Promise
         where: { deletedAt: null, ...(q ? { OR: [{ nameAr: ci(q) }, { code: ci(q) }] } : {}) },
         orderBy: { createdAt: "desc" },
         take: TAKE,
-        select: { id: true, nameAr: true, code: true, createdAt: true, semester: { select: { label: true } } },
+        select: { id: true, nameAr: true, nameEn: true, code: true, createdAt: true, semester: { select: { label: true } } },
       });
-      return rows.map((c) => ({ id: c.id, title: c.nameAr, sub: `${c.code} · ${c.semester.label}`, at: c.createdAt }));
+      return rows.map((c) => ({ id: c.id, title: courseDisplayName(c), sub: `${c.code} · ${c.semester.label}`, at: c.createdAt }));
     }
     case "years": {
       const rows = await tx.academicYear.findMany({ where: { deletedAt: null, ...(q ? { label: ci(q) } : {}) }, orderBy: { createdAt: "desc" }, take: TAKE, select: { id: true, label: true, createdAt: true, _count: { select: { semesters: true } } } });

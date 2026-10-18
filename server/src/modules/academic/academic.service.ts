@@ -9,6 +9,7 @@ import { editBlockReason } from "../rules/rules.js";
 import { newJoinCode } from "../../lib/joinCode.js";
 import { assertCanAddCourse } from "./limits.js";
 export { listSectionRoster, enrollStudent, importRoster } from "./roster.service.js";
+export { listPublishedCourseTemplates, createCourseFromTemplate } from "./courseTemplates.service.js";
 
 type CreateCourseInput = z.infer<typeof createCourseSchema>;
 type CreateSectionInput = z.infer<typeof createSectionSchema>;
@@ -124,8 +125,10 @@ export async function listCourses(workspaceId: string, semesterId?: string) {
   return courses.map((c) => ({
     ...c,
     setup: computeSetupProgress({
-      specComplete: isSpecComplete(c.spec as Partial<CourseSpec>),
+      specComplete: isSpecComplete(c.spec as Partial<CourseSpec>) || !!(c.courseTemplateId && c.projectionVersion),
       topics: c._count.topics,
+      operationalPlanComplete: !!(c.courseTemplateId && c.projectionVersion && c.specificationType && c.specificationType !== "STANDARD_COURSE"
+        && c.operationalPlan && typeof c.operationalPlan === "object" && !Array.isArray(c.operationalPlan) && "data" in c.operationalPlan),
       sections: c._count.sections,
       gradeScheme: c.gradeScheme,
       gradeSchemeConfirmedAt: c.gradeSchemeConfirmedAt,
@@ -271,7 +274,7 @@ export async function courseCatalog(q: string) {
     }),
   ]);
   const seen = new Set<string>();
-  const out: { code: string; nameAr: string; creditHours: number | null; hasLab: boolean | null }[] = [];
+  const out: { code: string; nameAr: string | null; creditHours: number | null; hasLab: boolean | null }[] = [];
   for (const c of [...mine, ...bank.map((b) => ({ code: b.code, nameAr: b.title, creditHours: null, hasLab: null }))]) {
     const k = `${c.code}|${c.nameAr}`;
     if (seen.has(k)) continue;

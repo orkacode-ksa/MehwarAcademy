@@ -118,6 +118,9 @@ export function InstitutionsPage() {
               <Link to={`/institutions/${inst.id}/users`}>
                 <Button size="sm" variant="secondary">المستخدمون</Button>
               </Link>
+              <Link to={`/institutions/${inst.id}/specification-sources`}>
+                <Button size="sm" variant="secondary">التوصيفات الأكاديمية</Button>
+              </Link>
               <Button
                 size="sm"
                 variant={inst.listed ? "secondary" : "primary"}

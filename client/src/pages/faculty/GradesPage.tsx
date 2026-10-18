@@ -9,10 +9,11 @@ import { Card, ErrorText, Input } from "../../components/ui/Form.js";
 import { Icon } from "../../icons/Icon.js";
 import { useToast } from "../../state/ToastContext.js";
 import { formatNum } from "../../lib/numerals.js";
+import { courseName } from "../../lib/academicWorkflow.js";
 import { W, type Section } from "../../components/setup/types.js";
 
 interface GradeGrid {
-  course: { id: string; code: string; nameAr: string };
+  course: { id: string; code: string; nameAr: string | null; nameEn?: string | null };
   section: { id: string; label: string };
   assessments: { id: string; title: string; maxScore: number; weightPercent: number }[];
   weightTotal: number;
@@ -46,7 +47,7 @@ export function GradesPage() {
   return (
     <>
       <PageHeader
-        kicker={grid ? `${grid.course.code} · ${grid.course.nameAr}` : "رصد الدرجات"}
+        kicker={grid ? `${grid.course.code} · ${courseName(grid.course)}` : "رصد الدرجات"}
         title="رصد الدرجات"
         actions={
           <Link to={`/course/${id}`} className="text-[13px] text-deep font-medium px-3 py-2">

@@ -23,6 +23,8 @@ import { STAFF_SCREENS, screenOfPath, type StaffScreen } from "./staff.service.j
 import { prismaBase } from "../../lib/prisma.js";
 import { actor, assertInstitution, tenantParam } from "./owner.shared.js";
 import { ownerCommerceRouter } from "./owner.commerce.routes.js";
+import { specificationSourceReviewRouter } from "../academic/specificationSources.routes.js";
+import { institutionCourseWorkflowRouter } from "../academic/courseWorkflow.routes.js";
 
 /**
  * مسارات المالك.
@@ -57,6 +59,9 @@ ownerRouter.use(
     next();
   }),
 );
+
+ownerRouter.use("/institutions/:tenantId/specification-sources", specificationSourceReviewRouter);
+ownerRouter.use("/institutions/:tenantId/academic", institutionCourseWorkflowRouter);
 
 // ───────────────────────── الرئيسية ─────────────────────────
 

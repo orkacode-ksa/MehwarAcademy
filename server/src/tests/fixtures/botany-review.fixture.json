@@ -1,0 +1,2794 @@
+{
+  "fileSha256": "74aae047310b02b7df3e74e822bcd8f4eabdf5c8ef36721d5d6815dd40de39ef",
+  "label": "Development preview: actual PDF-derived sample; not a completed extraction",
+  "savedChunks": 35,
+  "totalChunks": 52,
+  "extractedData": {
+    "institution": {
+      "name": null,
+      "code": null,
+      "sourcePages": [
+        1,
+        10,
+        16,
+        26,
+        32,
+        43,
+        49,
+        58,
+        67,
+        79,
+        92,
+        100,
+        109,
+        118,
+        128,
+        140,
+        147,
+        156,
+        164,
+        172,
+        179,
+        188,
+        198,
+        206,
+        214,
+        225,
+        234,
+        242
+      ],
+      "fieldEvidence": {
+        "name": {
+          "quote": "Institution : Umm Al - Qura University",
+          "sourcePages": [
+            242
+          ]
+        }
+      }
+    },
+    "college": {
+      "name": null,
+      "code": null,
+      "sourcePages": [
+        1,
+        10,
+        16,
+        26,
+        32,
+        43,
+        58,
+        67,
+        79,
+        92,
+        100,
+        109,
+        118,
+        128,
+        140,
+        147,
+        156,
+        164,
+        172,
+        178,
+        179,
+        187,
+        188,
+        197,
+        198,
+        206,
+        214,
+        224,
+        225,
+        234,
+        241,
+        242
+      ],
+      "fieldEvidence": {
+        "name": {
+          "quote": "College : Science",
+          "sourcePages": [
+            242
+          ]
+        }
+      }
+    },
+    "department": {
+      "name": null,
+      "code": null,
+      "sourcePages": [
+        1,
+        10,
+        16,
+        32,
+        43,
+        56,
+        58,
+        67,
+        79,
+        92,
+        100,
+        109,
+        118,
+        128,
+        140,
+        147,
+        155,
+        156,
+        164,
+        172,
+        178,
+        179,
+        187,
+        188,
+        197,
+        198,
+        206,
+        214,
+        224,
+        225,
+        234,
+        241,
+        242
+      ],
+      "fieldEvidence": {
+        "name": {
+          "quote": "Department : Bi ology",
+          "sourcePages": [
+            242
+          ]
+        }
+      }
+    },
+    "programs": [
+      {
+        "name": "BSc Biology",
+        "code": null,
+        "track": "Zoology track",
+        "version": null,
+        "college": {
+          "name": "Faculty of S cience",
+          "code": null,
+          "sourcePages": [
+            1
+          ],
+          "fieldEvidence": {
+            "name": {
+              "quote": "College : Faculty of S cience",
+              "sourcePages": [
+                1
+              ]
+            }
+          }
+        },
+        "department": {
+          "name": "Biology",
+          "code": null,
+          "sourcePages": [
+            1
+          ],
+          "fieldEvidence": {
+            "name": {
+              "quote": "Department : Biology",
+              "sourcePages": [
+                1
+              ]
+            }
+          }
+        },
+        "courses": [
+          {
+            "code": "BIO1103",
+            "nameAr": null,
+            "nameEn": "P rinciples of Ecology",
+            "creditHours": 3,
+            "hasLab": null,
+            "level": "1 st Level",
+            "year": "1 st Year",
+            "requirement": "REQUIRED",
+            "description": "This course aims to provide an overview of ecology from the level of individual\norganisms to populations, communities, ecosystems, and the biosphere. It\nexamines ecological interactions' physical, chemical, and biological components\nand includes terrestrial and aquatic ecosystems. Also, this course introduces the\nstudents to the concept of ecology, components, and the relationships within the\necosystem. Al so, Plant vegetation, types, and development",
+            "objectives": [
+              "A cquire specialized knowledge of what is Ecology? How living and non - living things affect each other in\ntheir environment.",
+              "Describe the ecosystem's functional structure.",
+              "Illustrate energy flow in an ecological ecosystem.",
+              "Illustrate the biochemical cycles.",
+              "Illustrate the meaning of plant and vegetation, ty pes, and development.",
+              "Understand Climate change ecology",
+              "Understand desertification – land degradation"
+            ],
+            "prerequisites": [],
+            "corequisites": [],
+            "learningOutcomes": [
+              {
+                "code": "1.1",
+                "description": "Recognize knowledge\nand basic information\nabout ecological\nfactors and the\nrelationships between\norganisms and the\nenvironment.\nUnderstanding the\nconcept of ecology and\nits levels.",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  4
+                ]
+              },
+              {
+                "code": "1.3",
+                "description": "Defining the\nimportance of plant\nvegetation.",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  5
+                ]
+              },
+              {
+                "code": "2.1",
+                "description": "Explain the different\nfactors affecting the\norganism in the\nenvironment.",
+                "domain": "Skills",
+                "sourcePages": [
+                  5
+                ]
+              },
+              {
+                "code": "2.2",
+                "description": "Differentiate between\nfood chain and food\nweb.",
+                "domain": "Skills",
+                "sourcePages": [
+                  5
+                ]
+              },
+              {
+                "code": "2.3",
+                "description": "Summarize major\nquantitative and\nqualitative\ncharacteristics of the\nplant community.",
+                "domain": "Skills",
+                "sourcePages": [
+                  5
+                ]
+              },
+              {
+                "code": "2.4",
+                "description": "Predict the\ncomponents in the\ngrassland ecosystem.",
+                "domain": "Skills",
+                "sourcePages": [
+                  5
+                ]
+              },
+              {
+                "code": "3.1",
+                "description": "Analyze and evaluate\ntime management,\ndiscipline, and also to\nethical\nbehavioral, respect\nfrom different points of\nview.",
+                "domain": "Values, autonomy, and responsibility",
+                "sourcePages": [
+                  5
+                ]
+              },
+              {
+                "code": "3.2",
+                "description": "Learn continuously\nthrough self - reflection\nand or experience to\nrecognize the value of\nlearning.",
+                "domain": "Values, autonomy, and responsibility",
+                "sourcePages": [
+                  5
+                ]
+              }
+            ],
+            "topics": [
+              {
+                "title": "- General introduction : meaning of ecology and its importance. The\nlevels of ecology.",
+                "orderIndex": 0,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- Structure of the ecosystem",
+                "orderIndex": 1,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- Factors affecting the organisms in their environment. The climatic\nfactor of precipitation – temperature, light – humidity - wind, and\nevaporation.\n- Physiographic factor",
+                "orderIndex": 2,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- Biological factor, plant - plant relationship - plant - animal relationship\nInt r aspecific relations hip of Living Organisms (Mutualism,\nCommensalism, Parasitism) P lant vegetation, types of plant , plant\ndevelopment",
+                "orderIndex": 3,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- Vegetation sampling using quadrat and transect methods\n- Major quantitative and qualitative characters of plant community",
+                "orderIndex": 4,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- Food web and food chain .\n- Energy in ecological systems - Biogeochemical cycles",
+                "orderIndex": 5,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Midterm - Exam",
+                "orderIndex": 6,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- The climate system\n- The Atmosphere - The World Ocea - Ocean – Atmosphere Interactions\n- The Carbon Cycle and How It Influences Climate and living\norgansims\n- Climate change and its drivers and Consequences\nThe Concept of Radiation Balance, a Scientific Framework for\nThinking About Climate Change - Radiative Forcing, Feedbacks, and\nSome Other Characteristics of the Climate System - Learning from th e\nClimate of the Distant Past",
+                "orderIndex": 7,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "4",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Adaptation:\n- Behavioral, structural, and functional adaptations: How organisms\nadapt to their environments through changes in their behavior,\nstructure, or internal functions.\n- Biodiversity and adaptation: How adaptation helps maintain species\nin their different environments.",
+                "orderIndex": 8,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  6
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      6
+                    ]
+                  }
+                }
+              },
+              {
+                "title": ". Natural environments",
+                "orderIndex": 9,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Natural Resources and Environmental Management:\nTypes of Natural Resources: Renewable and Non - Renewable\nResources.\nChallenges Associated with the Use of Natural Resources.\nStrategies for Conserving Natural Resources and Sustainable\nManagement",
+                "orderIndex": 10,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": ". Identification of Environment & Health and the interactions between\nhuman & Environment.",
+                "orderIndex": 11,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Population of Ecology\nEnvironmental Health",
+                "orderIndex": 12,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Identification and Use of Some Equipment in Ecological Studies :\n- Temperature measurements\n- Relative humidity",
+                "orderIndex": 13,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Identification and Use of Some Equipment in Ecological Studies:\n- Atmospheric pressure\n- Density\n- Wind speed",
+                "orderIndex": 14,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Identification and Use of Some Equipment in Ecological Studies:\n- water sampler\n- pH meter\n- Sunshine recorder",
+                "orderIndex": 15,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Identification of different components of environment\n- Biological factor",
+                "orderIndex": 16,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Midterm Exam (lab)",
+                "orderIndex": 17,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Identification of different components of environment\n- Physical factor\n- Chemical factor",
+                "orderIndex": 18,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "quality of sampling:\n- Sampling timing\n- Sampling point\n- Sampling tools and containers\n- Sampling operation\n- Field records\n- Labeling of samples\n- Transport and storage of samples",
+                "orderIndex": 19,
+                "contactHours": null,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  7
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3+3",
+                    "sourcePages": [
+                      7
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Plants Sampling\n- Quadrate method.\n- Transect method",
+                "orderIndex": 20,
+                "contactHours": null,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3+ 3",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Animal Populations Sampling\n- Trapping and collecting animals\n- Marking animals\n- Estimation of number of animals in population\n- Measuring mortality",
+                "orderIndex": 21,
+                "contactHours": null,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3+3",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Biogeochemical cycles",
+                "orderIndex": 22,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Flow of Energy in an Ecosystem",
+                "orderIndex": 23,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Final Exam (Lab)",
+                "orderIndex": 24,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              }
+            ],
+            "assessmentPlan": [
+              {
+                "method": "Quiz 1 (Theory)",
+                "weight": 5,
+                "timing": "3",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "5%",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Midterm examination (Theory)",
+                "weight": 15,
+                "timing": "6",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "15%",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Midterm examination (practical)",
+                "weight": 10,
+                "timing": "7",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "10%",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Group project",
+                "weight": 10,
+                "timing": "9 - 10",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "10%",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Final examination (practical)",
+                "weight": 20,
+                "timing": "1 5",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "20%",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Final examination (Theory)",
+                "weight": 40,
+                "timing": "1 6",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  8
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "40%",
+                    "sourcePages": [
+                      8
+                    ]
+                  }
+                }
+              }
+            ],
+            "references": [
+              {
+                "citation": "Beeby & Brennan: First Ecology - Ecological Principles and\nEnvironmental Issues 3rd edition",
+                "type": "Essential References",
+                "sourcePages": [
+                  8
+                ]
+              },
+              {
+                "citation": "Begon, M. et al (1996 and many subsequent editions) Ecology.\nBlackwells, Oxford",
+                "type": "Essential References",
+                "sourcePages": [
+                  8
+                ]
+              },
+              {
+                "citation": "Krebs, C. (2008, or earlier editions). Ecology: The Experimental Analysis\nof Distribution and Publisher: Benjamin Cummings",
+                "type": "Essential References",
+                "sourcePages": [
+                  8
+                ]
+              },
+              {
+                "citation": "Molles, M. C. (2019).\nEcology: Concepts and Applications (8th ed.).\nMcGraw - Hill Education.",
+                "type": "Essential References",
+                "sourcePages": [
+                  8
+                ]
+              },
+              {
+                "citation": "https://uoh.blackboard.com",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  9
+                ]
+              },
+              {
+                "citation": "www.google.com",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  9
+                ]
+              },
+              {
+                "citation": "http://herbiers.univ - bpclermont.fr/",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  9
+                ]
+              },
+              {
+                "citation": "http://www.cabi.org/",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  9
+                ]
+              },
+              {
+                "citation": "http://plantdiversityofsaudiarabia.info/",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  9
+                ]
+              }
+            ],
+            "teachingStrategies": [
+              "- In - class lecturing",
+              "- Homework\nassignments",
+              "- Discussions\n(connecting wh at\nthey learn in the\nclass.",
+              "- Handout of lecture\nnotes for each topic\n.",
+              "Small group\ndiscussions.",
+              "Application of\nessential scientific\ntechniques through\nlectures and essays.",
+              "Small group\ndiscussion",
+              "Ask the students to\nmake small search\nprojects during the\nsemester",
+              "Class discussions\n(Engage students in\ninteraction with\nquestions and\nanswers).",
+              "Homework\nassignments",
+              "Field trip",
+              "Assignments\n(Individual and\ngroup)",
+              "Presentation\n(Individual and\ngroup)\nassessments.",
+              "Research search\nassignments"
+            ],
+            "sourcePages": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ],
+            "fieldEvidence": {
+              "code": {
+                "quote": "Course Code : BIO1103",
+                "sourcePages": [
+                  1
+                ]
+              },
+              "nameEn": {
+                "quote": "Course Title : P rinciples of Ecology",
+                "sourcePages": [
+                  1
+                ]
+              },
+              "creditHours": {
+                "quote": "Credit hours: 3 Credits ( 2 theoretical + 1 practical)",
+                "sourcePages": [
+                  3
+                ]
+              },
+              "hasLab": {
+                "quote": "Final Exam (Lab)",
+                "sourcePages": [
+                  8
+                ]
+              },
+              "level": {
+                "quote": "1 st Level",
+                "sourcePages": [
+                  3
+                ]
+              },
+              "year": {
+                "quote": "1 st Year",
+                "sourcePages": [
+                  3
+                ]
+              },
+              "requirement": {
+                "quote": "Required",
+                "sourcePages": [
+                  3
+                ]
+              },
+              "description": {
+                "quote": "This course aims to provide an overview of ecology from the level of individual\norganisms to populations, communities, ecosystems, and the biosphere. It\nexamines ecological interactions' physical, chemical, and biological components\nand includes terrestrial and aquatic ecosystems. Also, this course introduces the\nstudents to the concept of ecology, components, and the relationships within the\necosystem. Al so, Plant vegetation, types, and development",
+                "sourcePages": [
+                  3
+                ]
+              }
+            }
+          }
+        ],
+        "sourcePages": [
+          1,
+          8,
+          9
+        ],
+        "fieldEvidence": {
+          "name": {
+            "quote": "Program : BSc Biology (Zoology track)",
+            "sourcePages": [
+              1
+            ]
+          },
+          "track": {
+            "quote": "Zoology track",
+            "sourcePages": [
+              1
+            ]
+          }
+        }
+      },
+      {
+        "name": "Chemistry",
+        "code": null,
+        "track": null,
+        "version": null,
+        "college": {
+          "name": "Science",
+          "code": null,
+          "sourcePages": [
+            10
+          ],
+          "fieldEvidence": {
+            "name": {
+              "quote": "College : Science",
+              "sourcePages": [
+                10
+              ]
+            }
+          }
+        },
+        "department": {
+          "name": "Chemistry",
+          "code": null,
+          "sourcePages": [
+            10
+          ],
+          "fieldEvidence": {
+            "name": {
+              "quote": "Department Chemistry",
+              "sourcePages": [
+                10
+              ]
+            }
+          }
+        },
+        "courses": [
+          {
+            "code": "CHM1101",
+            "nameAr": null,
+            "nameEn": "General Chemistry 1",
+            "creditHours": null,
+            "hasLab": null,
+            "level": "1",
+            "year": "1",
+            "requirement": "REQUIRED",
+            "description": "This course presents the essential principles and common applications of chemistry. It introduces the elementary principles and theories of chemistry, electronic structure of atoms, quantum mechanics and atomic orbitals; representations of orbitals, gases laws and properties, Intermolecular forces, liquids, solids, solutions, kinetics, equilibria, precipitation, thermodynamics, electrochemistry, organic chemistry",
+            "objectives": [
+              "The course introduces some basic principles of physical, organic and inorganic chemistry."
+            ],
+            "prerequisites": [],
+            "corequisites": [],
+            "learningOutcomes": [
+              {
+                "code": "1.1",
+                "description": "Explain fundamental concepts and principles of units, measurements, physical, inorganic and organic chemistry .",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  13
+                ]
+              },
+              {
+                "code": "2.1",
+                "description": "Demonstrate the ability to use basic laboratory techniques, tools, to conduct experiments, collect data, and analyze results related to fundamental chemistry topics",
+                "domain": "Skills",
+                "sourcePages": [
+                  13
+                ]
+              },
+              {
+                "code": "2.2",
+                "description": "Solve quantitative and qualitative problems related to chemical equations, thermochemical processes, and kinetics.",
+                "domain": "Skills",
+                "sourcePages": [
+                  13
+                ]
+              },
+              {
+                "code": "2.3",
+                "description": "Analyze and interpret data related to chemical equilibria and electrochemical reactions.",
+                "domain": "Skills",
+                "sourcePages": [
+                  13
+                ]
+              },
+              {
+                "code": "3.1",
+                "description": "Ability to demonstrate learning skills to work as a team in a multidisciplinary environment.",
+                "domain": "Values, autonomy, and responsibility",
+                "sourcePages": [
+                  13
+                ]
+              }
+            ],
+            "topics": [
+              {
+                "title": "Electronic structure of atoms, quantum mechanics and atomic orbital",
+                "orderIndex": 0,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "1. Electronic structure of atoms, quantum mechanics and atomic orbital 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Gases laws and properties",
+                "orderIndex": 1,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2. Gases laws and properties 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Intermolecular forces, liquids, solids, solutions",
+                "orderIndex": 2,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3. Intermolecular forces, liquids, solids, solutions 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Chemical kinetics",
+                "orderIndex": 3,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "4. Chemical kinetics 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Chemical equilibria",
+                "orderIndex": 4,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "5. Chemical equilibria 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Thermodynamics,",
+                "orderIndex": 5,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "6. Thermodynamics, 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Electrochemistry,",
+                "orderIndex": 6,
+                "contactHours": 4,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "7. Electrochemistry, 4",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Organic chemistry",
+                "orderIndex": 7,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "8. Organic chemistry 2",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "safety in chemistry laboratory",
+                "orderIndex": 8,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "1. safety in chemistry laboratory 3",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "intermolecular forces: viscosity, density, and surface tension",
+                "orderIndex": 9,
+                "contactHours": 12,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2. intermolecular forces: viscosity, density, and surface tension 12",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "atomic structure and quantum mechanics",
+                "orderIndex": 10,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3. atomic structure and quantum mechanics 3",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "acids and bases titration",
+                "orderIndex": 11,
+                "contactHours": 9,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "4. acids and bases titration 9",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "determination of the heat capacity of the calorimeter",
+                "orderIndex": 12,
+                "contactHours": 6,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "5. determination of the heat capacity of the calorimeter 6",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "solutions",
+                "orderIndex": 13,
+                "contactHours": 6,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "6. solutions 6",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "chemical equilibrium",
+                "orderIndex": 14,
+                "contactHours": 6,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "7. chemical equilibrium 6",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              }
+            ],
+            "assessmentPlan": [
+              {
+                "method": "Class activities, and Assignments",
+                "weight": 10,
+                "timing": "Throughout the Term",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "Class activities, and Assignments Throughout the Term 10%",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Mid - Term Exam (s)",
+                "weight": 20,
+                "timing": "8",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "Mid - Term Exam (s) 8 20%",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Lab Activity",
+                "weight": 20,
+                "timing": "Throughout the Term",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "Lab Activity Throughout the Term 20%",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Practical Exam",
+                "weight": null,
+                "timing": "15",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "Practical Exam 15 1 0%",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Final Exam.(2 hours exam)",
+                "weight": 40,
+                "timing": "End of the Term",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  14
+                ],
+                "fieldEvidence": {
+                  "weight": {
+                    "quote": "5. Final Exam.(2 hours exam) End of the Term 40%",
+                    "sourcePages": [
+                      14
+                    ]
+                  }
+                }
+              }
+            ],
+            "references": [
+              {
+                "citation": "Steven S. Zumdahl, Susan A. Zumdahl, 9th ed., 2009, New York.",
+                "type": "Essential References",
+                "sourcePages": [
+                  14
+                ]
+              },
+              {
+                "citation": "P. Atkins and J. de Paula, Physical Chemistry, 10th ed., 2006, New York.",
+                "type": "Supportive References",
+                "sourcePages": [
+                  14
+                ]
+              },
+              {
+                "citation": "Power point lectures.",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  14
+                ]
+              },
+              {
+                "citation": "Course available online",
+                "type": "Other Learning Materials",
+                "sourcePages": [
+                  14
+                ]
+              }
+            ],
+            "teachingStrategies": [
+              "Lectures",
+              "Library visits",
+              "Laboratory",
+              "Web - based study",
+              "Scientific\ndiscussion"
+            ],
+            "sourcePages": [
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "fieldEvidence": {
+              "code": {
+                "quote": "Course Code : CHM1101",
+                "sourcePages": [
+                  10
+                ]
+              },
+              "nameEn": {
+                "quote": "Course Title : General Chemistry 1",
+                "sourcePages": [
+                  10
+                ]
+              },
+              "creditHours": {
+                "quote": "1. Credit hours: ( 2 Th eoretical + 1 Exp erimental )",
+                "sourcePages": [
+                  12
+                ]
+              },
+              "hasLab": {
+                "quote": "2. Laboratory/Studio 45",
+                "sourcePages": [
+                  12
+                ]
+              },
+              "level": {
+                "quote": "3. Level/year at which this course is offered: ( 1/1 )",
+                "sourcePages": [
+                  12
+                ]
+              },
+              "year": {
+                "quote": "3. Level/year at which this course is offered: ( 1/1 )",
+                "sourcePages": [
+                  12
+                ]
+              },
+              "requirement": {
+                "quote": "B. ☒ Required ☐ Elective",
+                "sourcePages": [
+                  12
+                ]
+              }
+            }
+          }
+        ],
+        "sourcePages": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "fieldEvidence": {
+          "name": {
+            "quote": "Program : Chemistry",
+            "sourcePages": [
+              10
+            ]
+          }
+        }
+      },
+      {
+        "name": "BSc Biology",
+        "code": null,
+        "track": null,
+        "version": "47",
+        "college": {
+          "name": "Sciences",
+          "code": null,
+          "sourcePages": [
+            16
+          ],
+          "fieldEvidence": {
+            "name": {
+              "quote": "College : Sciences",
+              "sourcePages": [
+                16
+              ]
+            }
+          }
+        },
+        "department": {
+          "name": "Biology",
+          "code": null,
+          "sourcePages": [
+            16
+          ],
+          "fieldEvidence": {
+            "name": {
+              "quote": "Department : Biology",
+              "sourcePages": [
+                16
+              ]
+            }
+          }
+        },
+        "courses": [
+          {
+            "code": "BIO 1101",
+            "nameAr": null,
+            "nameEn": "General Biology",
+            "creditHours": null,
+            "hasLab": null,
+            "level": null,
+            "year": null,
+            "requirement": "REQUIRED",
+            "description": "General Biology provides an overview of life on Earth, the evolutionary relationships among major groups of organisms, and the structural and functional characteristics of these organisms. The course covers major areas of biolo gy ranging from cellular to whole organism and includes the study of ecosystems. The focus on cellular level processes leads to an understanding of the importance and roles of the cell. By comparing the processes in unicellular organism and multicellular p lants and animals, candidates investigate the increasing levels of life complexity. The key areas of biodiversity and interdependence are covered, along with the processes leading to evolution as well as food security and ethical issues. General Biology is intended primarily for students majoring in any of the biological sciences or life science - related fields (Chemistry, physics, and mathematics). Practical lessons include general rules for safety in Biology Lab. Study of different cell organelles, stages of cell division, plant growth experiments and hormones, and osmosis and diffusion",
+            "objectives": [
+              "The main objective of this course is to give an overview of the many features that are common to living organisms and what is meant by \"life\" and \"living organisms."
+            ],
+            "prerequisites": [],
+            "corequisites": [],
+            "learningOutcomes": [
+              {
+                "code": "1.1",
+                "description": "Understanding the basic biological principles through an integrated approach",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  19
+                ]
+              },
+              {
+                "code": "1.2",
+                "description": "Recognize the cellular processes of living organisms with an emphasis on biological chemistry applications.",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  19
+                ]
+              },
+              {
+                "code": "1.3",
+                "description": "Identify the unifying themes and key concepts of different organisms",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  19
+                ]
+              },
+              {
+                "code": "1.5",
+                "description": "Demonstrate factual knowledge of contemporary natural science.",
+                "domain": "Knowledge and understanding",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": "2.1",
+                "description": "The student will apply contemporary scientific models to describe the natural world",
+                "domain": "Skills",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": "2.2",
+                "description": "Conduct the scientific method",
+                "domain": "Skills",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": "2.3",
+                "description": "Solve problems, including observation, inference, measurement, prediction, use of numbers, classifying and use of space and time",
+                "domain": "Skills",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": "2.4",
+                "description": "Demonstrate integrated process skills, including identification and control of variables, interpretation of dat a, formulation and testing of hypotheses, and experimentation in the life sciences",
+                "domain": "Skills",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": "3.1",
+                "description": "work independently and as part of a team to finish some assignments.",
+                "domain": "Values, autonomy , and responsibility",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": "3.2",
+                "description": "Awareness about conservation natural biodiversity",
+                "domain": "Values, autonomy , and responsibility",
+                "sourcePages": [
+                  20
+                ]
+              },
+              {
+                "code": null,
+                "description": "Advocate for ethical practices and life sustainability",
+                "domain": "Values, autonomy , and responsibility",
+                "sourcePages": [
+                  20
+                ]
+              }
+            ],
+            "topics": [
+              {
+                "title": "Introduction into biology\n* The Cell (History, Theory )\n* Prokaryotic and Eukaryotic structure\n* Types of Cells (Plant and animal)",
+                "orderIndex": 0,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Cell Biology\n* Protoplasmic components\n*Non - protoplasmic components\n*Secondary compounds (Alkaloids, Glycosides, Tannins, Latex, organic acids, salts).\n* Metabolism",
+                "orderIndex": 1,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Genetics and Molecular Biology\n* Structure and function of DNA and RNA\n* DNA replication, transcription, and translation\n* Biotechnology ( G enetic engineering, cloning)",
+                "orderIndex": 2,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Systematics\n Two Kinds of Systematics; Taxonomy & Phylogeny\n Role of Binomial nomenclature\nDiversity of life - forms",
+                "orderIndex": 3,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Domains of Life I\n* Prokaryotes (bacteria and archaea)\n* Viruses and prions\n* Protists and fungi",
+                "orderIndex": 4,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Domains of Life II\n* Plant diversity and adaptations\n* Animal diversity and classification",
+                "orderIndex": 5,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Plant Biology\n* Plant structure and function\n* Photosynthesis and plant metabolism",
+                "orderIndex": 6,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Plant Biology\n* Growth, hormones, and development\n* Reproduction in plants (pollination, seed dispersal)",
+                "orderIndex": 7,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Animal Physiology and Homeostasis\n* Nervous system and endocrine system\n* Circulatory and respiratory systems\n* Digestive and excretory systems",
+                "orderIndex": 8,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  21
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      21
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Environmental pollution\n*The concept of environmental pollution\n* Types, risks and controlling",
+                "orderIndex": 9,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Ecology and Environmental Biology\n* Community interactions (competition, predation, symbiosis)\n* Ecosystem structure and energy flow (food chains, food webs, trophic levels)\n* Biomes and global climate change\n* Conservation biology and sustainability",
+                "orderIndex": 10,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Environmental Sustainability & Biodiversity Conservation in Saudi Arabia\n* Desert greening projects: Using plant biology and biotechnology to combat desertification.\n* Coral reef and marine biodiversity conservation: Protecting the Red Sea's unique marine life.",
+                "orderIndex": 11,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Environmental Sustainability & Biodiversity Conservation in Saudi Arabia\n* Wildlife conservation programs: Protecting endangered species like the Arabian leopard.\n* Renewable bio - based industries: Promoting sustainable biofuels and biodegradable materials.",
+                "orderIndex": 12,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Agriculture and Food Security\n* Genetically modified crops (GMOs) to improve yield and resistance to extreme climates.\n* Sustainable aquaculture to increase seafood production in Saudi Arabia.\n* Vertical farming and hydroponics for efficient urban food production.\n* Biological pest control to reduce dependence on chemical pesticides.",
+                "orderIndex": 13,
+                "contactHours": 2,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "2",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Biology Lab Safety\n- Lab Notebook\n- Basic Biology\n- Laboratory Equipment",
+                "orderIndex": 14,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Scientific Investigation Laboratory",
+                "orderIndex": 15,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Microscopes and Cells Laboratory",
+                "orderIndex": 16,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "The Cell\n- Prokaryotic and Eukaryotic structure\n- Types of Cells (Plant and animal)",
+                "orderIndex": 17,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  22
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      22
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "- Protoplasmic components,\n5 Non - protoplasmic components of cell",
+                "orderIndex": 18,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Diffusion and Osmosis Laboratory",
+                "orderIndex": 19,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Mitosis And Meiosis laboratory",
+                "orderIndex": 20,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Domains of Life I\n- Prokaryotes (bacteria and archaea)\n- Viruses\n- Protists and fungi",
+                "orderIndex": 21,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Midterm exam",
+                "orderIndex": 22,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Domains of Life II\n- Plant & Animal diversity and classification",
+                "orderIndex": 23,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Bacteriology laboratory\n- Investigating Characteristics of Microorganisms Including Bacteria\n- Bacteria in the Environment,\n- Controlling the Growth of Bacteria",
+                "orderIndex": 24,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Cellular Respiration and Fermentation Laboratory",
+                "orderIndex": 25,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Photosynthesis Laboratory",
+                "orderIndex": 26,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Plant Growth Laboratory",
+                "orderIndex": 27,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "title": "Animal Physiology\n- Nervous system and endocrine system\n- Circulatory and respiratory systems\n- Digestive and excretory system",
+                "orderIndex": 28,
+                "contactHours": 3,
+                "learningOutcomes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "contactHours": {
+                    "quote": "3",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              }
+            ],
+            "assessmentPlan": [
+              {
+                "method": "Exams (mid & final) theoretical & practical",
+                "weight": 70,
+                "timing": "7 & 13",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "method": {
+                    "quote": "Exams (mid & final) theoretical & practical",
+                    "sourcePages": [
+                      23
+                    ]
+                  },
+                  "weight": {
+                    "quote": "70%",
+                    "sourcePages": [
+                      23
+                    ]
+                  },
+                  "timing": {
+                    "quote": "7 & 13",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Quizzes (1 & 2)",
+                "weight": 20,
+                "timing": "3 & 9",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "method": {
+                    "quote": "Quizzes (1 & 2)",
+                    "sourcePages": [
+                      23
+                    ]
+                  },
+                  "weight": {
+                    "quote": "20%",
+                    "sourcePages": [
+                      23
+                    ]
+                  },
+                  "timing": {
+                    "quote": "3 & 9",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              },
+              {
+                "method": "Student individual reports or work",
+                "weight": 10,
+                "timing": "final",
+                "outcomeCodes": [],
+                "sourcePages": [
+                  23
+                ],
+                "fieldEvidence": {
+                  "method": {
+                    "quote": "Student individual reports or work",
+                    "sourcePages": [
+                      23
+                    ]
+                  },
+                  "weight": {
+                    "quote": "10%",
+                    "sourcePages": [
+                      23
+                    ]
+                  },
+                  "timing": {
+                    "quote": "final",
+                    "sourcePages": [
+                      23
+                    ]
+                  }
+                }
+              }
+            ],
+            "references": [
+              {
+                "citation": "Campbell Biology, 12th Edition, Author(s): Lisa A. Urry, Micheal L.\nCain, Steven A. Wasserman, Peter V. Minorsky, Rebecca B. Orr, Neil\nA. Campbell, Publisher: Pearson, Year: 2020, ISBN:\n9780135988046; 0135988047 Investigating Biology Laboratory\nManual, Nin th Edition by Judith Giles Morgan, Emory University,\nand M. Eloise Brown Carter, Oxford College of Emory University\n978 - 0 - 13447346 - 8/0 - 134 - 47346 - 9",
+                "type": "Essential References",
+                "sourcePages": [
+                  24
+                ]
+              },
+              {
+                "citation": "1. Handouts and Lecture notes\n2. Microsoft office package.\n3. Multi - media associated with the textbook and the relevant\nwebsites.",
+                "type": "Supportive References",
+                "sourcePages": [
+                  24
+                ]
+              },
+              {
+                "citation": "https://www.edx.org/",
+                "type": "Electronic Materials",
+                "sourcePages": [
+                  24
+                ]
+              },
+              {
+                "citation": "https://www.coursera.org/learn/Biology",
+                "type": "Other Learning Materials",
+                "sourcePages": [
+                  24
+                ]
+              }
+            ],
+            "teachingStrategies": [
+              "lectures"
+            ],
+            "sourcePages": [
+              16,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25
+            ],
+            "fieldEvidence": {
+              "code": {
+                "quote": "Course Code : BIO 1101",
+                "sourcePages": [
+                  16
+                ]
+              },
+              "creditHours": {
+                "quote": "3 (2+1)",
+                "sourcePages": [
+                  18
+                ]
+              },
+              "level": {
+                "quote": "1 st level",
+                "sourcePages": [
+                  18
+                ]
+              },
+              "nameEn": {
+                "quote": "Course Title : General Biology",
+                "sourcePages": [
+                  16
+                ]
+              },
+              "requirement": {
+                "quote": "☒ Required",
+                "sourcePages": [
+                  18
+                ]
+              },
+              "year": {
+                "quote": "1 st year",
+                "sourcePages": [
+                  18
+                ]
+              }
+            }
+          }
+        ],
+        "sourcePages": [
+          16,
+          22,
+          23,
+          24,
+          25
+        ],
+        "fieldEvidence": {
+          "name": {
+            "quote": "Program : BSc Biology",
+            "sourcePages": [
+              16
+            ]
+          },
+          "version": {
+            "quote": "Version : 47",
+            "sourcePages": [
+              16
+            ]
+          }
+        }
+      }
+    ],
+    "unassignedCourses": [],
+    "warnings": [],
+    "issues": [
+      {
+        "kind": "uncertain",
+        "entity": "BIO1103",
+        "field": "hasLab",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "true"
+        ],
+        "sourcePages": [
+          3
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO1103",
+        "field": "learningOutcomes",
+        "message": "لم يرد النص المقترح في الصفحات المحددة؛ لم يُعتمد ضمن البيانات المستخرجة",
+        "values": [
+          "Identifying the\nmeaning of ecosystem\nand recognizing its\ncomponents, and\ndescribe the different\nbiogeochemical cycles"
+        ],
+        "sourcePages": [
+          4,
+          5
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO1103",
+        "field": "topics.title",
+        "message": "لم يرد النص المقترح في الصفحات المحددة؛ لم يُعتمد ضمن البيانات المستخرجة",
+        "values": [
+          "- desertification – land degradation\n- Types of deserts\n- Desertification stages\n- Causing of desertification: drought, rainfall, snowmelt, floods,\novergrazing, deforestation, farming practices.\n- Causing of desertification: urbanization and land development,\npopulation growth, climate changes, stripping the land for resources\nand natural disasters"
+        ],
+        "sourcePages": [
+          6,
+          7
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO1103",
+        "field": "contactHours",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "6"
+        ],
+        "sourcePages": [
+          7
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO1103",
+        "field": "contactHours",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "6"
+        ],
+        "sourcePages": [
+          8
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO1103",
+        "field": "nameAr",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO1103",
+        "field": "hasLab",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "kind": "conflict",
+        "entity": "college",
+        "field": "college.name",
+        "message": "ظهرت قيم متعارضة في صفحات الملف؛ لم تُحسم تلقائيًا",
+        "values": [
+          "Faculty of S cience",
+          "Science"
+        ],
+        "sourcePages": [
+          1,
+          10
+        ]
+      },
+      {
+        "kind": "conflict",
+        "entity": "department",
+        "field": "department.name",
+        "message": "ظهرت قيم متعارضة في صفحات الملف؛ لم تُحسم تلقائيًا",
+        "values": [
+          "Biology",
+          "Chemistry"
+        ],
+        "sourcePages": [
+          1,
+          10
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO1103",
+        "field": "hasLab",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "true"
+        ],
+        "sourcePages": [
+          8
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO1103",
+        "field": "nameAr",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          8,
+          9
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO1103",
+        "field": "creditHours",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          8,
+          9
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO1103",
+        "field": "hasLab",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          8,
+          9
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "CHM1101",
+        "field": "creditHours",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "3"
+        ],
+        "sourcePages": [
+          12
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "CHM1101",
+        "field": "hasLab",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "true"
+        ],
+        "sourcePages": [
+          12
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "CHM1101",
+        "field": "weight",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "10"
+        ],
+        "sourcePages": [
+          14
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "CHM1101",
+        "field": "nameAr",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "CHM1101",
+        "field": "creditHours",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "CHM1101",
+        "field": "hasLab",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO 1101",
+        "field": "creditHours",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "3"
+        ],
+        "sourcePages": [
+          18
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO 1101",
+        "field": "level",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "1st level"
+        ],
+        "sourcePages": [
+          18
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO 1101",
+        "field": "year",
+        "message": "لم تتوفر عبارة مصدر قابلة للتحقق لهذه القيمة؛ تُركت غير مؤكدة",
+        "values": [
+          "1st year"
+        ],
+        "sourcePages": [
+          18
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO 1101",
+        "field": "learningOutcomes",
+        "message": "لم يرد النص المقترح في الصفحات المحددة؛ لم يُعتمد ضمن البيانات المستخرجة",
+        "values": [
+          "Describe the anatomy, function, genetics, and evolution of different types of organisms"
+        ],
+        "sourcePages": [
+          19,
+          20
+        ]
+      },
+      {
+        "kind": "uncertain",
+        "entity": "BIO 1101",
+        "field": "topics.title",
+        "message": "لم يرد النص المقترح في الصفحات المحددة؛ لم يُعتمد ضمن البيانات المستخرجة",
+        "values": [
+          "Animal Physiology and Homeostasis\n* Immune system and disease\n* Reproductive system and development"
+        ],
+        "sourcePages": [
+          21,
+          22
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO 1101",
+        "field": "nameAr",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          16,
+          18,
+          19,
+          20,
+          21,
+          22
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO 1101",
+        "field": "creditHours",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          16,
+          18,
+          19,
+          20,
+          21,
+          22
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO 1101",
+        "field": "hasLab",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          16,
+          18,
+          19,
+          20,
+          21,
+          22
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO 1101",
+        "field": "nameAr",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          16,
+          22,
+          23,
+          24,
+          25
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO 1101",
+        "field": "creditHours",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          16,
+          22,
+          23,
+          24,
+          25
+        ]
+      },
+      {
+        "kind": "missing",
+        "entity": "BIO 1101",
+        "field": "hasLab",
+        "message": "هذه المعلومة غير متاحة أو غير مؤكدة في صفحات المصدر",
+        "values": [],
+        "sourcePages": [
+          16,
+          22,
+          23,
+          24,
+          25
+        ]
+      },
+      {
+        "kind": "conflict",
+        "entity": "institution",
+        "field": "institution.name",
+        "message": "ظهرت قيم متعارضة في صفحات الملف؛ لم تُحسم تلقائيًا",
+        "values": [
+          "Umm Al - Qura University",
+          "Umm Al - Qura U niversity"
+        ],
+        "sourcePages": [
+          1,
+          10,
+          16,
+          26,
+          32,
+          43,
+          49,
+          58
+        ]
+      }
+    ],
+    "document": {
+      "pageCount": 365,
+      "chunkCount": 35,
+      "processedPages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "emptyPages": [],
+      "parser": "pdfjs-dist/5.4.296"
+    }
+  }
+}

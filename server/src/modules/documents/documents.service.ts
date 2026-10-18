@@ -20,6 +20,7 @@ export async function generateGradeSheetPdf(workspaceId: string, courseId: strin
   const html = renderGradeSheetHtml({
     courseCode: grid.course.code,
     courseNameAr: grid.course.nameAr,
+    courseNameEn: grid.course.nameEn,
     sectionLabel: grid.section.label,
     teacherName: await teacherName(workspaceId),
     generatedAt: new Date(),
@@ -51,6 +52,7 @@ export async function buildCourseFileHtml(workspaceId: string, courseId: string)
     select: {
       code: true,
       nameAr: true,
+      nameEn: true,
       creditHours: true,
       gradeScheme: true,
       semester: { select: { label: true, academicYear: { select: { label: true } } } },
@@ -95,6 +97,7 @@ export async function buildCourseFileHtml(workspaceId: string, courseId: string)
   return renderCourseFileHtml({
     code: course.code,
     nameAr: course.nameAr,
+    nameEn: course.nameEn,
     creditHours: course.creditHours,
     term: `${course.semester.label} — ${course.semester.academicYear.label}`,
     teacherName: await teacherName(workspaceId),

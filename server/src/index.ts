@@ -12,6 +12,7 @@ import { alertServerError } from "./lib/alerts.js";
 import { bootstrapOwner } from "./modules/owner/staff.service.js";
 import { migrateBlobsToObjectStorage } from "./modules/files/blobMigration.js";
 import { migrateBucket } from "./modules/files/bucketMigration.js";
+import { startInlineSpecificationExtractionQueue } from "./modules/academic/specificationExtraction.service.js";
 
 installArabicZodErrorMap();
 
@@ -26,6 +27,7 @@ const server = app.listen(env.PORT, () => {
 });
 
 startTermCloser();
+const stopSpecificationQueue = startInlineSpecificationExtractionQueue();
 // مهام الإقلاع تتولاها نسخة خادم واحدة حين تعمل أكثر من نسخة (تُقلعان معًا عند كل نشر).
 // ينتظر اتصال Redis لحظة كي لا تفوز كل نسخة بالقفل لأن الاتصال لم يجهز بعد.
 void (async () => {
@@ -47,6 +49,7 @@ let shuttingDown = false;
 async function gracefulShutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
+  stopSpecificationQueue();
   logger.info(`استلام ${signal} — بدء الإغلاق النظيف`);
 
   server.close(async () => {

@@ -112,7 +112,7 @@ export async function preventiveAlerts(workspaceId: string, now = new Date()): P
       id: `setup-${c.id}`,
       tone: "amber",
       icon: "book",
-      title: `أكمل تجهيز ${c.nameAr}`,
+      title: `أكمل تجهيز ${c.nameAr?.trim() || c.nameEn?.trim() || "المقرر"}`,
       body: `اكتمل ${c.setup.done} من ${c.setup.total} — التالي: ${c.setup.next.label}`,
       action: { label: c.setup.next.label, to: `/course/${c.id}/setup?step=${c.setup.next.key}` },
     });
